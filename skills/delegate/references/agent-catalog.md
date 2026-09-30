@@ -25,14 +25,22 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
 
 | `subagent_type` | model | effort | maxTurns | output cost |
 |---|---|---|---|---|
-| `mechanical` | `haiku` | `low` | 12 | 1x |
+| `mechanical` | `haiku` | *(none - inert on Haiku)* | 12 | 1x |
 | `worker` | `sonnet` | `medium` | 25 | 2x |
 | `reviewer` | `inherit` | `high` | 20 | session model |
+| `builder` | `inherit` | `high` | 30 | session |
 | `judge` | `opus` | `xhigh` | 15 | 4-5x |
 
 ### `mechanical` — haiku / low
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist.
 - **Do NOT use when:** the task needs a call between defensible alternatives, **or reads a lot** — Haiku's context is 200K, a hard ceiling that no amount of "but it's mechanical" overrides.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash; `Agent` disallowed.
+
+### `builder` — inherit / high, with Edit + Write
+- **Use when:** the work must change files AND needs the session model's judgment — an
+  ambiguous spec, per-target adaptation, or a blast radius that makes a downgrade unsafe.
+  This is where the safe-downgrade gate sends you when the job still writes code.
+- **Do NOT use when:** the task is fully specified — `worker` does it at half the cost.
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash; `Agent` disallowed.
 
 ### `worker` — sonnet / medium

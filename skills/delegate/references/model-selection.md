@@ -154,6 +154,22 @@ compounds with turn count; CLAUDE.md was only ~500 tokens of it. Dropping Haiku�
 saves less than trimming an all-tools agent to the six tools it needs. Scope `tools:`
 before you touch model or effort.
 
+## Two things that break the table above
+
+**Haiku takes no effort setting.** Haiku 4.5 does not accept a reasoning-effort
+parameter; the harness drops it silently. Every `haiku` cell in the effort grid is
+therefore "model default", not the effort named — and shipping `effort:` on a Haiku
+agent definition produces a knob that reads as tuned and does nothing. Verified from
+this plugin's own subagent transcripts: the Haiku runs record no effort at all, while
+the Sonnet and Opus runs record `medium` and `high` exactly as declared.
+
+**An advisor re-prices every row.** When a session has an advisor configured, each
+subagent receives it — measured here as `claude-fable-5-1` at 10×, injected into every
+tier including `mechanical`. A single consult from a 1× agent costs more than the agent.
+Treat this table as the floor: it is what the tier costs if nothing escalates. The
+control is session-level (`/advisor off`); the advisor arrives as an attachment rather
+than through the agent's tool list, so `disallowedTools` is untested against it.
+
 ## How to set each knob
 
 | Where | model | effort | maxTurns | omitClaudeMd | tools |

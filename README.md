@@ -35,10 +35,21 @@ and you get its model *and* its effort.
 
 | `subagent_type` | Model | Effort | Output cost | Use when |
 |---|---|---|:---:|---|
-| `mechanical` | haiku | low | **1×** | Fully specified, deterministic, verifiable without judgment |
+| `mechanical` | haiku | — ¹ | **1×** | Fully specified, deterministic, verifiable without judgment |
 | `worker` | sonnet | medium | **2×** | Ordinary implementation and research — the default |
 | `reviewer` | inherit | high | *session* | Finding what is wrong (no Edit/Write) |
+| `builder` | inherit | high | *session* | Implementation needing judgment — **writes** |
 | `judge` | opus | xhigh | **4–5×** | A contested call where being wrong is expensive (no Edit/Write) |
+
+¹ **Haiku 4.5 accepts no reasoning-effort setting** — the harness drops it and the
+transcripts record none, so `mechanical` deliberately ships without an `effort:` line
+rather than carry a knob that does nothing.
+
+> **The multipliers are a floor, not a ceiling.** If an advisor is configured for the
+> session (`/advisor`), *every* subagent is given it — measured here as
+> `claude-fable-5-1`, the 10× tier, injected even into `mechanical`. One advisor consult
+> inverts the saving you pinned the tier for. `/advisor off` is the reliable control;
+> per-agent `disallowedTools` is untested against it.
 
 Cost multipliers are output-token ratios against Haiku 4.5. `opus` is an alias that
 resolves to your configured default Opus, and that spans two priced rows (Opus 5.5 at 4×,

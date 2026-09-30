@@ -32,7 +32,8 @@ Answer the first question that hits. Stop there. Everything below is backing det
 
 **Losing tier arbitrage does not un-justify the delegation.** If you named tier arbitrage
 at rule 3 and the safe-downgrade gate later disqualifies the cheap tier, you do **not**
-fall back to inline — you delegate at the inherited model and collect the other payoffs
+fall back to inline — you delegate at the inherited model — that is what `builder`
+is for when the work writes, `reviewer` when it does not — and collect the other payoffs
 (parallelism, context protection) instead. Only the *tier* changes, never the *shape*.
 Shape is decided by the ladder; tier is decided by the predicates, and they are
 independent questions answered in that order.
@@ -150,14 +151,41 @@ for `parallel()` only when stage N genuinely needs cross-item context from **all
 stage N−1 (dedup, rank, early-exit on zero). "I need to flatten first" is not a reason;
 do it inside a stage. See `references/workflow-patterns.md`.
 
-**Isolation.** Set `isolation: 'worktree'` only when concurrent agents would *actually
-conflict* — they write the **same paths**, or any of them runs **git operations**
-(commit, checkout, stash, branch), which share one index and HEAD across the checkout.
+**Isolation.** The criterion is not "does this agent write" — it is **can this agent's
+inputs change while it runs, no matter who changes them.** Isolate when:
 
-Concurrent writes to **disjoint paths in one tree do not conflict** and do not need it:
-twelve agents each editing their own board directory are fine unedited. Worktrees cost
-~200-500ms plus disk *per agent*, so the default is off. Never set it on a read-only
-stage — a reviewer or judge has nothing to isolate.
+- two or more agents write the **same paths**; or
+- any agent runs **git operations** (commit, checkout, stash, branch) — one index and
+  one HEAD are shared across the checkout; or
+- **you, the orchestrator, will keep editing files the agent is reading.** A read-only
+  reviewer is *not* automatically safe: it has nothing to isolate *from itself*, but it
+  is still reading a tree you are mutating.
+
+Concurrent writes to **disjoint paths do not conflict** and need no worktree: twelve
+agents each editing their own board directory are fine unisolated. Worktrees cost
+~200-500ms plus disk *per agent*, so the default is off.
+
+### Coordinating with agents you have already spawned
+
+A subagent reading a file you are simultaneously rewriting will re-read, notice the
+mismatch, and spend turns re-verifying — a real cost, paid at that tier's rate, for
+nothing. **Measured here:** a `reviewer` audit hit exactly this and spent 26 Bash calls,
+most of them `git status` / `cat` / md5 churn establishing which version it was even
+looking at.
+
+The protocol, in order of preference:
+
+1. **Freeze, then brief.** Commit first, name the SHA in the brief ("review SKILL.md at
+   `abc1234`"), and do not touch those files until the agent returns. Cheapest, and
+   needs no worktree.
+2. **Give the reader a worktree.** If you must keep editing, `isolation: 'worktree'`
+   hands it a stable snapshot. Costs setup; buys independence.
+3. **Batch your edits.** Queue changes and apply them after the read-only stage returns.
+   Fan-out stages are short; your edits usually can wait.
+
+Whichever you pick, **say in the brief which files are frozen and which are moving.** An
+agent told "work from the SHA in your prompt, the tree is live" behaves; one that
+discovers it by surprise burns turns proving the ground moved.
 
 Script hygiene, because a dead script costs the whole run: `Date.now()`,
 `Math.random()` and argless `new Date()` **throw**. `agent()` returns `null` on skip or
@@ -196,8 +224,8 @@ high-volume subagent work.
 | session model, session effort | usually | omit `model` — but this yields the *default subagent model*, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can override |
 | session model, `high` | yes | `reviewer` — **the only shipped definition that moves effort without moving model** |
 | session model, `medium` or `low` | **no** | Workflow, or ship a 5-line definition file |
-| session model **with Edit/Write** | **no** | `reviewer` inherits but is read-only. Use a Workflow (`agent(prompt, {effort})`, no `model` key), or ship a definition — no shipped tier covers inherit-plus-write |
-| haiku / low | yes | `mechanical` |
+| session model **with Edit/Write** | yes | `builder` — inherits, `high`, has Edit/Write. (`reviewer` inherits but cannot write.) |
+| haiku (any effort) | n/a | `mechanical`. **Haiku 4.5 takes no effort setting** — the harness drops it, and this tier's transcripts record none. Do not ship `effort:` on a Haiku agent; it reads as a tuned knob and does nothing. |
 | sonnet / medium | yes | `worker` |
 | opus / xhigh | yes | `judge` |
 | anything at `max` | **no** | Workflow only |
@@ -278,9 +306,38 @@ only when the report is small; (3) **adversarial pass** — hand `reviewer` the 
 *and* the brief and ask it to find the failure. "Confirm this is correct" gets you
 agreement; "find what is wrong with this" gets you review.
 
+## The advisor makes every tier price a floor
+
+**Measured on this harness:** every subagent spawned in this session received an
+`advisor_tool` attachment with `available: true` and `model: claude-fable-5-1` — the
+**10×** tier. That included `mechanical`, the 1× tier.
+
+This is session-scoped, not per-agent. The advisor is configured once for the
+conversation (`/advisor`, `/advisor <model>`, `/advisor off`, or `--advisor` at launch)
+and is then injected into every subagent the session spawns. Consequences:
+
+- **The cost table below is a floor, not a ceiling.** A "1× mechanical" agent that
+  consults a Fable advisor once is not a 1× agent for that run.
+- **An advisor call silently undoes a downgrade.** The whole point of pinning
+  `mechanical` or `worker` is to spend less than the session model; a Fable consult
+  inverts that, and nothing in the tier's own definition prevents it.
+- **The control is session-level.** `/advisor off` for the session is the reliable
+  lever. Per-agent suppression via `disallowedTools` is **untested and probably
+  ineffective** — the advisor arrives as an attachment (`toolChange: add`) rather than
+  through the agent's tool list, so do not assume frontmatter governs it.
+- **It is not always wrong.** On `judge` or `reviewer` — tiers whose job is correctness
+  — a stronger second opinion is the point. On a bulk `mechanical` fan-out it is pure
+  cost inversion.
+
+**If you are fanning out many cheap agents and cost predictability matters, turn the
+advisor off for that session.** If you leave it on, price the fan-out at the advisor's
+tier, not the agent's.
+
 ## Fable
 
-**Never set `model: "fable"` on a subagent.** The argument is structural:
+**Never set `model: "fable"` on a subagent** — though note the section above: if an
+advisor is configured, your subagents can already *reach* Fable, so this rule is about
+not paying Fable rates for every token a subagent emits. The argument is structural:
 
 - The 10× premium is on **output**, and a subagent's output is *intermediate* — you
   read it, compress it, then relay it.
@@ -305,7 +362,8 @@ Shipped definitions are namespaced: `intelligent_delegate:mechanical`, and so on
 | `general-purpose` | open-ended multi-step, full tool access | anything a tiered definition covers more precisely |
 | `mechanical` (haiku/low) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step |
 | `worker` (sonnet/medium) | well-specified implementation with a deterministic check attached | ambiguous specs — it will pick a reading and commit |
-| `reviewer` (inherit/high) | adversarial verification and code review — judgment at session-model quality for less spend | producing the fix |
+| `reviewer` (inherit/high) | adversarial verification and code review — judgment at session-model quality for less spend | producing the fix — that is `builder` |
+| `builder` (inherit/high, **writes**) | implementation needing the session model's judgment: ambiguous spec, per-target adaptation, unsafe-to-downgrade blast radius | fully specified work — `worker` does it at half the cost |
 | `judge` (opus/xhigh) | the call you cannot afford to get wrong, or breaking a tie between two verdicts | routine implementation |
 
 ## Anti-patterns
@@ -328,7 +386,13 @@ Shipped definitions are namespaced: `intelligent_delegate:mechanical`, and so on
     tool schema on every request. Measured here: 42k of cold-start prefix versus 7.5k for
     a 6-tool definition, for the same answer. If you find yourself reaching for
     `general-purpose` repeatedly, ship a definition with a narrow `tools:` list instead.
-11. **Silent caps.** If you bound coverage — top-N, no-retry, sampling — say what was
+11. **Editing files an agent you spawned is reading.** It re-reads, sees a mismatch, and
+    spends turns establishing which version is real — paid at that agent's tier. Commit
+    first and pin the SHA in the brief, or give it a worktree. Read-only does not mean
+    collision-free; it means it is not the one causing the collision.
+12. **Assuming the tier price is the total.** If an advisor is configured for the
+    session, every subagent can reach it — here, Fable at 10×. Price the floor.
+13. **Silent caps.** If you bound coverage — top-N, no-retry, sampling — say what was
     dropped. Silent truncation reads as "covered everything" when it didn't.
 
 ## References

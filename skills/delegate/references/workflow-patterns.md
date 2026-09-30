@@ -7,6 +7,7 @@ Tier shorthand used throughout — these are just `agent()` opts:
 
 - **mechanical** — `{model: 'haiku', effort: 'low'}`
 - **worker** — `{model: 'sonnet', effort: 'medium'}`
+- **builder** — `{effort: 'high'}` plus write tools; omitting `model` inherits the session model
 - **reviewer** — `{effort: 'high'}`; omitting `model` inherits the session model
 - **judge** — `{model: 'opus', effort: 'xhigh'}`
 
@@ -109,12 +110,16 @@ The budget is a hard ceiling shared with the main loop: once `spent()` reaches `
 ## isolation: 'worktree'
 
 Real cost: ~200-500ms plus disk setup **per agent**, on top of the token spend. The only
-condition that justifies it is concurrent stages that **would actually conflict** — they
-write the **same paths**, or any of them runs **git operations** (commit, checkout, stash),
-which share one index and HEAD. Concurrent writes to **disjoint paths are safe unisolated**:
-twelve agents each editing their own directory need no worktree. Every verify,
-judge, critic, and search stage is read-only and must not be isolated, and those are
-precisely the stages people reflexively isolate. The worktree is auto-removed if unchanged,
+condition that justifies it is that a stage's **inputs can change while it runs** — two
+stages writing the **same paths**, any stage running **git operations** (commit, checkout,
+stash), which share one index and HEAD, or **the orchestrator editing files a stage is
+reading**. That last case is the one people miss: a read-only verify stage is not safe
+merely because it does not write, if the caller is rewriting the tree underneath it.
+Concurrent writes to **disjoint paths are safe unisolated**: twelve agents each editing
+their own directory need no worktree. Every verify,
+judge, critic, and search stage is read-only and needs no worktree **provided the tree is
+stable while it runs** — if you will keep editing, either freeze and pin a SHA in the
+brief or give it one after all. The worktree is auto-removed if unchanged,
 so an isolated read-only agent paid the setup for nothing.
 
 ## The concurrency cap
