@@ -13,8 +13,9 @@ match, and only read further if that call was close.
 
 Answer the first question that hits. Stop there. Everything below is backing detail.
 
-1. **Will the subagent throw away most of what it reads?** If no — you can name the
-   file, or the inline version is three tool calls or fewer — **do it inline.**
+1. **Is this ONE target, and would the subagent keep most of what it reads?** →
+   **do it inline.** Being able to *name* the files is not enough on its own: twelve
+   files you can name is still a fan-out, so count targets before you take this exit.
 2. **Is an agent already running on this?** → **`SendMessage` it.** Never open a fresh
    Agent for a follow-up; its context is still warm.
 3. **Name the payoff you are buying** — context protection, tier arbitrage, or
@@ -22,13 +23,19 @@ Answer the first question that hits. Stop there. Everything below is backing det
 4. **One target, bounded question, big search, small answer?** → **one Agent call.**
    Omit `model`.
 5. **Three or more similar items, or more than one stage per item?** → **Workflow,
-   `pipeline()`.**
+   `pipeline()`.** This beats rule 1 whenever they disagree — item count wins over
+   "I know which files".
 6. **Need a specific effort level or a validated `schema`, and no shipped definition
    fits?** → **Workflow**, even for a single item. That is the only other door.
 7. **Still unsure?** → inline. The floor is higher than it feels.
 
-Rule 1 is a *volume* test, not a turn-count test. "Digest this 60K-line changelog" is
-two tool calls and still belongs in a subagent — the volume is the whole point.
+Two ways rule 1 misfires, both worth memorising:
+
+- **It is a *volume* test, not a turn-count test.** "Digest this 60K-line changelog" is
+  two tool calls and still belongs in a subagent — the volume is the point.
+- **It is a *single-target* test, not a "do I know the filenames" test.** "Apply this
+  same edit to 12 board directories" names every file up front and is still a fan-out.
+  When rule 1 and rule 5 disagree, **rule 5 wins.**
 
 ## The delegation floor
 
@@ -110,10 +117,20 @@ have to read them again.
 - You need `effort` or a validated `schema` and no shipped definition provides it.
   This flips even a single item.
 
+**The four tiers work inside a Workflow too.** `agent()` takes `agentType`, so
+`agent(prompt, {agentType: 'intelligent_delegate:worker'})` gets that definition's model
+and effort — the same tiers, one parameter over. Use `{model, effort}` directly only when
+no shipped definition fits, or when you need `max` effort.
+
 Inside a Workflow, `pipeline()` is the default — per-item streaming, no barrier. Reach
 for `parallel()` only when stage N genuinely needs cross-item context from **all** of
 stage N−1 (dedup, rank, early-exit on zero). "I need to flatten first" is not a reason;
 do it inside a stage. See `references/workflow-patterns.md`.
+
+**Isolation.** If two or more stages **write to the tree concurrently**, set
+`isolation: 'worktree'` on those agents or they will corrupt each other's edits. That is
+the only condition that justifies it — it costs ~200-500ms and disk per agent, so never
+set it on read-only stages. Detail in `references/workflow-patterns.md`.
 
 Script hygiene, because a dead script costs the whole run: `Date.now()`,
 `Math.random()` and argless `new Date()` **throw**. `agent()` returns `null` on skip or

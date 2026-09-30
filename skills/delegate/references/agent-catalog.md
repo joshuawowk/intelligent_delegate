@@ -36,7 +36,10 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash; `Agent` disallowed.
 
 ### `worker` — sonnet / medium
-- **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec. This is the default; reach for it unless something argues otherwise.
+- **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec. This is the default *shipped tier* — if you have decided to pin a tier, start here.
+  It does **not** override the skill body's rule that the default is to omit `model`
+  entirely and inherit the session model; pin `worker` only when you actively want
+  sonnet/medium rather than whatever the session is running.
 - **Do NOT use when:** the task is pure mechanical churn (pay 1x instead) or a contested judgment call where being confidently wrong is expensive.
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch; `Agent` disallowed.
 
