@@ -182,11 +182,11 @@ the model and the effort, which a bare `Agent` call cannot express — **this
 indirection is the mechanical point of the plugin.** Plugin agents are namespaced;
 bare `mechanical` resolves only for a project-local `.claude/agents/mechanical.md`.
 
-`SKILL.md` frontmatter: some third-party plugins do set `effort:` and `maxTurns:`
-there, but **neither key is in the published Agent Skills spec** — which allows
-only `name`, `description`, `license`, `allowed-tools`, `metadata`, and
-`compatibility` — and the official `skill-creator` validator rejects anything
-else. Whether this harness silently honors them or silently ignores them is
-**unverified**, so do not build a tiering decision on it. That is precisely why
-this plugin puts its tiering in `agents/*.md`, where `effort:` *is* documented
-behaviour, rather than in skill frontmatter.
+`SKILL.md` frontmatter: `effort:` there **is** honoured by this harness — the release
+notes record fixing it being ignored on some models, which only makes sense for a
+supported key. But it sets **the invoking turn's** effort, never a subagent's, so it is
+not a delegation lever. It is also **not in the published Agent Skills spec** — which
+allows only `name`, `description`, `license`, `allowed-tools`, `metadata`, and
+`compatibility` — so the official `skill-creator` validator rejects it and the skill
+stops being portable. That is why this plugin puts its tiering in `agents/*.md`, where
+`effort:` is both documented and spec-legal.

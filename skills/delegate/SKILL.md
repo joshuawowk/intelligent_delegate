@@ -64,30 +64,37 @@ R  the report — counted TWICE (its output tokens, then your input tokens to re
    three times if you relay it to the user verbatim
 ```
 
-**Measured on this harness** (same model, same prompt, identical output — only the agent
-definition differed):
+**Controlled A/B on this harness.** `mechanical` vs `general-purpose` with `model: "haiku"`
+pinned on both — verified from the transcripts that both ran `claude-haiku-4-5`, same
+prompt, byte-identical output. Only the definition differed:
 
-| agent | tools declared | CLAUDE.md | cold-start prefix |
-|---|--:|:--:|--:|
-| `reviewer` | 4 | kept | **6.8k** |
-| `mechanical` | 6 | omitted | **7.5k** |
-| `worker` | 8 | kept | **12.0k** |
-| `general-purpose` | all | kept | **42.4k** |
+| agent | tools | CLAUDE.md | cold-start prefix | total input, 9 requests |
+|---|--:|:--:|--:|--:|
+| `mechanical` | 6 | omitted | **7.5k** | **98k** |
+| `general-purpose` | all | kept | **42.4k** | **435k** |
 
-Over a 9-request run, `mechanical` spent **98k** total input against `general-purpose`'s
-**435k** — for byte-identical output.
+**4.4× for the same answer**, and CLAUDE.md is only ~500 tokens of the 34.9k prefix gap —
+the rest is tool schemas, re-sent every request.
 
-A **4.4× difference for the same answer.** CLAUDE.md is only ~500 tokens of that gap —
-the rest is tool schemas, re-sent every request. Note `reviewer` beats `mechanical`
-*while keeping CLAUDE.md*, purely on having two fewer tools: the prefix tracks the tool
-surface, not the project context. So:
+For scale, the prefix of each shipped tier as actually measured (these run *different*
+models, so read the column as prefix-by-tool-surface, not as a controlled comparison):
+
+| agent | tools | CLAUDE.md | model run | cold-start prefix |
+|---|--:|:--:|---|--:|
+| `reviewer` | 4 | kept | `claude-opus-5` | **6.8k** |
+| `mechanical` | 6 | omitted | `claude-haiku-4-5` | **7.5k** |
+| `worker` | 8 | kept | `claude-sonnet-5` | **12.0k** |
+| `general-purpose` | all | kept | (as passed) | **42.4k** |
+
+Prefix tracks tool count, not model tier and not project context — `reviewer` is the
+most expensive *model* here and still has the smallest prefix, on four tools. So:
 
 > **Restricting `tools:` in an agent definition is the single biggest token lever
 > available to you** — bigger than `omitClaudeMd`, bigger than dropping a model tier.
 > Give each definition only the tools its job needs.
 
-Budget `S + C` at **~8k** for a tightly-scoped definition and **~40k+** for an
-all-tools agent. Practical break-even: **if D is under ~15k tokens, do it inline** —
+Budget `S + C` at **~7–12k** for a scoped definition (4–8 tools, as measured above) and
+**~40k+** for an all-tools agent. Practical break-even: **if D is under ~15k tokens, do it inline** —
 and note that an all-tools agent has already spent more than that before it reads
 anything.
 
@@ -100,7 +107,7 @@ anything.
   reproduce it. Unless D is genuinely large, write it yourself.
 - **`Explore` and `Plan` omit CLAUDE.md**, so their floor is lower. Route locate-only
   work there rather than to `general-purpose`.
-- **Cut `S` first, then `C`.** A narrow `tools:` list is worth ~10× what `omitClaudeMd`
+- **Cut `S` first, then `C`.** A narrow `tools:` list is worth ~70× what `omitClaudeMd`
   is (34k vs 0.5k in the measurement above). Do both, in that order.
 - **You can zero out `C` yourself.** `omitClaudeMd: true` in an agent definition runs that
   subagent without user, project and local CLAUDE.md. Worth it when the brief is
@@ -194,8 +201,11 @@ high-volume subagent work.
 | anything at `max` | **no** | Workflow only |
 
 The Agent tool's `model` enum is `haiku|sonnet|opus|fable` — there is **no `inherit`
-value to pass**. Express inherit by omitting `model`, or by using `reviewer`
-(`model: inherit`) as `subagent_type`.
+value to pass**. Omitting `model` only *usually* inherits: it resolves to the **default
+subagent model**, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can point
+elsewhere. With `CLAUDE_CODE_SUBAGENT_MODEL=haiku`, "omit to inherit" silently hands an
+Opus session a Haiku subagent — the exact downgrade this section exists to prevent. The
+**reliable** route is `reviewer`, whose frontmatter says `model: inherit` literally.
 
 **Lower effort before lowering model.** Effort trades thoroughness against spend
 *within* one model — the judgment quality you rely on stays put and the cache stays
@@ -237,10 +247,14 @@ run**; a failure is detectable in under ~1k tokens of your reading.
 is cheaper only while the first-pass failure rate `p` stays under
 
 ```
-p* = (dear − cheap) / (dear + d)        d = your cost to notice the failure and re-brief
+p* = (dear − cheap) / (dear + d)
+
+   d = your cost to notice the failure and re-brief, in the SAME absolute units as the
+       multipliers (1 unit = one Haiku-equivalent). It is your own reading cost, so it
+       does not scale with the tier under test — keep it absolute, not "one cheap run".
 ```
 
-| cheap → dear | `d` = 0 (free detection) | `d` = 1 cheap-unit (realistic) |
+| cheap → dear | `d` = 0 (free detection) | `d` = 1 unit (realistic) |
 |---|:--:|:--:|
 | haiku → sonnet | 0.50 | **0.33** |
 | sonnet → opus (4×) | 0.50 | **0.40** |
