@@ -1,7 +1,8 @@
 # Agent catalog
 
 Every value you can pass as `subagent_type`, and what it costs. Output-token cost is the
-number to reason with: **Haiku 1x / Sonnet 2x / Opus 5x / Fable 10x**.
+number to reason with: **Haiku 1x / Sonnet 2x / Opus 4-5x / Fable 10x** (the `opus` alias
+spans Opus 5.5 at 4x and Opus 5 at 5x).
 
 ## The mechanism (read this first)
 
@@ -14,7 +15,7 @@ tool's `agent(prompt, {effort})` where `max` is also available.
 So: *the only way to get a specific effort level out of the Agent tool is to pass the
 name of a definition that pins it.* That is what the four definitions below exist for.
 `SKILL.md` frontmatter is **not** a third lever: it does not set a subagent's effort —
-only an agent definition does. (See the README for why `effort:` in `SKILL.md` is unsafe.)
+only an agent definition does. (See `model-selection.md` for what `effort:` in `SKILL.md` does and does not do.)
 
 Every subagent starts with **cold context** — it cannot see the conversation — and its
 final report is **not shown to the user**, so the caller must relay it. Plugin agents are
@@ -41,7 +42,7 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
 
 ### `reviewer` — inherit / high
 - **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
-- **Do NOT use when:** you want the defect fixed — this tier is read-only by design; route the fix to `worker` afterwards.
+- **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `worker` afterwards.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
 
 ### `judge` — opus / xhigh
@@ -85,7 +86,7 @@ Full tool access, multi-step, open-ended.
 | Same, but 400K of input | `worker` | Haiku's 200K context is a hard wall |
 | Implement a scoped feature | `worker` | Comprehension with a knowable right answer |
 | Trace how a subsystem works | `worker` | Needs whole files, not excerpts |
-| Review a diff for defects | `reviewer` | Read-only, `high`, tracks session model |
+| Review a diff for defects | `reviewer` | No Edit/Write, `high`, tracks session model |
 | Verify another agent's claim | `reviewer` | Adversarial read, no write authority |
 | Two reviewers disagree | `judge` | Adjudication at 5x, once, not per item |
 | Irreversible architectural call | `judge` | Cost of being wrong dominates spend |

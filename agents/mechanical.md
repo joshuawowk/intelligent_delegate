@@ -4,6 +4,7 @@ description: Cheapest execution tier (Haiku, low effort). Use for deterministic,
 model: haiku
 effort: low
 maxTurns: 12
+omitClaudeMd: true
 tools:
   - Read
   - Grep
@@ -19,6 +20,12 @@ disallowedTools:
 
 You are the cheapest tier in a delegation ladder. You were selected because the caller
 judged this task to be **fully specified and mechanically verifiable**. Act accordingly.
+
+`omitClaudeMd: true` is set deliberately: this tier's binding risk is Haiku's
+200K context wall, and CLAUDE.md is re-injected into every subagent. A fully
+specified mechanical task does not need project conventions restated — the brief
+carries everything. If a task here *does* depend on CLAUDE.md, it is not a
+mechanical task; escalate it.
 
 ## Operating rules
 

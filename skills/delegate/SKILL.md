@@ -60,6 +60,10 @@ under ~15k tokens, do it inline.**
   reproduce it. Unless D is genuinely large, write it yourself.
 - **`Explore` and `Plan` omit CLAUDE.md**, so their floor is lower. Route locate-only
   work there rather than to `general-purpose`.
+- **You can zero out `C` yourself.** `omitClaudeMd: true` in an agent definition runs that
+  subagent without user, project and local CLAUDE.md. Worth it when the brief is
+  self-contained — `mechanical` ships with it set, because `C` is spent inside Haiku's
+  200K wall. Never set it when the task depends on project conventions.
 - **Specify the report's shape and length in the brief.** After D, `R` is the only term
   you control. A two-line verdict costs a fifth of a narrated summary.
 
@@ -106,20 +110,26 @@ reachable exactly two ways:
 2. **A Workflow**: `agent(prompt, { effort })` — `low|medium|high|xhigh|max`. `max` is
    Workflow-only.
 
-`SKILL.md` frontmatter is **not** a third route. Some plugins set `effort:` there, but
-it is not in the Agent Skills spec and the official validator rejects it — unverified
-whether the harness honours it. Do not route on it.
+`SKILL.md` frontmatter is **not** a third route. `effort:` there is honoured by this
+harness, but it sets **the invoking turn's** effort — not a subagent's. It is also absent
+from the published Agent Skills spec and fails the `skill-creator` validator, so it does
+not travel. Never route a subagent on it.
 
-Claude Code's default effort is `xhigh`, the right setting for most coding and agentic
-work. `high` is the sweet spot balancing quality against token efficiency. `low` means
-fewer, more-consolidated tool calls and less preamble — good for simple or high-volume
-subagent work.
+A bare Agent call runs at **the session's** effort, whatever that is — the Agent tool
+gives you no way to raise or lower it. Defaults are per-model and change between releases,
+so do not assume a level; if a stage needs a specific one, that is a `subagent_type` or a
+Workflow, not a prompt instruction.
+
+`xhigh` suits most coding and agentic work; `high` is the usual sweet spot between quality
+and token efficiency, and is the better default when you are paying for many subagents.
+`low` means fewer, more-consolidated tool calls and less preamble — good for simple or
+high-volume subagent work.
 
 **What is actually reachable from a single Agent call:**
 
 | you want | reachable? | how |
 |---|---|---|
-| session model, session effort | yes | omit `model` |
+| session model, session effort | usually | omit `model` — but this yields the *default subagent model*, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can override |
 | session model, `high` | yes | `reviewer` — **the only shipped definition that moves effort without moving model** |
 | session model, `medium` or `low` | **no** | Workflow, or ship a 5-line definition file |
 | haiku / low | yes | `mechanical` |
@@ -138,8 +148,9 @@ model-scoped.
 
 ## Model tier: the no-downgrade predicates
 
-Output-token cost is the number to reason with: **Haiku 1× / Sonnet 2× / Opus 5× /
-Fable 10×.** Default: **inherit the session model.** Depart only with high confidence,
+Output-token cost is the number to reason with: **Haiku 1× / Sonnet 2× / Opus 4–5× /
+Fable 10×.** (`opus` is an alias for your configured default Opus, which spans two priced
+rows — Opus 5.5 at 4×, Opus 5 at 5×. Pin the full id when a budget turns on the difference.) Default: **inherit the session model.** Depart only with high confidence,
 which means evaluating the predicates below rather than waving at them.
 
 **No-downgrade — any ONE of these is disqualifying:**
@@ -162,11 +173,23 @@ which means evaluating the predicates below rather than waving at them.
 are homogeneous; output is validated by something deterministic you **will actually
 run**; a failure is detectable in under ~1k tokens of your reading.
 
-**The retry math.** Judge cost per *completed task*, not per request. A cheap-tier
-failure costs the failed run, plus detection, plus the rerun at the tier you should have
-used — 1× wasted plus ≥2× to redo is ≥3× before counting detection. **Haiku that fails
-once is more expensive than Sonnet that succeeds.** Break-even first-pass failure rates:
-haiku→sonnet ≈ **0.33**, sonnet→opus ≈ **0.50**. Demand margin, not break-even.
+**The retry math.** Judge cost per *completed task*, not per request. Going cheap-first
+is cheaper only while the first-pass failure rate `p` stays under
+
+```
+p* = (dear − cheap) / (dear + d)        d = your cost to notice the failure and re-brief
+```
+
+| cheap → dear | `d` = 0 (free detection) | `d` = 1 cheap-unit (realistic) |
+|---|:--:|:--:|
+| haiku → sonnet | 0.50 | **0.33** |
+| sonnet → opus (4×) | 0.50 | **0.40** |
+| sonnet → opus (5×) | 0.60 | **0.50** |
+
+`d = 0` assumes you spot the bad result for free, which you never do — use the right-hand
+column and then demand margin on top, because `d` is estimated, a retry also costs
+wall-clock, and **failure you cannot detect makes the whole table inapplicable**.
+**Haiku that fails once is more expensive than Sonnet that succeeds.**
 
 **Escalate on blast radius, not on difficulty.** When failure is silent — a review you
 will trust, a plan you will build twenty turns on — the cost of being wrong is not a

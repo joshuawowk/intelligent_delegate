@@ -20,10 +20,11 @@ The `Agent` tool accepts `model` — `haiku | sonnet | opus | fable` — but it 
 | `Workflow` `agent(prompt, opts)` | ✅ | ✅ |
 | Agent definition frontmatter (`agents/*.md`) | ✅ | ✅ |
 
-(`SKILL.md` frontmatter is **not** a third lever. Some plugins in the wild set
-`effort:` there, but the published Agent Skills spec allows only `name`,
-`description`, `license`, `allowed-tools`, `metadata`, and `compatibility` — and
-the official `skill-creator` validator rejects anything else. Don't rely on it.)
+(`SKILL.md` frontmatter is **not** a third lever. `effort:` there *is* honoured by the
+harness, but it sets the invoking turn's effort — never a subagent's. It is also absent
+from the published Agent Skills spec, which allows only `name`, `description`, `license`,
+`allowed-tools`, `metadata`, and `compatibility`, so the official `skill-creator`
+validator rejects it and the skill stops being portable.)
 
 So advice like "run mechanical stages at low effort" is unexecutable from a plain
 `Agent` call — unless someone has already shipped an agent definition with that
@@ -36,10 +37,12 @@ and you get its model *and* its effort.
 |---|---|---|:---:|---|
 | `mechanical` | haiku | low | **1×** | Fully specified, deterministic, verifiable without judgment |
 | `worker` | sonnet | medium | **2×** | Ordinary implementation and research — the default |
-| `reviewer` | inherit | high | *session* | Finding what is wrong (read-only) |
-| `judge` | opus | xhigh | **5×** | A contested call where being wrong is expensive (read-only) |
+| `reviewer` | inherit | high | *session* | Finding what is wrong (no Edit/Write) |
+| `judge` | opus | xhigh | **4–5×** | A contested call where being wrong is expensive (no Edit/Write) |
 
-Cost multipliers are output-token ratios against Haiku 4.5. Fable 5.1 is 10× and
+Cost multipliers are output-token ratios against Haiku 4.5. `opus` is an alias that
+resolves to your configured default Opus, and that spans two priced rows (Opus 5.5 at 4×,
+Opus 5 at 5×) — hence the range. Fable 5.1 is 10× and
 is deliberately not offered as a tier — see the skill body for when it is ever
 worth it on a subagent.
 

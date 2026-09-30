@@ -15,7 +15,7 @@ First-party API rates, USD per million tokens.
 | Opus 5 | `claude-opus-5` | $5 | $25 | 1M | **5×** |
 | Fable 5.1 | `claude-fable-5-1` | $10 | $50 | 1M | **10×** |
 
-The number to reason with is the output ratio: **Haiku 1× / Sonnet 2× / Opus 5× /
+The number to reason with is the output ratio: **Haiku 1× / Sonnet 2× / Opus 4–5× /
 Fable 10×**. The `opus` alias covers two priced rows; when that matters to a
 budget, pin the full id in agent frontmatter (`model: claude-opus-5`). Haiku's
 200K context is a *hard* constraint, not a soft cost — the only row in the table
@@ -53,19 +53,20 @@ tier runs it.
 Rows are effort, columns are model. `max` is reachable **only** from Workflow
 `agent({effort: "max"})`; agent frontmatter tops out at `xhigh`.
 
-| | haiku (1×) | sonnet (2×) | opus (5×) | fable (10×) |
+| | haiku (1×) | sonnet (2×) | opus (4–5×) | fable (10×) |
 |---|---|---|---|---|
 | **low** | ✅ the `mechanical` tier | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
 | **medium** | ⚠️ borderline; prefer low or promote | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
 | **high** | ❌ wrong axis | ✅ the `reviewer` shape | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
-| **xhigh** | ❌ **the default trap** | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
+| **xhigh** | ❌ **the default trap** (see below) | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
 | **max** (Workflow only) | ❌ | ⚠️ | ✅ one contested call | ⚠️ |
 
 Why the marked cells are mistakes:
 
-- **haiku @ xhigh — the default trap.** `xhigh` is the Claude Code default and the
-  Agent tool has **no effort parameter**, so a bare `Agent(model: "haiku")` runs
-  haiku at xhigh: the cheapest reasoning, told to reason as hard as it can. Effort
+- **haiku @ high or xhigh — the default trap.** The Agent tool has **no effort
+  parameter**, so a bare `Agent(model: "haiku")` runs haiku at *whatever the session
+  effort is* — which on a coding session is usually the top of the range. You get the
+  cheapest reasoning, told to reason as hard as it can. Effort
   raises thoroughness *within* one model; it does not lift a ceiling, so you pay
   extra tokens for output the model was never going to improve. This cell is why
   `agents/mechanical.md` exists — pass it as `subagent_type` and it supplies `low`.
@@ -104,9 +105,10 @@ mechanical extraction pass feeding one hard judgment call — not as a cost tric
 
 Judge the tier on what it costs to reach an accepted result.
 
-Per-agent cost at the assumptions above is **$0.065 haiku / $0.13 sonnet / $0.325
-opus 5**. Ignoring the cost of noticing the failure, Haiku stops being cheaper
-than a Sonnet one-shot at **2 attempts** and than an Opus 5 one-shot at **5**. Add
+Per-agent cost at the assumptions above is **$0.065 haiku / $0.13 sonnet / $0.26
+opus 5.5 / $0.325 opus 5**. Ignoring the cost of noticing the failure, Haiku stops
+being cheaper than a Sonnet one-shot at **2 attempts**, and than a one-shot on the
+`opus` alias at **4 attempts** (Opus 5.5) or **5** (Opus 5). Add
 a review pass per attempt and both break-evens move in sharply, because the review
 is paid every attempt while the one-shot pays it once.
 
@@ -139,12 +141,12 @@ Haiku regardless of how mechanical it looks.
 
 ## How to set each knob
 
-| Where | model | effort | maxTurns |
-|---|---|---|---|
-| `Agent` tool | ✅ `haiku`\|`sonnet`\|`opus`\|`fable` | ❌ **none** | ❌ |
-| Workflow `agent(prompt, opts)` | ✅ same tiers; omit to inherit session | ✅ `low`→`max` | ❌ |
-| Agent definition frontmatter | ✅ alias, full id, or `inherit` | ✅ `low`→`xhigh` | ✅ |
-| `SKILL.md` frontmatter | ❌ | ❌ not a lever (see below) | ❌ |
+| Where | model | effort | maxTurns | omitClaudeMd |
+|---|---|---|---|---|
+| `Agent` tool | ✅ `haiku`\|`sonnet`\|`opus`\|`fable` | ❌ **none** | ❌ | ❌ |
+| Workflow `agent(prompt, opts)` | ✅ same tiers; omit to inherit session | ✅ `low`→`max` | ❌ | ❌ |
+| Agent definition frontmatter | ✅ alias, full id, or `inherit` | ✅ `low`→`xhigh` | ✅ | ✅ |
+| `SKILL.md` frontmatter | ❌ | ⚠️ sets *this turn*, never a subagent (see below) | ❌ | ❌ |
 
 ```js
 // Workflow — the only place effort: "max" is reachable

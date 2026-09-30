@@ -134,9 +134,11 @@ export const meta = {
   name: 'tiered-review',
   description: 'Find, verify, and synthesize findings with per-stage tiering',
   phases: [
-    {title: 'Find', detail: 'one finder per target file'},
-    {title: 'Triage', detail: 'cheap severity classification'},
-    {title: 'Verify', detail: 'adversarial refutation'},
+    // `model` on a phase entry documents that phase's override — add it whenever a
+    // stage passes opts.model, so the progress display matches what actually runs.
+    {title: 'Find', detail: 'one finder per target file', model: 'sonnet'},
+    {title: 'Triage', detail: 'cheap severity classification', model: 'haiku'},
+    {title: 'Verify', detail: 'adversarial refutation', model: 'sonnet'},
   ],
 }
 
