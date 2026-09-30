@@ -53,7 +53,9 @@ Plugin agents are namespaced — the full names are `intelligent_delegate:mechan
 ## Layout
 
 ```
-.claude-plugin/plugin.json
+.claude-plugin/
+  plugin.json                   # the plugin manifest
+  marketplace.json              # single-plugin marketplace, source "./"
 agents/
   mechanical.md   worker.md   reviewer.md   judge.md
 skills/delegate/
@@ -66,20 +68,27 @@ skills/delegate/
 
 ## Install
 
-Clone it somewhere and add it as a local marketplace:
+The repo is its own single-plugin marketplace (`.claude-plugin/marketplace.json`
+with `source: "./"`), so it installs in two steps. Clone it:
 
 ```bash
 git clone https://github.com/joshuawowk/intelligent_delegate.git ~/.claude/local-plugins/intelligent_delegate
 ```
 
-Then from an interactive `claude` session:
+Then, from an **interactive** `claude` session — these are terminal-dialog
+commands and won't run in the desktop app's Code tab:
 
 ```
 /plugin marketplace add ~/.claude/local-plugins/intelligent_delegate
+/plugin install intelligent_delegate@intelligent_delegate
 ```
 
-Agent definitions and skills register at session start, so start a new session
-after installing.
+Skills and agent definitions are registered at session start, so **start a new
+session** afterwards. Verify with `/plugin` — the four agents should appear as
+`intelligent_delegate:mechanical`, `:worker`, `:reviewer`, and `:judge`.
+
+To work on the plugin in place instead, point the marketplace at this checkout
+directly and `git pull` to update; no reinstall needed, just a new session.
 
 ## Use
 
