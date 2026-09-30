@@ -1,4 +1,4 @@
-# intelligent-delegate
+# intelligent_delegate
 
 A Claude Code plugin that answers three questions before work gets handed off:
 
@@ -47,8 +47,8 @@ worth it on a subagent.
 rewards *effort* far more than it rewards raw capability, so that tier raises
 effort and leaves the model alone.
 
-Plugin agents are namespaced — the full names are `intelligent-delegate:mechanical`,
-`intelligent-delegate:worker`, and so on.
+Plugin agents are namespaced — the full names are `intelligent_delegate:mechanical`,
+`intelligent_delegate:worker`, and so on.
 
 ## Layout
 
@@ -69,13 +69,13 @@ skills/delegate/
 Clone it somewhere and add it as a local marketplace:
 
 ```bash
-git clone https://github.com/joshuawowk/intelligent_delegate.git ~/.claude/local-plugins/intelligent-delegate
+git clone https://github.com/joshuawowk/intelligent_delegate.git ~/.claude/local-plugins/intelligent_delegate
 ```
 
 Then from an interactive `claude` session:
 
 ```
-/plugin marketplace add ~/.claude/local-plugins/intelligent-delegate
+/plugin marketplace add ~/.claude/local-plugins/intelligent_delegate
 ```
 
 Agent definitions and skills register at session start, so start a new session
@@ -87,7 +87,7 @@ The skill loads on its own when a task involves delegation, parallelism, model
 choice, or cost. You can also invoke it directly:
 
 ```
-/intelligent-delegate:delegate
+/intelligent_delegate:delegate
 ```
 
 ## License
