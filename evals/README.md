@@ -103,3 +103,29 @@ loads on CSS padding taxes every unrelated turn for the length of the session, a
 tax is invisible — nobody attributes a slow, expensive turn to a skill that had nothing
 to do with it. A description tuned only for recall is a worse artifact than a narrow
 one.
+
+## Measured results
+
+Run with `evals/measure_triggers.py`, which drives the **installed** plugin rather than a
+stub. Same 16 queries both times; only the `description:` in `SKILL.md` changed.
+
+| description | recall (should fire) | false positives (should not) |
+|---|--:|--:|
+| v1 — capability phrasing | **2/10** | 0/6 |
+| v2 — explicit short-form phrasings + "do not answer from memory" | **8/10** | 0/6 |
+
+v2 quadrupled recall at no precision cost, so it shipped. Raw per-query output for the
+current description is in `last-trigger-run.json`.
+
+**Two known misses**, both still failing under v2:
+
+- "Should I spawn a subagent for this or just do it inline?"
+- "Is it worth spinning up agents for this, or is the overhead not worth it?"
+
+Both phrasings appear almost verbatim in the description and still do not fire, so this
+is not a lexical gap. Both read as asking for a judgement rather than for reference
+material, and the model answers them itself. Pushing harder on the description to catch
+them risks the false-positive column, which is currently clean — 8/10 with 0 FP is a
+deliberate operating point, not an unfinished one. Over-triggering is the more expensive
+failure: a skill that loads on unrelated turns taxes every one of them.
+

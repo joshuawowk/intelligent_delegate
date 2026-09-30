@@ -1,0 +1,98 @@
+[
+ {
+  "query": "Should I spawn a subagent for this or just do it inline?",
+  "should_trigger": true,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "Which model should I use for these worker agents?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "I want to fan this out across 30 files in parallel",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "This is burning way too many tokens, can we make it cheaper?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "What reasoning effort level should these subagents run at?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "Can I delegate this audit to something cheaper than Opus?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "Should this be a Workflow or just one Agent call?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "My subagent came back with a wrong answer \u2014 was the tier too low?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "How do I orchestrate several agents over these 12 directories?",
+  "should_trigger": true,
+  "fired": true,
+  "skill": "intelligent_delegate:delegate"
+ },
+ {
+  "query": "Is it worth spinning up agents for this, or is the overhead not worth it?",
+  "should_trigger": true,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "Write me a haiku about autumn leaves",
+  "should_trigger": false,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "Fix the padding on this CSS flexbox container",
+  "should_trigger": false,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "What does this regex do: ^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+)@",
+  "should_trigger": false,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "Rename the variable foo to bar in utils.py",
+  "should_trigger": false,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "Explain how git rebase differs from git merge",
+  "should_trigger": false,
+  "fired": false,
+  "skill": "-"
+ },
+ {
+  "query": "Add a --verbose flag to this CLI parser",
+  "should_trigger": false,
+  "fired": false,
+  "skill": "-"
+ }
+]
