@@ -93,6 +93,28 @@ session** afterwards. Verify with `/plugin` — the four agents should appear as
 To work on the plugin in place instead, point the marketplace at this checkout
 directly and `git pull` to update; no reinstall needed, just a new session.
 
+### Verified install
+
+Non-interactive equivalents exist and were used to verify this repo:
+
+```bash
+claude plugin validate .
+claude plugin marketplace add /path/to/intelligent_delegate
+claude plugin install intelligent_delegate@intelligent_delegate
+claude plugin details intelligent_delegate@intelligent_delegate
+```
+
+`details` reports the registered inventory — **1 skill, 4 agents** — and the
+token cost: **~762 tokens always-on**, plus ~5.1k when the `delegate` skill
+actually fires and ~570–740 per agent invocation.
+
+> **Known warning.** `claude plugin validate` flags `intelligent_delegate` as not
+> kebab-case: *"Claude Code accepts it, but the Claude.ai marketplace sync
+> requires kebab-case."* The underscore matches the repo and folder, so it stays.
+> If you ever want to sync this to claude.ai, rename the plugin to
+> `intelligent-delegate` in both `.claude-plugin/*.json` and update the
+> `intelligent_delegate:` namespace references in the docs.
+
 ## Use
 
 The skill loads on its own when a task involves delegation, parallelism, model
