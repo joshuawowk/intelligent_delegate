@@ -11,7 +11,7 @@ Two suites. They look similar and answer different questions.
 with a muddled body triggers reliably and then gives the wrong answer — full marks on
 `trigger-evals.json`, failures across `evals.json`. A correct body behind a narrow
 description passes every routing case when you invoke it by hand as
-`/intelligent_delegate:delegate`, and never fires on its own, which is the only way it
+`/intelligent-delegate:delegate`, and never fires on its own, which is the only way it
 would ever have been used. Run both.
 
 ## Running `evals.json`

@@ -7,7 +7,7 @@ Tier shorthand used throughout — these are just `agent()` opts:
 
 - **mechanical** — `{model: 'haiku'}` — no `effort`; Haiku accepts none, so passing one is inert
 - **worker** — `{model: 'sonnet', effort: 'medium'}`
-- **builder** — `{agentType: 'intelligent_delegate:builder'}` when you want its write tools;
+- **builder** — `{agentType: 'intelligent-delegate:builder'}` when you want its write tools;
   `tools` is NOT settable through `agent()` opts, only in a definition's frontmatter
 - **reviewer** — `{effort: 'high'}`; omitting `model` inherits the session model
 - **judge** — `{model: 'opus', effort: 'xhigh'}`

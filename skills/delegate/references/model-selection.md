@@ -200,7 +200,7 @@ maxTurns: 25
 no effort setting, so it ships with **no `effort:` key at all**. A Haiku definition can
 demonstrate model pinning but never effort pinning.
 
-Then `Agent({ subagent_type: "intelligent_delegate:mechanical", ... })` gets both
+Then `Agent({ subagent_type: "intelligent-delegate:mechanical", ... })` gets both
 the model and the effort, which a bare `Agent` call cannot express — **this
 indirection is the mechanical point of the plugin.** Plugin agents are namespaced;
 bare `mechanical` resolves only for a project-local `.claude/agents/mechanical.md`.

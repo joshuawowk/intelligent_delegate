@@ -1,5 +1,7 @@
 # intelligent_delegate
 
+> Plugin id `intelligent-delegate` · repo/folder `intelligent_delegate`
+
 A Claude Code plugin that answers three questions before work gets handed off:
 
 1. **Should this be delegated at all?** — most of the available savings live here
@@ -62,8 +64,8 @@ worth it on a subagent.
 rewards *effort* far more than it rewards raw capability, so that tier raises
 effort and leaves the model alone.
 
-Plugin agents are namespaced — the full names are `intelligent_delegate:mechanical`,
-`intelligent_delegate:worker`, and so on.
+Plugin agents are namespaced — the full names are `intelligent-delegate:mechanical`,
+`intelligent-delegate:worker`, and so on.
 
 ## Layout
 
@@ -95,12 +97,12 @@ commands and won't run in the desktop app's Code tab:
 
 ```
 /plugin marketplace add ~/.claude/local-plugins/intelligent_delegate
-/plugin install intelligent_delegate@intelligent_delegate
+/plugin install intelligent-delegate@intelligent-delegate
 ```
 
 Skills and agent definitions are registered at session start, so **start a new
 session** afterwards. Verify with `/plugin` — the five agents should appear as
-`intelligent_delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
+`intelligent-delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
 
 To work on the plugin in place instead, point the marketplace at this checkout
 directly and `git pull` to update; no reinstall needed, just a new session.
@@ -112,20 +114,19 @@ Non-interactive equivalents exist and were used to verify this repo:
 ```bash
 claude plugin validate .
 claude plugin marketplace add /path/to/intelligent_delegate
-claude plugin install intelligent_delegate@intelligent_delegate
-claude plugin details intelligent_delegate@intelligent_delegate
+claude plugin install intelligent-delegate@intelligent-delegate
+claude plugin details intelligent-delegate@intelligent-delegate
 ```
 
 `details` reports the registered inventory — **1 skill, 5 agents** — and the
 token cost: **~1,016 tokens always-on**, plus ~5.1k when the `delegate` skill
 actually fires and ~570–740 per agent invocation.
 
-> **Known warning.** `claude plugin validate` flags `intelligent_delegate` as not
-> kebab-case: *"Claude Code accepts it, but the Claude.ai marketplace sync
-> requires kebab-case."* The underscore matches the repo and folder, so it stays.
-> If you ever want to sync this to claude.ai, rename the plugin to
-> `intelligent-delegate` in both `.claude-plugin/*.json` and update the
-> `intelligent_delegate:` namespace references in the docs.
+> **Note on names.** The plugin id is `intelligent-delegate` (kebab-case, so
+> `claude plugin validate` passes clean and it can sync to claude.ai). The **repo and
+> folder** are `intelligent_delegate` with an underscore. The mismatch is deliberate:
+> the plugin id is what shows up in `/plugin` and in agent namespaces; the folder name
+> is just where it lives on disk.
 
 ## Use
 
@@ -133,7 +134,7 @@ The skill loads on its own when a task involves delegation, parallelism, model
 choice, or cost. You can also invoke it directly:
 
 ```
-/intelligent_delegate:delegate
+/intelligent-delegate:delegate
 ```
 
 ## License

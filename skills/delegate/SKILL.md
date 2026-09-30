@@ -142,7 +142,7 @@ have to read them again.
   This flips even a single item.
 
 **The five tiers work inside a Workflow too.** `agent()` takes `agentType`, so
-`agent(prompt, {agentType: 'intelligent_delegate:worker'})` gets that definition's model
+`agent(prompt, {agentType: 'intelligent-delegate:worker'})` gets that definition's model
 and effort — the same tiers, one parameter over. Use `{model, effort}` directly only when
 no shipped definition fits, or when you need `max` effort.
 
@@ -370,7 +370,7 @@ you can iterate — not behind a one-shot Agent call you can only accept or re-r
 
 ## Agent type
 
-Shipped definitions are namespaced: `intelligent_delegate:mechanical`, and so on.
+Shipped definitions are namespaced: `intelligent-delegate:mechanical`, and so on.
 
 | type | route here for | never route here for |
 |---|---|---|

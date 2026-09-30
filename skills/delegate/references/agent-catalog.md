@@ -19,7 +19,7 @@ only an agent definition does. (See `model-selection.md` for what `effort:` in `
 
 Every subagent starts with **cold context** — it cannot see the conversation — and its
 final report is **not shown to the user**, so the caller must relay it. Plugin agents are
-namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
+namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 
 ## Shipped by this plugin
 
