@@ -13,8 +13,6 @@ tools:
   - Bash
   - WebFetch
   - WebSearch
-disallowedTools:
-  - Agent
 ---
 
 # Worker tier

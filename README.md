@@ -48,8 +48,9 @@ rather than carry a knob that does nothing.
 > **The multipliers are a floor, not a ceiling.** If an advisor is configured for the
 > session (`/advisor`), *every* subagent is given it — measured here as
 > `claude-fable-5-1`, the 10× tier, injected even into `mechanical`. One advisor consult
-> inverts the saving you pinned the tier for. `/advisor off` is the reliable control;
-> per-agent `disallowedTools` is untested against it.
+> inverts the saving you pinned the tier for. The controls are session-wide —
+> `/advisor off`, or `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`. Per-agent suppression is
+> impossible: the advisor is server-side and never reaches an agent's tool filter.
 
 Cost multipliers are output-token ratios against Haiku 4.5. `opus` is an alias that
 resolves to your configured default Opus, and that spans two priced rows (Opus 5.5 at 4×,

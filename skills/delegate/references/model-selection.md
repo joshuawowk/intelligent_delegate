@@ -167,8 +167,10 @@ the Sonnet and Opus runs record `medium` and `high` exactly as declared.
 subagent receives it — measured here as `claude-fable-5-1` at 10×, injected into every
 tier including `mechanical`. A single consult from a 1× agent costs more than the agent.
 Treat this table as the floor: it is what the tier costs if nothing escalates. The
-control is session-level (`/advisor off`); the advisor arrives as an attachment rather
-than through the agent's tool list, so `disallowedTools` is untested against it.
+controls are session-wide — `/advisor off`, or `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for
+scripted runs. Per-agent suppression is impossible: the advisor is a **server-side**
+tool appended to the wire `tools` array after the client list, so it never reaches an
+agent's allow/deny filter.
 
 ## How to set each knob
 

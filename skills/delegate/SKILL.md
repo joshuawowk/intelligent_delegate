@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Decide whether to delegate a task at all, what shape to use (inline, one subagent, or a Workflow fan-out), and which model tier and reasoning effort to spend on it. Use when about to spawn agents, parallelize, fan out, or orchestrate subagents; when choosing a model or effort level for a subagent; when work feels too expensive, too slow, or too token-hungry; when deciding if a cheaper model would do; or when a delegated result came back wrong and the tier may be why.
+description: Route work to the right execution shape and tier: inline, one subagent, or a Workflow fan-out, and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up — including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. Do not answer these from memory: the Agent tool has no effort parameter, Haiku silently ignores effort settings, and every subagent is handed a Fable-tier advisor that inverts the saving you delegated for. Guessing costs real tokens.
 license: MIT
 ---
 
@@ -321,17 +321,33 @@ and is then injected into every subagent the session spawns. Consequences:
 - **An advisor call silently undoes a downgrade.** The whole point of pinning
   `mechanical` or `worker` is to spend less than the session model; a Fable consult
   inverts that, and nothing in the tier's own definition prevents it.
-- **The control is session-level.** `/advisor off` for the session is the reliable
-  lever. Per-agent suppression via `disallowedTools` is **untested and probably
-  ineffective** — the advisor arrives as an attachment (`toolChange: add`) rather than
-  through the agent's tool list, so do not assume frontmatter governs it.
+- **Per-agent suppression is impossible, not merely untested.** Verified in the CLI
+  binary: the advisor spec (`advisor_20260301`) is appended to the wire `tools` array
+  *after* the client tool list, gated only on whether an advisor model resolved, and it
+  executes **server-side** (`server_tool_use` → `advisor_tool_result`). It never passes
+  through an agent's allow/deny filter, so there is no local execution point for a
+  permission hook to fire on. `disallowedTools: [advisor]` would be a guaranteed no-op.
+- **The controls that do work are session-wide:** `/advisor off`, or the environment
+  variable `CLAUDE_CODE_DISABLE_ADVISOR_TOOL` for non-interactive and scripted runs.
 - **It is not always wrong.** On `judge` or `reviewer` — tiers whose job is correctness
   — a stronger second opinion is the point. On a bulk `mechanical` fan-out it is pure
   cost inversion.
 
 **If you are fanning out many cheap agents and cost predictability matters, turn the
-advisor off for that session.** If you leave it on, price the fan-out at the advisor's
-tier, not the agent's.
+advisor off for that session** (`/advisor off`, or `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`
+for a scripted run). If you leave it on, price the fan-out at the advisor's tier, not
+the agent's.
+
+### `disallowedTools` is ignored whenever `tools:` is set
+
+A second verified gotcha from the same dig, and it applies to every definition you
+write: the frontmatter schema says `disallowedTools` is *"Tools removed from the default
+set. **Ignored if `tools` is set.**"* Since `tools:` is an allowlist that **replaces**
+the default set, listing both means the deny list does nothing — anything absent from
+`tools:` is already gone. This plugin's five definitions originally carried
+`disallowedTools: [Agent]` alongside a `tools:` allowlist; the line was inert in all
+five and has been removed. **Pick one mechanism.** A deny list sitting under an
+allowlist reads as a control and is not one.
 
 ## Fable
 

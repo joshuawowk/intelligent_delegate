@@ -9,10 +9,6 @@ tools:
   - Grep
   - Glob
   - Bash
-disallowedTools:
-  - Edit
-  - Write
-  - Agent
 ---
 
 # Reviewer tier

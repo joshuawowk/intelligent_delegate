@@ -11,8 +11,6 @@ tools:
   - Edit
   - Write
   - Bash
-disallowedTools:
-  - Agent
 ---
 
 # Mechanical tier
