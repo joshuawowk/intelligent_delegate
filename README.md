@@ -19,7 +19,11 @@ The `Agent` tool accepts `model` — `haiku | sonnet | opus | fable` — but it 
 | `Agent` tool | ✅ | ❌ |
 | `Workflow` `agent(prompt, opts)` | ✅ | ✅ |
 | Agent definition frontmatter (`agents/*.md`) | ✅ | ✅ |
-| `SKILL.md` frontmatter | ❌ | ✅ |
+
+(`SKILL.md` frontmatter is **not** a third lever. Some plugins in the wild set
+`effort:` there, but the published Agent Skills spec allows only `name`,
+`description`, `license`, `allowed-tools`, `metadata`, and `compatibility` — and
+the official `skill-creator` validator rejects anything else. Don't rely on it.)
 
 So advice like "run mechanical stages at low effort" is unexecutable from a plain
 `Agent` call — unless someone has already shipped an agent definition with that
