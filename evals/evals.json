@@ -44,11 +44,12 @@
     {
       "id": 5,
       "prompt": "Port this driver across 12 board directories; each one needs the same edit applied.",
-      "expected_output": "Workflow pipeline(), worker tier, isolation: worktree because stages write concurrently.",
+      "expected_output": "Workflow pipeline(). Tier is builder or the inherited model, NOT mechanical/worker — \"the same edit\" admits two readings (identical literal diff vs same kind of change adapted per board), so the no-downgrade predicate fires. No worktree: the twelve directories are disjoint paths, which do not conflict.",
       "expectations": [
         "It routes to a Workflow rather than a single Agent call",
         "It uses pipeline() rather than parallel(), or justifies any barrier by a genuine cross-item dependency",
-        "It raises worktree isolation, since concurrent agents writing to one tree would conflict"
+        "It does NOT downgrade to mechanical or worker, citing that \"the same edit\" admits two readings and the ambiguity predicate disqualifies a cheap tier",
+        "It does NOT require worktree isolation, or explicitly notes that disjoint paths do not conflict; isolation would only be needed if a stage ran git operations or two stages wrote the same path"
       ]
     },
     {

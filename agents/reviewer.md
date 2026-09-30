@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Inspection tier (inherits the session model, high effort). Use for finding what is wrong — code review for correctness bugs, auditing a change for regressions, checking work against a spec or a checklist, hunting edge cases. Has no Edit or Write tools. Do NOT use to write or fix code (use worker), and do NOT use to pick a winner between competing options (use judge).
+description: Inspection tier (inherits the session model, high effort). Use for finding what is wrong — code review for correctness bugs, auditing a change for regressions, checking work against a spec or a checklist, hunting edge cases. Has no Edit or Write tools. Do NOT use to write or fix code (use builder, or worker if the fix is fully specified), and do NOT use to pick a winner between competing options (use judge).
 model: inherit
 effort: high
 maxTurns: 20

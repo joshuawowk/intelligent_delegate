@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Route work to the right execution shape and tier — inline, one subagent, or a Workflow fan-out — and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up, including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. Do not answer these from memory. The Agent tool has no effort parameter, Haiku silently ignores effort settings, and every subagent is handed a Fable-tier advisor that inverts the saving you delegated for. Guessing costs real tokens.
+description: Route work to the right execution shape and tier — inline, one subagent, or a Workflow fan-out — and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up, including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. Do not answer these from memory. The Agent tool has no effort parameter, Haiku silently ignores effort settings, and when the session has an advisor configured every subagent silently gets it, which can invert the saving you delegated for. Guessing costs real tokens.
 license: MIT
 ---
 
@@ -141,7 +141,7 @@ have to read them again.
 - You need `effort` or a validated `schema` and no shipped definition provides it.
   This flips even a single item.
 
-**The four tiers work inside a Workflow too.** `agent()` takes `agentType`, so
+**The five tiers work inside a Workflow too.** `agent()` takes `agentType`, so
 `agent(prompt, {agentType: 'intelligent_delegate:worker'})` gets that definition's model
 and effort — the same tiers, one parameter over. Use `{model, effort}` directly only when
 no shipped definition fits, or when you need `max` effort.
@@ -222,7 +222,7 @@ high-volume subagent work.
 | you want | reachable? | how |
 |---|---|---|
 | session model, session effort | usually | omit `model` — but this yields the *default subagent model*, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can override |
-| session model, `high` | yes | `reviewer` — **the only shipped definition that moves effort without moving model** |
+| session model, `high` | yes | `reviewer` (read-only) or `builder` (can write) — both inherit the model and raise effort |
 | session model, `medium` or `low` | **no** | Workflow, or ship a 5-line definition file |
 | session model **with Edit/Write** | yes | `builder` — inherits, `high`, has Edit/Write. (`reviewer` inherits but cannot write.) |
 | haiku (any effort) | n/a | `mechanical`. **Haiku 4.5 takes no effort setting** — the harness drops it, and this tier's transcripts record none. Do not ship `effort:` on a Haiku agent; it reads as a tuned knob and does nothing. |
@@ -235,7 +235,8 @@ value to pass**. Omitting `model` only *usually* inherits: it resolves to the **
 subagent model**, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can point
 elsewhere. With `CLAUDE_CODE_SUBAGENT_MODEL=haiku`, "omit to inherit" silently hands an
 Opus session a Haiku subagent — the exact downgrade this section exists to prevent. The
-**reliable** route is `reviewer`, whose frontmatter says `model: inherit` literally.
+**reliable** route is a definition whose frontmatter says `model: inherit` literally —
+`reviewer` if the work is read-only, `builder` if it must write.
 
 **Lower effort before lowering model.** Effort trades thoroughness against spend
 *within* one model — the judgment quality you rely on stays put and the cache stays
@@ -376,7 +377,7 @@ Shipped definitions are namespaced: `intelligent_delegate:mechanical`, and so on
 | `Explore` | locating — which files, where defined, does X exist. Omits CLAUDE.md, cheapest cold start | **review, audit, or absence proofs.** It reads excerpts — an excerpt cannot establish a bug is *not* there |
 | `Plan` | step-by-step plans, critical-file lists. No write tools; omits CLAUDE.md | execution |
 | `general-purpose` | open-ended multi-step, full tool access | anything a tiered definition covers more precisely |
-| `mechanical` (haiku/low) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step |
+| `mechanical` (haiku, no effort setting) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step |
 | `worker` (sonnet/medium) | well-specified implementation with a deterministic check attached | ambiguous specs — it will pick a reading and commit |
 | `reviewer` (inherit/high) | adversarial verification and code review — judgment at session-model quality for less spend | producing the fix — that is `builder` |
 | `builder` (inherit/high, **writes**) | implementation needing the session model's judgment: ambiguous spec, per-target adaptation, unsafe-to-downgrade blast radius | fully specified work — `worker` does it at half the cost |

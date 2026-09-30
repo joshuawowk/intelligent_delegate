@@ -13,7 +13,7 @@ key in an agent definition's frontmatter (`low|medium|high|xhigh`), and the Work
 tool's `agent(prompt, {effort})` where `max` is also available.
 
 So: *the only way to get a specific effort level out of the Agent tool is to pass the
-name of a definition that pins it.* That is what the four definitions below exist for.
+name of a definition that pins it.* That is what the five definitions below exist for.
 `SKILL.md` frontmatter is **not** a third lever: it does not set a subagent's effort —
 only an agent definition does. (See `model-selection.md` for what `effort:` in `SKILL.md` does and does not do.)
 
@@ -25,23 +25,23 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
 
 | `subagent_type` | model | effort | maxTurns | output cost |
 |---|---|---|---|---|
-| `mechanical` | `haiku` | *(none - inert on Haiku)* | 12 | 1x |
+| `mechanical` | `haiku` | *(none — Haiku accepts none)* | 12 | 1x |
 | `worker` | `sonnet` | `medium` | 25 | 2x |
 | `reviewer` | `inherit` | `high` | 20 | session model |
 | `builder` | `inherit` | `high` | 30 | session |
-| `judge` | `opus` | `xhigh` | 15 | 4-5x |
+| `judge` | `opus` | `xhigh` | 25 | 4-5x |
 
-### `mechanical` — haiku / low
+### `mechanical` — haiku (no effort setting; Haiku accepts none)
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist.
 - **Do NOT use when:** the task needs a call between defensible alternatives, **or reads a lot** — Haiku's context is 200K, a hard ceiling that no amount of "but it's mechanical" overrides.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash; `Agent` disallowed.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `builder` — inherit / high, with Edit + Write
 - **Use when:** the work must change files AND needs the session model's judgment — an
   ambiguous spec, per-target adaptation, or a blast radius that makes a downgrade unsafe.
   This is where the safe-downgrade gate sends you when the job still writes code.
 - **Do NOT use when:** the task is fully specified — `worker` does it at half the cost.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash; `Agent` disallowed.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `worker` — sonnet / medium
 - **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec. This is the default *shipped tier* — if you have decided to pin a tier, start here.
@@ -49,14 +49,19 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
   entirely and inherit the session model; pin `worker` only when you actively want
   sonnet/medium rather than whatever the session is running.
 - **Do NOT use when:** the task is pure mechanical churn (pay 1x instead) or a contested judgment call where being confidently wrong is expensive.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch; `Agent` disallowed.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `reviewer` — inherit / high
 - **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
-- **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `worker` afterwards.
+- **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
 
 ### `judge` — opus / xhigh
+- **Why it pins while `reviewer`/`builder` inherit:** defect-finding is effort-bound;
+  adjudication is capability-bound. Escalating must buy capability the caller lacks, and
+  an inherited judge in a Sonnet or Haiku session buys only effort — on Haiku, not even
+  that. The pin makes `opus / xhigh` reachable regardless of session settings. Wrong only
+  in a Fable session, where it downgrades below the caller: adjudicate inline there.
 - **Use when:** adjudicating a contested call — two reviewers disagree, an architectural decision is irreversible, the cost of being wrong dominates the 4-5x token cost.
 - **Do NOT use when:** there is a knowable right answer, or when you have not first measured whether `reviewer` at `high` already gets it. Do not fan `judge` out across many items.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
@@ -93,10 +98,12 @@ Full tool access, multi-step, open-ended.
 |---|---|---|
 | "Where is X handled?" | `Explore` | Locating, not judging; cheapest cold start |
 | "Plan the migration" | `Plan` | Architect, no write tools to misfire |
-| Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 1x — **only if the safe-downgrade gate passes**; if "the same edit" could mean adapted-per-target, inherit instead |
+| Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 1x — **only if the safe-downgrade gate passes**; if "the same edit" could mean adapted-per-target, use `builder` instead |
 | Same, but 400K of input | `worker` | Haiku's 200K context is a hard wall |
 | Implement a scoped feature | `worker` | Comprehension with a knowable right answer |
 | Trace how a subsystem works | `worker` | Needs whole files, not excerpts |
+| Write the fix a reviewer found | `builder` | Needs judgment AND write tools; `reviewer` cannot write |
+| Ambiguous spec that still ships code | `builder` | Safe-downgrade gate fails but the job writes |
 | Review a diff for defects | `reviewer` | No Edit/Write, `high`, tracks session model |
 | Verify another agent's claim | `reviewer` | Adversarial read, no write authority |
 | Two reviewers disagree | `judge` | Adjudication at 4-5x, once, not per item |

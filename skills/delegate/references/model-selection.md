@@ -55,23 +55,24 @@ Rows are effort, columns are model. `max` is reachable **only** from Workflow
 
 | | haiku (1×) | sonnet (2×) | opus (4–5×) | fable (10×) |
 |---|---|---|---|---|
-| **low** | ✅ the `mechanical` tier | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
-| **medium** | ⚠️ borderline; prefer low or promote | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
-| **high** | ❌ wrong axis | ✅ the `reviewer` shape | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
-| **xhigh** | ❌ **the default trap** (see below) | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
-| **max** (Workflow only) | ❌ | ⚠️ | ✅ one contested call | ⚠️ |
+| **low** | ⬜ n/a — **Haiku accepts no effort setting at all.** Every cell in this column is "model default"; the harness drops whatever you set. `mechanical` therefore ships no `effort:` key. | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
+| **medium** | ⬜ n/a | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
+| **high** | ⬜ n/a | ✅ the `reviewer` / `builder` shape | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
+| **xhigh** | ⬜ n/a | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
+| **max** (Workflow only) | ⬜ n/a | ⚠️ | ✅ one contested call | ⚠️ |
 
 Why the marked cells are mistakes:
 
-- **haiku @ high or xhigh — the default trap.** The Agent tool has **no effort
-  parameter**, so a bare `Agent(model: "haiku")` runs haiku at *whatever the session
-  effort is* — which on a coding session is usually the top of the range. You get the
-  cheapest reasoning, told to reason as hard as it can. Effort
+- **The haiku column is not a set of mistakes — it does not exist.** Haiku 4.5 accepts no
+  effort setting; the harness drops it silently, and this plugin's Haiku transcripts
+  record no effort at all. So there is no "haiku at xhigh" to avoid and no `low` to
+  select: `agents/mechanical.md` ships **no `effort:` key**, deliberately. Effort
   raises thoroughness *within* one model; it does not lift a ceiling, so you pay
-  extra tokens for output the model was never going to improve. This cell is why
-  `agents/mechanical.md` exists — pass it as `subagent_type` and it supplies `low`.
-- **haiku @ high.** Same error, smaller. If a haiku task needs more thoroughness,
-  the task is not mechanical. Promote the model; do not raise the effort.
+  extra tokens for output the model was never going to improve — which is why an
+  `effort:` line on a Haiku definition is worse than useless: it reads as a tuned knob
+  and does nothing.
+- **If a Haiku task needs more thoroughness, the task is not mechanical.** Promote the
+  model — raising effort is not available to you on Haiku.
 - **fable @ low / medium.** Paying 10× for the strongest available reasoning and
   then capping it. opus @ high (5×) or sonnet @ xhigh (2×) dominates: more actual
   thinking, less money. Fable is only defensible at high or xhigh, on a task where
@@ -186,14 +187,18 @@ agent's allow/deny filter.
 await agent(prompt, { model: "opus", effort: "max", label: "adjudicate" });
 ```
 ```markdown
-<!-- agents/mechanical.md — how an effort choice becomes reachable from Agent -->
+<!-- agents/worker.md, as shipped — how an effort choice becomes reachable from Agent -->
 ---
-name: mechanical
-model: haiku
-effort: low
-maxTurns: 12
+name: worker
+model: sonnet
+effort: medium
+maxTurns: 25
 ---
 ```
+
+`worker` is the example here, not `mechanical`: `mechanical` pins Haiku, which accepts
+no effort setting, so it ships with **no `effort:` key at all**. A Haiku definition can
+demonstrate model pinning but never effort pinning.
 
 Then `Agent({ subagent_type: "intelligent_delegate:mechanical", ... })` gets both
 the model and the effort, which a bare `Agent` call cannot express — **this

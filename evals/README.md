@@ -4,7 +4,7 @@ Two suites. They look similar and answer different questions.
 
 | File | Schema | Question | Size |
 |---|---|---|---|
-| `evals.json` | skill-creator behavioural grading — `skill_name`, `evals[]` of `id` / `prompt` / `expected_output` / `expectations` | Once the skill is loaded, does it **route correctly**? | 8 cases, 23 expectations |
+| `evals.json` | skill-creator behavioural grading — `skill_name`, `evals[]` of `id` / `prompt` / `expected_output` / `expectations` | Once the skill is loaded, does it **route correctly**? | 8 cases, 24 expectations |
 | `trigger-evals.json` | flat list of `{query, should_trigger}` | Does the skill **fire at all**? | 16 queries — 10 positive, 6 adversarial negatives |
 
 **A skill can pass one and fail the other, in both directions.** A sharp description
@@ -92,12 +92,14 @@ two-suites-in-one thing this directory currently does by hand.
 The `delegate` description talks about model tiers, cheaper models, and reasoning effort
 levels. In that vocabulary "haiku" is a model name, so **"write me a haiku about autumn
 leaves"** is a live false-trigger risk on a lexical collision alone. The other five
-negatives target the description's loosest clause — *"when work feels too expensive, too
-slow, or too token-hungry"* — which is subjective enough to match almost any ordinary
-task. A CSS fix, a rename, a regex, a `git rebase` explanation, a new CLI flag: all
+negatives target the description's broad cost vocabulary — it invites any turn where
+something feels slow or expensive — which is subjective enough to match almost any
+ordinary task. (The v1 clause they were originally written against, *"when work feels
+too expensive, too slow, or too token-hungry"*, was rewritten in v2; the negatives still
+probe the same risk.) A CSS fix, a rename, a regex, a `git rebase` explanation, a new CLI flag: all
 plausible work, none of them wanting a routing decision.
 
-Over-triggering is a real cost, not a tidiness complaint. The plugin is ~762 tokens
+Over-triggering is a real cost, not a tidiness complaint. The plugin is ~1,016 tokens
 always-on, but the `delegate` skill costs ~5.1k more every time it fires. A skill that
 loads on CSS padding taxes every unrelated turn for the length of the session, and the
 tax is invisible — nobody attributes a slow, expensive turn to a skill that had nothing

@@ -6,7 +6,7 @@ A Claude Code plugin that answers three questions before work gets handed off:
 2. **What shape?** — inline, one subagent, or a Workflow fan-out
 3. **At what tier?** — which model, and which reasoning effort
 
-It ships a `delegate` skill (the routing procedure) and four pre-tiered agent
+It ships a `delegate` skill (the routing procedure) and five pre-tiered agent
 definitions (the thing that makes an effort choice actually reachable).
 
 ## The constraint this plugin exists to solve
@@ -31,7 +31,7 @@ So advice like "run mechanical stages at low effort" is unexecutable from a plai
 effort baked in. That is what `agents/` here is for. Pass one as `subagent_type`
 and you get its model *and* its effort.
 
-## The four tiers
+## The five tiers
 
 | `subagent_type` | Model | Effort | Output cost | Use when |
 |---|---|---|:---:|---|
@@ -72,7 +72,7 @@ Plugin agents are namespaced — the full names are `intelligent_delegate:mechan
   plugin.json                   # the plugin manifest
   marketplace.json              # single-plugin marketplace, source "./"
 agents/
-  mechanical.md   worker.md   reviewer.md   judge.md
+  mechanical.md   worker.md   reviewer.md   builder.md   judge.md
 skills/delegate/
   SKILL.md                        # the routing procedure
   references/
@@ -99,8 +99,8 @@ commands and won't run in the desktop app's Code tab:
 ```
 
 Skills and agent definitions are registered at session start, so **start a new
-session** afterwards. Verify with `/plugin` — the four agents should appear as
-`intelligent_delegate:mechanical`, `:worker`, `:reviewer`, and `:judge`.
+session** afterwards. Verify with `/plugin` — the five agents should appear as
+`intelligent_delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
 
 To work on the plugin in place instead, point the marketplace at this checkout
 directly and `git pull` to update; no reinstall needed, just a new session.
@@ -116,8 +116,8 @@ claude plugin install intelligent_delegate@intelligent_delegate
 claude plugin details intelligent_delegate@intelligent_delegate
 ```
 
-`details` reports the registered inventory — **1 skill, 4 agents** — and the
-token cost: **~762 tokens always-on**, plus ~5.1k when the `delegate` skill
+`details` reports the registered inventory — **1 skill, 5 agents** — and the
+token cost: **~1,016 tokens always-on**, plus ~5.1k when the `delegate` skill
 actually fires and ~570–740 per agent invocation.
 
 > **Known warning.** `claude plugin validate` flags `intelligent_delegate` as not

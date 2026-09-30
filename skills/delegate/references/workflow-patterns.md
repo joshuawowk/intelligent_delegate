@@ -5,9 +5,10 @@ Routing already concluded "this needs a Workflow." Two decisions remain: which
 
 Tier shorthand used throughout — these are just `agent()` opts:
 
-- **mechanical** — `{model: 'haiku', effort: 'low'}`
+- **mechanical** — `{model: 'haiku'}` — no `effort`; Haiku accepts none, so passing one is inert
 - **worker** — `{model: 'sonnet', effort: 'medium'}`
-- **builder** — `{effort: 'high'}` plus write tools; omitting `model` inherits the session model
+- **builder** — `{agentType: 'intelligent_delegate:builder'}` when you want its write tools;
+  `tools` is NOT settable through `agent()` opts, only in a definition's frontmatter
 - **reviewer** — `{effort: 'high'}`; omitting `model` inherits the session model
 - **judge** — `{model: 'opus', effort: 'xhigh'}`
 
@@ -170,7 +171,7 @@ const reviewed = await pipeline(
   // Classification: short, independent input, no file read. Mechanical tier.
   (found, file) => found
     ? agent(`Assign each finding a severity of high, medium or low. Findings: ${JSON.stringify(found.findings)}`,
-        {phase: 'Triage', label: `triage ${file}`, schema: TRIAGED, model: 'haiku', effort: 'low'})
+        {phase: 'Triage', label: `triage ${file}`, schema: TRIAGED, model: 'haiku'})
     : null,
 
   // Verification: a different job from generation. Same model, higher effort.

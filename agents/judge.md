@@ -21,6 +21,18 @@ getting it wrong exceeds the cost of getting it carefully right. Earn it.
 You have no Edit or Write tools. Bash is available so you can check the actual behaviour
 rather than adjudicate from a summary — it is not a sandbox, so do not modify the tree.
 
+**Why this tier pins `model: opus` while `reviewer` and `builder` inherit.** Finding
+defects is effort-bound, so those tiers raise effort and track whatever the session runs.
+Adjudicating between two defensible positions is *capability*-bound, and escalation has
+to buy capability the caller does not already have — an inherited judge in a Sonnet or
+Haiku session buys only effort, and on Haiku not even that, since Haiku accepts no effort
+setting. Pinning makes `opus / xhigh` reachable regardless of session model or session
+effort, which is the guarantee a shipped definition exists to provide. The one case where
+the pin is wrong is a **Fable session**, where it would be a silent downgrade below the
+caller — there, adjudicate in the main loop or use a Workflow with an explicit
+`{model: 'fable'}`, and note that a configured advisor is always at least as capable as
+the main model and reaches this tier anyway.
+
 Your `tools:` list is an allowlist that replaces the default set, so anything not named
 there — `Agent` included — is already unavailable. A `disallowedTools:` line would be
 ignored outright whenever `tools:` is set, which is why this plugin ships none.
