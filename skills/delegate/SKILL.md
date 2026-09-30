@@ -59,13 +59,20 @@ R  the report — counted TWICE (its output tokens, then your input tokens to re
 **Measured on this harness** (same model, same prompt, identical output — only the agent
 definition differed):
 
-| agent | tools declared | cold-start prefix | total input over 9 requests |
-|---|--:|--:|--:|
-| `mechanical` (6 tools, `omitClaudeMd`) | 6 | **7.5k** | **98k** |
-| `general-purpose` (all tools) | all | **42.4k** | **435k** |
+| agent | tools declared | CLAUDE.md | cold-start prefix |
+|---|--:|:--:|--:|
+| `reviewer` | 4 | kept | **6.8k** |
+| `mechanical` | 6 | omitted | **7.5k** |
+| `worker` | 8 | kept | **12.0k** |
+| `general-purpose` | all | kept | **42.4k** |
 
-A **4.4× difference in total spend for the same answer.** CLAUDE.md was only ~500 tokens
-of that gap — the other ~34k was tool schemas, re-sent on every request. So:
+Over a 9-request run, `mechanical` spent **98k** total input against `general-purpose`'s
+**435k** — for byte-identical output.
+
+A **4.4× difference for the same answer.** CLAUDE.md is only ~500 tokens of that gap —
+the rest is tool schemas, re-sent every request. Note `reviewer` beats `mechanical`
+*while keeping CLAUDE.md*, purely on having two fewer tools: the prefix tracks the tool
+surface, not the project context. So:
 
 > **Restricting `tools:` in an agent definition is the single biggest token lever
 > available to you** — bigger than `omitClaudeMd`, bigger than dropping a model tier.
