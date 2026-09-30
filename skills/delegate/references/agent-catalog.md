@@ -28,7 +28,7 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
 | `mechanical` | `haiku` | `low` | 12 | 1x |
 | `worker` | `sonnet` | `medium` | 25 | 2x |
 | `reviewer` | `inherit` | `high` | 20 | session model |
-| `judge` | `opus` | `xhigh` | 15 | 5x |
+| `judge` | `opus` | `xhigh` | 15 | 4-5x |
 
 ### `mechanical` — haiku / low
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist.
@@ -46,7 +46,7 @@ namespaced: `intelligent_delegate:worker` when the bare name is ambiguous.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
 
 ### `judge` — opus / xhigh
-- **Use when:** adjudicating a contested call — two reviewers disagree, an architectural decision is irreversible, the cost of being wrong dominates the 5x token cost.
+- **Use when:** adjudicating a contested call — two reviewers disagree, an architectural decision is irreversible, the cost of being wrong dominates the 4-5x token cost.
 - **Do NOT use when:** there is a knowable right answer, or when you have not first measured whether `reviewer` at `high` already gets it. Do not fan `judge` out across many items.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
 
@@ -88,7 +88,7 @@ Full tool access, multi-step, open-ended.
 | Trace how a subsystem works | `worker` | Needs whole files, not excerpts |
 | Review a diff for defects | `reviewer` | No Edit/Write, `high`, tracks session model |
 | Verify another agent's claim | `reviewer` | Adversarial read, no write authority |
-| Two reviewers disagree | `judge` | Adjudication at 5x, once, not per item |
+| Two reviewers disagree | `judge` | Adjudication at 4-5x, once, not per item |
 | Irreversible architectural call | `judge` | Cost of being wrong dominates spend |
 | Doesn't fit any of the above | `general-purpose` | Last resort; no effort pinned |
 

@@ -10,7 +10,7 @@ Tier shorthand used throughout — these are just `agent()` opts:
 - **reviewer** — `{effort: 'high'}`; omitting `model` inherits the session model
 - **judge** — `{model: 'opus', effort: 'xhigh'}`
 
-Output-token cost ratio: haiku 1x, sonnet 2x, opus 5x, fable 10x. `effort` is reachable
+Output-token cost ratio: haiku 1x, sonnet 2x, opus 4-5x, fable 10x. `effort` is reachable
 inside a Workflow script and in an agent definition's frontmatter — the `Agent` tool has
 no `effort` parameter. That is why per-stage tiering is a Workflow capability.
 
@@ -85,7 +85,7 @@ cheapest mechanical stage is no agent. Three rules override the table:
 - **Caches are model-scoped.** Adjacent stages sharing a large prompt should prefer *same
   model, different effort* (`sonnet`/medium → `sonnet`/high) over model-hopping. Drop the
   model only when the stage's input is small and independent.
-- **Judge cost per completed task, not per request.** "Haiku is 5x cheaper" is a
+- **Judge cost per completed task, not per request.** "Haiku is 5x cheaper than opus" is a
   rationalization if that stage needs two retries. Measure best-model-at-lower-effort
   before building a cascade.
 
