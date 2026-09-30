@@ -116,7 +116,8 @@ anything.
 - **Specify the report's shape and length in the brief.** After D, `R` is the only term
   you control. A two-line verdict costs a fifth of a narrated summary.
 
-You delegate to buy exactly one of three things. Name it before you call.
+You delegate to buy at least one of three things. Name one before you call — you often
+get more than one, and losing a payoff later does not retract the others.
 
 | Payoff | What you are buying | Test that decides it |
 |---|---|---|
@@ -195,6 +196,7 @@ high-volume subagent work.
 | session model, session effort | usually | omit `model` — but this yields the *default subagent model*, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can override |
 | session model, `high` | yes | `reviewer` — **the only shipped definition that moves effort without moving model** |
 | session model, `medium` or `low` | **no** | Workflow, or ship a 5-line definition file |
+| session model **with Edit/Write** | **no** | `reviewer` inherits but is read-only. Use a Workflow (`agent(prompt, {effort})`, no `model` key), or ship a definition — no shipped tier covers inherit-plus-write |
 | haiku / low | yes | `mechanical` |
 | sonnet / medium | yes | `worker` |
 | opus / xhigh | yes | `judge` |

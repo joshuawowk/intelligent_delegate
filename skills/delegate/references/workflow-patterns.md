@@ -67,7 +67,7 @@ narrower and often repays a *different* model entirely. A workflow that runs eve
 at the session tier is paying generation prices for clerical work and clerical prices for
 the one call that decides whether the output is right.
 
-| Shape | Drop to mechanical | Inherit (worker/reviewer) | Earns judge |
+| Shape | Drop to mechanical | Mid tier (`worker` pins sonnet; `reviewer` inherits) | Earns judge |
 |---|---|---|---|
 | Adversarial verify | — | refuters at `effort: 'high'` | tie-break when the vote splits |
 | Perspective-diverse verify | — | each lens at `effort: 'high'` | the lens that gates a release |
