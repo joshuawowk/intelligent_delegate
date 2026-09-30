@@ -19,7 +19,8 @@ Answer the first question that hits. Stop there. Everything below is backing det
 2. **Is an agent already running on this?** → **`SendMessage` it.** Never open a fresh
    Agent for a follow-up; its context is still warm.
 3. **Name the payoff you are buying** — context protection, tier arbitrage, or
-   wall-clock parallelism. Can't name one? → **inline.**
+   wall-clock parallelism. Can't name one? → **inline.** (Payoffs are not exclusive, and
+   naming one here does not commit you to a cheap tier — see the note under rule 7.)
 4. **One target, bounded question, big search, small answer?** → **one Agent call.**
    Omit `model`.
 5. **Three or more similar items, or more than one stage per item?** → **Workflow,
@@ -28,6 +29,13 @@ Answer the first question that hits. Stop there. Everything below is backing det
 6. **Need a specific effort level or a validated `schema`, and no shipped definition
    fits?** → **Workflow**, even for a single item. That is the only other door.
 7. **Still unsure?** → inline. The floor is higher than it feels.
+
+**Losing tier arbitrage does not un-justify the delegation.** If you named tier arbitrage
+at rule 3 and the safe-downgrade gate later disqualifies the cheap tier, you do **not**
+fall back to inline — you delegate at the inherited model and collect the other payoffs
+(parallelism, context protection) instead. Only the *tier* changes, never the *shape*.
+Shape is decided by the ladder; tier is decided by the predicates, and they are
+independent questions answered in that order.
 
 Two ways rule 1 misfires, both worth memorising:
 
@@ -134,10 +142,14 @@ for `parallel()` only when stage N genuinely needs cross-item context from **all
 stage N−1 (dedup, rank, early-exit on zero). "I need to flatten first" is not a reason;
 do it inside a stage. See `references/workflow-patterns.md`.
 
-**Isolation.** If two or more stages **write to the tree concurrently**, set
-`isolation: 'worktree'` on those agents or they will corrupt each other's edits. That is
-the only condition that justifies it — it costs ~200-500ms and disk per agent, so never
-set it on read-only stages. Detail in `references/workflow-patterns.md`.
+**Isolation.** Set `isolation: 'worktree'` only when concurrent agents would *actually
+conflict* — they write the **same paths**, or any of them runs **git operations**
+(commit, checkout, stash, branch), which share one index and HEAD across the checkout.
+
+Concurrent writes to **disjoint paths in one tree do not conflict** and do not need it:
+twelve agents each editing their own board directory are fine unedited. Worktrees cost
+~200-500ms plus disk *per agent*, so the default is off. Never set it on a read-only
+stage — a reviewer or judge has nothing to isolate.
 
 Script hygiene, because a dead script costs the whole run: `Date.now()`,
 `Math.random()` and argless `new Date()` **throw**. `agent()` returns `null` on skip or
@@ -200,7 +212,11 @@ which means evaluating the predicates below rather than waving at them.
 **No-downgrade — any ONE of these is disqualifying:**
 
 - Two readings of the brief survive a careful read. Cheap tiers resolve ambiguity by
-  silently picking one and proceeding confidently.
+  silently picking one and proceeding confidently. **If you cannot tell whether two
+  readings survive, that is itself the second reading surviving** — the predicate fires.
+  ("Apply the same edit to each" is the classic case: an identical literal diff, or the
+  same *kind* of change adapted per target? If the brief does not settle it, do not
+  downgrade.)
 - Correctness rests on an invariant **not written in the brief** — a codebase
   convention, a lock ordering, a schema constraint it would have to infer.
 - The verb is *review, audit, assess, decide, is-this-safe, did-I-miss*. Judgment tasks

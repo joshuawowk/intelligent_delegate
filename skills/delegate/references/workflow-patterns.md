@@ -109,8 +109,10 @@ The budget is a hard ceiling shared with the main loop: once `spent()` reaches `
 ## isolation: 'worktree'
 
 Real cost: ~200-500ms plus disk setup **per agent**, on top of the token spend. The only
-condition that justifies it is **concurrent stages that write to the working tree** and
-would otherwise clobber each other — parallel migrations, per-file codemods. Every verify,
+condition that justifies it is concurrent stages that **would actually conflict** — they
+write the **same paths**, or any of them runs **git operations** (commit, checkout, stash),
+which share one index and HEAD. Concurrent writes to **disjoint paths are safe unisolated**:
+twelve agents each editing their own directory need no worktree. Every verify,
 judge, critic, and search stage is read-only and must not be isolated, and those are
 precisely the stages people reflexively isolate. The worktree is auto-removed if unchanged,
 so an isolated read-only agent paid the setup for nothing.

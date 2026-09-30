@@ -85,7 +85,7 @@ Full tool access, multi-step, open-ended.
 |---|---|---|
 | "Where is X handled?" | `Explore` | Locating, not judging; cheapest cold start |
 | "Plan the migration" | `Plan` | Architect, no write tools to misfire |
-| Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 1x |
+| Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 1x — **only if the safe-downgrade gate passes**; if "the same edit" could mean adapted-per-target, inherit instead |
 | Same, but 400K of input | `worker` | Haiku's 200K context is a hard wall |
 | Implement a scoped feature | `worker` | Comprehension with a knowable right answer |
 | Trace how a subsystem works | `worker` | Needs whole files, not excerpts |
