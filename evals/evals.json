@@ -1,0 +1,84 @@
+{
+  "skill_name": "delegate",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to know what `verify()` returns in src/auth.ts. Should I spawn a subagent for this?",
+      "expected_output": "Routes to inline. The file is named, the read is small, D is near zero.",
+      "expectations": [
+        "The answer is to do it inline, not to delegate",
+        "The reasoning cites that the file is already named or that the discarded-reading volume D is small",
+        "It does not recommend Explore or a general-purpose agent for a single named file"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Digest this 60,000-line vendor changelog and tell me which entries affect our USB stack. It's only two tool calls to read it.",
+      "expected_output": "Routes to a subagent despite the low tool-call count, because rule 1 is a volume test.",
+      "expectations": [
+        "The answer is to delegate, not to do it inline",
+        "It explicitly distinguishes volume of discarded reading from number of tool calls",
+        "It does not route this to the mechanical tier (the input risks Haiku's 200K context wall)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Confirm nothing else in the repo writes to the `session_token` field before I change its type.",
+      "expected_output": "A negative/universal claim — must not be downgraded to a cheap tier, and Explore is the wrong type.",
+      "expectations": [
+        "It declines to route this to the mechanical/haiku tier",
+        "It cites the negative-or-universal-claim predicate, or absence proofs requiring exhaustive reading",
+        "It does not recommend Explore, or it explicitly warns Explore reads excerpts and cannot establish absence"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I want to run twelve independent per-file lint fixes at low reasoning effort to save tokens. I'll just pass effort: 'low' to the Agent tool.",
+      "expected_output": "Corrects the premise: the Agent tool has no effort parameter.",
+      "expectations": [
+        "It states the Agent tool has no effort parameter",
+        "It offers a working alternative: the mechanical subagent_type, or a Workflow agent() call",
+        "It does not suggest putting effort instructions in the prompt text"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Port this driver across 12 board directories; each one needs the same edit applied.",
+      "expected_output": "Workflow pipeline(), worker tier, isolation: worktree because stages write concurrently.",
+      "expectations": [
+        "It routes to a Workflow rather than a single Agent call",
+        "It uses pipeline() rather than parallel(), or justifies any barrier by a genuine cross-item dependency",
+        "It raises worktree isolation, since concurrent agents writing to one tree would conflict"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "This audit really matters. Should I run the subagents on Fable to get the best possible answer?",
+      "expected_output": "No. Fable on a subagent is structurally hard to justify.",
+      "expectations": [
+        "The answer is no, or is heavily qualified against it",
+        "It gives a structural reason, such as subagent output being intermediate or the caller being unable to verify an upside above its own model",
+        "It does not simply defer to cost without explaining why the quality upside is unverifiable"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "The subagent I spawned came back with a partial answer. I'll spawn another one with a better prompt.",
+      "expected_output": "Use SendMessage to continue the existing agent instead of paying a fresh cold start.",
+      "expectations": [
+        "It recommends SendMessage or continuing the existing agent",
+        "It notes that a fresh Agent call re-pays the cold-start cost (system prompt, CLAUDE.md, and re-briefing)"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Should I use the mechanical tier to refactor every call site across this 400-file monorepo?",
+      "expected_output": "No — the read volume risks Haiku's 200K context wall.",
+      "expectations": [
+        "It declines the mechanical tier for this task",
+        "It cites Haiku's 200K context limit as a hard wall rather than a cost concern",
+        "It notes that cold-start overhead is spent inside that same window"
+      ]
+    }
+  ]
+}

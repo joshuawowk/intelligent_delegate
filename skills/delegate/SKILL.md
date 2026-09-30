@@ -41,15 +41,33 @@ and adds some. It only saves you the tokens the subagent **discards**:
 savings = D − (S + C + B + 2R)
 
 D  tokens the subagent reads and throws away (never need to reach you)
-S  its system prompt + tool definitions — fixed, invisible, budget it anyway
+S  its system prompt + tool definitions — NOT fixed: the `tools:` list controls it,
+   and it is usually the largest term you can actually move (see below)
 C  CLAUDE.md, re-injected per subagent  — wc -c ~/.claude/CLAUDE.md ./CLAUDE.md, ÷4 ≈ tokens
 B  the brief: every fact from this conversation you must restate, because it cannot see it
 R  the report — counted TWICE (its output tokens, then your input tokens to read it),
    three times if you relay it to the user verbatim
 ```
 
-Budget `S + C` at **~10k tokens** as a working default. Practical break-even: **if D is
-under ~15k tokens, do it inline.**
+**Measured on this harness** (same model, same prompt, identical output — only the agent
+definition differed):
+
+| agent | tools declared | cold-start prefix | total input over 9 requests |
+|---|--:|--:|--:|
+| `mechanical` (6 tools, `omitClaudeMd`) | 6 | **7.5k** | **98k** |
+| `general-purpose` (all tools) | all | **42.4k** | **435k** |
+
+A **4.4× difference in total spend for the same answer.** CLAUDE.md was only ~500 tokens
+of that gap — the other ~34k was tool schemas, re-sent on every request. So:
+
+> **Restricting `tools:` in an agent definition is the single biggest token lever
+> available to you** — bigger than `omitClaudeMd`, bigger than dropping a model tier.
+> Give each definition only the tools its job needs.
+
+Budget `S + C` at **~8k** for a tightly-scoped definition and **~40k+** for an
+all-tools agent. Practical break-even: **if D is under ~15k tokens, do it inline** —
+and note that an all-tools agent has already spent more than that before it reads
+anything.
 
 - **High D** — grepping a large tree for one fact, reading a long build log, scanning
   forty files to find the three that matter, driving a browser. Delegate these.
@@ -60,6 +78,8 @@ under ~15k tokens, do it inline.**
   reproduce it. Unless D is genuinely large, write it yourself.
 - **`Explore` and `Plan` omit CLAUDE.md**, so their floor is lower. Route locate-only
   work there rather than to `general-purpose`.
+- **Cut `S` first, then `C`.** A narrow `tools:` list is worth ~10× what `omitClaudeMd`
+  is (34k vs 0.5k in the measurement above). Do both, in that order.
 - **You can zero out `C` yourself.** `omitClaudeMd: true` in an agent definition runs that
   subagent without user, project and local CLAUDE.md. Worth it when the brief is
   self-contained — `mechanical` ships with it set, because `C` is spent inside Haiku's
@@ -248,7 +268,11 @@ Shipped definitions are namespaced: `intelligent_delegate:mechanical`, and so on
 8. **Building a multi-model cascade before measuring the best model at lower effort.**
    The cascade forfeits cache reuse across its models.
 9. **Not relaying the report.** The user never sees it. An unrelayed result did not happen.
-10. **Silent caps.** If you bound coverage — top-N, no-retry, sampling — say what was
+10. **Spawning an all-tools agent for a narrow job.** `general-purpose` re-sends every
+    tool schema on every request. Measured here: 42k of cold-start prefix versus 7.5k for
+    a 6-tool definition, for the same answer. If you find yourself reaching for
+    `general-purpose` repeatedly, ship a definition with a narrow `tools:` list instead.
+11. **Silent caps.** If you bound coverage — top-N, no-retry, sampling — say what was
     dropped. Silent truncation reads as "covered everything" when it didn't.
 
 ## References

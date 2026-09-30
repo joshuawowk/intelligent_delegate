@@ -139,14 +139,29 @@ omits CLAUDE.md. Use it to locate code — it does not review or audit it.
 Rule: if you cannot bound how much text the agent will read, do not route it to
 Haiku regardless of how mechanical it looks.
 
+## The tool surface is the biggest lever
+
+Measured on this harness — same model, same prompt, identical output, only the agent
+definition differed:
+
+| agent | tools | cold-start prefix | total input, 9 requests |
+|---|--:|--:|--:|
+| `mechanical` (6 tools, `omitClaudeMd: true`) | 6 | 7.5k | **98k** |
+| `general-purpose` (all tools) | all | 42.4k | **435k** |
+
+**4.4× for the same answer.** Tool schemas are re-sent on every request, so the gap
+compounds with turn count; CLAUDE.md was only ~500 tokens of it. Dropping Haiku→nothing
+saves less than trimming an all-tools agent to the six tools it needs. Scope `tools:`
+before you touch model or effort.
+
 ## How to set each knob
 
-| Where | model | effort | maxTurns | omitClaudeMd |
-|---|---|---|---|---|
-| `Agent` tool | ✅ `haiku`\|`sonnet`\|`opus`\|`fable` | ❌ **none** | ❌ | ❌ |
-| Workflow `agent(prompt, opts)` | ✅ same tiers; omit to inherit session | ✅ `low`→`max` | ❌ | ❌ |
-| Agent definition frontmatter | ✅ alias, full id, or `inherit` | ✅ `low`→`xhigh` | ✅ | ✅ |
-| `SKILL.md` frontmatter | ❌ | ⚠️ sets *this turn*, never a subagent (see below) | ❌ | ❌ |
+| Where | model | effort | maxTurns | omitClaudeMd | tools |
+|---|---|---|---|---|---|
+| `Agent` tool | ✅ `haiku`\|`sonnet`\|`opus`\|`fable` | ❌ **none** | ❌ | ❌ | ❌ |
+| Workflow `agent(prompt, opts)` | ✅ same tiers; omit to inherit session | ✅ `low`→`max` | ❌ | ❌ | ❌ |
+| Agent definition frontmatter | ✅ alias, full id, or `inherit` | ✅ `low`→`xhigh` | ✅ | ✅ | ✅ **biggest lever** |
+| `SKILL.md` frontmatter | ❌ | ⚠️ sets *this turn*, never a subagent (see below) | ❌ | ❌ | `allowed-tools` |
 
 ```js
 // Workflow — the only place effort: "max" is reachable
