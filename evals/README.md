@@ -109,25 +109,36 @@ one.
 ## Measured results
 
 Run with `evals/measure_triggers.py`, which drives the **installed** plugin rather than a
-stub. Same 16 queries both times; only the `description:` in `SKILL.md` changed.
+stub. **It defaults to n=3 per query** — see the warning below for why n=1 is not a
+measurement. A query counts as firing if it fires in at least half its runs.
 
 | description | recall (should fire) | false positives (should not) |
 |---|--:|--:|
-| v1 — capability phrasing | **2/10** | 0/6 |
-| v2 — explicit short-form phrasings + "do not answer from memory" | **8/10** | 0/6 |
+| v1 — capability phrasing | 2/10 *(n=1)* | 0/6 |
+| v2 — explicit short-form phrasings + "do not answer from memory" | 7–8/10 *(n=1)* | 0/6 |
+| current — same, with the advisor claim made conditional | **~9/10** *(n=3 on contested queries)* | 0/6 |
 
-v2 quadrupled recall at no precision cost, so it shipped. Raw per-query output for the
-current description is in `last-trigger-run.json`.
+**Single-run numbers on this harness are noise-dominated. Do not quote them.** Two
+consecutive n=1 runs of the current description scored 8/10 and 7/10, which looked like a
+regression caused by rewording. It was not. Re-running the three apparent misses at n=3:
 
-**Two known misses**, both still failing under v2:
+| query | n=1 | n=3 |
+|---|---|---|
+| "I want to fan this out across 30 files in parallel" | missed | **3/3 fired** |
+| "Should I spawn a subagent for this or just do it inline?" | missed | **2/3 fired** |
+| "Is it worth spinning up agents for this, or is the overhead not worth it?" | missed | **0/3 — genuine** |
+| *control:* "Which model should I use for these worker agents?" | fired | 3/3 ✓ |
 
-- "Should I spawn a subagent for this or just do it inline?"
-- "Is it worth spinning up agents for this, or is the overhead not worth it?"
+Two of the three "misses" fire reliably or usually; only one is a stable miss. The
+apparent 8→7 regression was a coin flip, and acting on it would have meant tuning a
+description against sampling noise. Always include a known-firing control so a systemic
+failure — auth, a broken install, a harness bug — is distinguishable from a real miss.
 
-Both phrasings appear almost verbatim in the description and still do not fire, so this
-is not a lexical gap. Both read as asking for a judgement rather than for reference
-material, and the model answers them itself. Pushing harder on the description to catch
-them risks the false-positive column, which is currently clean — 8/10 with 0 FP is a
-deliberate operating point, not an unfinished one. Over-triggering is the more expensive
-failure: a skill that loads on unrelated turns taxes every one of them.
+**The one stable miss** is *"is it worth spinning up agents for this, or is the overhead
+not worth it?"*, whose phrasing appears near-verbatim in the description. It is not a
+lexical gap: it reads as asking for a judgement rather than for reference material, and
+the model answers it directly. Chasing it risks the false-positive column, which is
+clean across every run. Over-triggering is the more expensive failure — a skill that
+loads on unrelated turns taxes every one of them.
 
+Raw per-query output from the most recent full run is in `last-trigger-run.json`.

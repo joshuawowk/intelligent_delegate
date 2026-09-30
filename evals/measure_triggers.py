@@ -13,7 +13,10 @@ Reads evals/trigger-evals.json. Spawns one `claude -p` per query (billed).
 import json,subprocess,os,sys,concurrent.futures as cf
 QUERIES=json.load(open(REPO+'/evals/trigger-evals.json'))
 env={k:v for k,v in os.environ.items() if k!='CLAUDECODE'}
-def run(item):
+RUNS=int(os.environ.get('RUNS_PER_QUERY','3'))   # n=1 is noise-dominated; see evals/README.md
+
+def run(job):
+    item,_=job
     q=item['query']
     try:
         p=subprocess.run(['claude','-p',q,'--output-format','stream-json','--verbose'],
@@ -32,16 +35,25 @@ def run(item):
             elif isinstance(o,list):
                 for v in o: walk(v)
         walk(r)
-    fired=any('delegate' in s for s in skills)
-    return {**item,'fired':fired,'skill':','.join(skills) or '-'}
+    return {**item,'fired':any('delegate' in s for s in skills),'skill':','.join(skills) or '-'}
+jobs=[(q,i) for q in QUERIES for i in range(RUNS)]
 with cf.ThreadPoolExecutor(max_workers=6) as ex:
-    out=list(ex.map(run,QUERIES))
+    raw=list(ex.map(run,jobs))
+from collections import defaultdict
+agg=defaultdict(list)
+for r in raw: agg[r['query']].append(r['fired'])
+out=[]
+for q in QUERIES:
+    hits=agg[q['query']]; rate=sum(1 for h in hits if h)/len(hits)
+    out.append({**q,'fired':rate>=0.5,'rate':f"{sum(1 for h in hits if h)}/{len(hits)}",
+                'skill':'-' if rate==0 else 'intelligent_delegate:delegate'})
 json.dump(out,open(REPO+'/evals/last-trigger-run.json','w'),indent=1)
 tp=sum(1 for r in out if r['should_trigger'] and r['fired'])
 fn=sum(1 for r in out if r['should_trigger'] and not r['fired'])
 fp=sum(1 for r in out if not r['should_trigger'] and r['fired'])
 tn=sum(1 for r in out if not r['should_trigger'] and not r['fired'])
 print(f"TP={tp} FN={fn} FP={fp} TN={tn}")
+print(f"(n={RUNS} per query; a query counts as firing at >=50%)")
 for r in out:
     mark='OK ' if r['fired']==r['should_trigger'] else 'BAD'
-    print(f"  [{mark}] want={str(r['should_trigger']):5s} fired={str(r['fired']):5s} | {r['query'][:62]} | {r['skill'][:40]}")
+    print(f"  [{mark}] want={str(r['should_trigger']):5s} rate={r['rate']:>4s} | {r['query'][:62]}")
