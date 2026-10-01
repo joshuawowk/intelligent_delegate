@@ -105,29 +105,38 @@ session** afterwards. Verify with `/plugin` — the five agents should appear as
 `intelligent-delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
 
 To work on the plugin in place instead, point the marketplace at this checkout directly.
-**But do not expect edits to go live on their own.** The install is a *copy* under
-`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`, and the cache path is keyed on
-the `version` in `.claude-plugin/plugin.json`. While that version string does not change,
-`git pull` and local edits leave the cache untouched — measured here, the install sat six
-commits behind the working tree, still serving the previous `maxTurns` values, and agents
-spawned from it ran the old caps. A new session does not fix it.
+**Do not expect edits to reach a running session on their own**, and be careful about which
+copy you are measuring. Two mechanisms are in play and this repo has evidence of both:
 
-**Bumping the `version` in `.claude-plugin/plugin.json` is what makes a refresh possible** —
-the cache path contains it, so a new version is a new directory. Treat the version as part
-of the release step for any change you expect to take effect, not as cosmetic metadata.
+- `~/.claude/plugins/installed_plugins.json` records `installPath` as a **versioned cache
+  directory** — `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` — plus the
+  `gitCommitSha` it was recorded at. That path contains the `version` from
+  `.claude-plugin/plugin.json`, so while the version string does not move, the recorded
+  install does not either. Measured here: it sat six commits behind the tree, and the old
+  `0.1.0` directory still contains the previous `maxTurns` values.
+- `claude plugin install` reports that a local-path install "loads in place from
+  <checkout>, so edits there take effect at the next session start or `/reload-plugins`".
 
-To actually pick up changes, do one of:
+Both statements are accurate as far as this repo can test them, and they are not fully
+reconcilable from outside the CLI — so do not rely on either as *the* mechanism. What is
+verified, and what matters in practice:
+
+1. **A running session does not pick up edits.** Agents spawned mid-session ran the previous
+   `maxTurns` while the fix was already in the tree. Restart the session or `/reload-plugins`.
+2. **Bump the `version` in `.claude-plugin/plugin.json` for any change you expect to take
+   effect.** It is what gives the installer something to refresh to, and it keeps the
+   recorded `gitCommitSha` honest. Treat it as part of the release step, not cosmetic
+   metadata. Then:
 
 ```bash
-# reinstall over the stale copy
-claude plugin install intelligent-delegate@intelligent-delegate --force
-# or verify what is actually installed before trusting a measurement
-python3 -c "import json;d=json.load(open('$HOME/.claude/plugins/installed_plugins.json'));print(json.dumps(d,indent=1))" | grep -A2 installPath
+claude plugin marketplace update intelligent-delegate
+claude plugin update intelligent-delegate@intelligent-delegate   # re-records the version
 ```
 
-`evals/measure_triggers.py` now compares the installed commit against `git rev-parse HEAD`
-and refuses to run on a mismatch, because an eval against a stale install measures the
-wrong plugin and says nothing about your edits.
+3. **Before trusting any measurement of a plugin change, check what is actually installed.**
+   `evals/measure_triggers.py` compares the recorded install commit against
+   `git rev-parse HEAD` and refuses to run on a mismatch, because an eval against a stale
+   install measures the wrong plugin and says nothing about your edits.
 
 ### Verified install
 
