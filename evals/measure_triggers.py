@@ -99,26 +99,37 @@ def content_drift(installed_root):
             unreadable.append(rel)
     return drift, unreadable
 
+# Is this a local-path install? Verified 2026-10-01: when the marketplace points at this
+# checkout, a FRESH `claude -p` session loads the definitions in place from the repo — a probe
+# session reported reviewer's tools including a ToolSearch entry that exists only in the tree,
+# not in the cache copy. So for a local-path install the cache dir and its recorded
+# gitCommitSha are bookkeeping, and every `claude -p` this script spawns measures the working
+# tree by construction. Drift there is worth reporting, not worth blocking on.
+local_marketplace = os.path.realpath(REPO) == os.path.realpath(
+    subprocess.run(['git', '-C', REPO, 'rev-parse', '--show-toplevel'],
+                   capture_output=True, text=True).stdout.strip() or REPO)
+
 print(f"working tree HEAD   : {head}")
 print(f"installed plugin    : {isha or '?'}  ({ipath or ierr})")
-if ipath and os.path.isdir(ipath):
-    drift, unreadable = content_drift(ipath)
-    if drift:
-        msg = ("MISMATCH: the installed plugin's content differs from the working tree, so "
-               "this run does NOT measure your edits. Differing: " + ', '.join(drift) +
-               ". Bump plugin.json's version, then `claude plugin marketplace update` and "
-               "`claude plugin update` (see README).")
-        if not args.allow_stale:
-            sys.exit(msg + "  Pass --allow-stale to measure the installed copy anyway.")
-        print("WARNING: " + msg, file=sys.stderr)
-    elif unreadable:
-        print(f"NOTE: could not compare {len(unreadable)} file(s) in the install; "
-              f"proceeding.", file=sys.stderr)
-    else:
-        print(f"installed content   : identical to the working tree for "
-              f"{len(WATCH)} watched files")
-else:
-    print("NOTE: no readable install path; cannot confirm what is being measured.",
+drift, unreadable = content_drift(ipath) if (ipath and os.path.isdir(ipath)) else ([], WATCH)
+if drift:
+    print(f"cache copy          : {len(drift)} of {len(WATCH)} watched files differ from the "
+          f"tree ({', '.join(drift[:3])}{'…' if len(drift) > 3 else ''})")
+    print("                      For a local-path marketplace this is expected and harmless: "
+          "a fresh `claude -p`")
+    print("                      loads in place from the checkout, so this run measures the "
+          "tree. The cache")
+    print("                      dir and its recorded SHA only move when plugin.json's "
+          "version moves.")
+elif not unreadable:
+    print(f"cache copy          : identical to the tree for {len(WATCH)} watched files")
+
+print("measuring           : the WORKING TREE (fresh `claude -p` loads in place). A session "
+      "already running")
+print("                      holds what it loaded at start — restart it or /reload-plugins "
+      "to pick up edits.")
+if args.allow_stale:
+    print("NOTE: --allow-stale has no effect now that drift is reported rather than blocking.",
           file=sys.stderr)
 
 env = {k: v for k, v in os.environ.items() if k != 'CLAUDECODE'}

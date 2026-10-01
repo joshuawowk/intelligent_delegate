@@ -104,39 +104,39 @@ Skills and agent definitions are registered at session start, so **start a new
 session** afterwards. Verify with `/plugin` — the five agents should appear as
 `intelligent-delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
 
-To work on the plugin in place instead, point the marketplace at this checkout directly.
-**Do not expect edits to reach a running session on their own**, and be careful about which
-copy you are measuring. Two mechanisms are in play and this repo has evidence of both:
+To work on the plugin in place instead, point the marketplace at this checkout directly —
+and know which copy a session actually loads, because there are two and only one matters.
 
-- `~/.claude/plugins/installed_plugins.json` records `installPath` as a **versioned cache
-  directory** — `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` — plus the
-  `gitCommitSha` it was recorded at. That path contains the `version` from
-  `.claude-plugin/plugin.json`, so while the version string does not move, the recorded
-  install does not either. Measured here: it sat six commits behind the tree, and the old
-  `0.1.0` directory still contains the previous `maxTurns` values.
-- `claude plugin install` reports that a local-path install "loads in place from
-  <checkout>, so edits there take effect at the next session start or `/reload-plugins`".
+**Resolved by probe, 2026-10-01: a local-path install loads in place from the checkout.** A
+fresh `claude -p` session was asked to print the `Tools` line for
+`intelligent-delegate:reviewer` and returned `(Tools: Read, Grep, Glob, Bash, ToolSearch)` —
+a `ToolSearch` entry that existed only in the working tree, not in the cache copy. So:
 
-Both statements are accurate as far as this repo can test them, and they are not fully
-reconcilable from outside the CLI — so do not rely on either as *the* mechanism. What is
-verified, and what matters in practice:
+- **New sessions are current automatically.** No reinstall, no version bump, no app restart.
+  Edit the tree and the next session has it.
+- **A session already running is not.** It holds the definitions it loaded at start. Restart it
+  or `/reload-plugins`. This is the one that bites: a mid-session edit does not reach agents
+  that session spawns, which is how a fix sitting in the tree truncated two audit agents at a
+  `maxTurns` value it had already replaced.
+- **`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` and the recorded
+  `gitCommitSha` are bookkeeping for a local-path install, not the live source.** That path
+  contains `plugin.json`'s `version`, so neither moves until the version does — the cache can
+  sit many commits behind while every new session runs current code. Do not read a stale
+  `gitCommitSha` as "my edits are not live"; check a fresh session instead.
+- **This does not generalise to a remote marketplace**, where the cached copy *is* what runs.
+  There, bump the version and reinstall.
 
-1. **A running session does not pick up edits.** Agents spawned mid-session ran the previous
-   `maxTurns` while the fix was already in the tree. Restart the session or `/reload-plugins`.
-2. **Bump the `version` in `.claude-plugin/plugin.json` for any change you expect to take
-   effect.** It is what gives the installer something to refresh to, and it keeps the
-   recorded `gitCommitSha` honest. Treat it as part of the release step, not cosmetic
-   metadata. Then:
+Bumping the `version` in `.claude-plugin/plugin.json` is still worth doing for a real release —
+it is what lets the installer re-record, keeps `claude plugin details` honest, and is required
+for anyone installing from the remote:
 
 ```bash
 claude plugin marketplace update intelligent-delegate
-claude plugin update intelligent-delegate@intelligent-delegate   # re-records the version
+claude plugin update intelligent-delegate@intelligent-delegate
 ```
 
-3. **Before trusting any measurement of a plugin change, check what is actually installed.**
-   `evals/measure_triggers.py` compares the recorded install commit against
-   `git rev-parse HEAD` and refuses to run on a mismatch, because an eval against a stale
-   install measures the wrong plugin and says nothing about your edits.
+`evals/measure_triggers.py` prints which copy it is measuring and reports cache drift without
+blocking on it, since the `claude -p` sessions it spawns load the tree by construction.
 
 ### Verified install
 
