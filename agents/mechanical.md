@@ -21,7 +21,8 @@ judged this task to be **fully specified and mechanically verifiable**. Act acco
 **There is deliberately no `effort:` here.** Haiku 4.5 does not accept a reasoning-effort
 setting — the harness drops it silently, and transcripts from this tier record no effort
 at all. An `effort: low` line would look like a tuned knob while doing nothing. This
-tier's real levers are `model`, the narrow `tools:` list, `omitClaudeMd`, and `maxTurns`.
+tier's real levers are `model`, the narrow `tools:` list, `omitClaudeMd`, and `maxTurns`,
+**which is 12 here** — the tightest in the plugin. Count against it; see "Return value".
 
 `omitClaudeMd: true` is set deliberately: this tier's binding risk is Haiku's
 200K context wall, and CLAUDE.md is re-injected into every subagent. A fully

@@ -16,19 +16,29 @@ Answer the first question that hits. Stop there. Everything below is backing det
 1. **Is this ONE target, and would the subagent keep most of what it reads?** →
    **do it inline.** Being able to *name* the files is not enough on its own: twelve
    files you can name is still a fan-out, so count targets before you take this exit.
-2. **Is an agent already running on this?** → **`SendMessage` it.** Never open a fresh
-   Agent for a follow-up; its context is still warm.
+2. **Is an agent still live on this** — one you spawned with `run_in_background: true`,
+   or any agent `ListAgents` shows? → **`SendMessage` it.** Its context is still warm, and
+   a resumed agent keeps everything it already read. (A synchronous Agent call that has
+   already returned is not live; there is nothing to message, so re-brief a fresh one.)
 3. **Name the payoff you are buying** — context protection, tier arbitrage, or
    wall-clock parallelism. Can't name one? → **inline.** (Payoffs are not exclusive, and
    naming one here does not commit you to a cheap tier — see the note under rule 7.)
 4. **One target, bounded question, big search, small answer?** → **one Agent call.**
-   Omit `model`.
+   Omit `model` — *unless* `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default is set, in
+   which case omitting silently downgrades; name `reviewer` (read-only) or `builder`
+   (writes) to inherit reliably. Both raise effort to `high`, so there is no reliable
+   single-call route to *session model at session effort*.
 5. **Three or more similar items, or more than one stage per item?** → **Workflow,
    `pipeline()`.** This beats rule 1 whenever they disagree — item count wins over
    "I know which files".
 6. **Need a specific effort level or a validated `schema`, and no shipped definition
    fits?** → **Workflow**, even for a single item. That is the only other door.
+   **This rule outranks 1 and 3**, the same way 5 does: a single-item job needing a
+   validated `schema` is a Workflow even though rule 1 would call it inline and rule 3
+   finds no payoff in the list. A `schema` is a correctness mechanism, not a payoff.
 7. **Still unsure?** → inline. The floor is higher than it feels.
+
+**Precedence, when two rules fire:** 5 and 6 beat 1 and 3. Within those, answer in order.
 
 **Losing tier arbitrage does not un-justify the delegation.** If you named tier arbitrage
 at rule 3 and the safe-downgrade gate later disqualifies the cheap tier, you do **not**
@@ -65,17 +75,19 @@ R  the report — counted TWICE (its output tokens, then your input tokens to re
    three times if you relay it to the user verbatim
 ```
 
-**Controlled A/B on this harness.** `mechanical` vs `general-purpose` with `model: "haiku"`
-pinned on both — verified from the transcripts that both ran `claude-haiku-4-5`, same
-prompt, byte-identical output. Only the definition differed:
+**Paired single run on this harness, 2026-09-30.** `mechanical` vs `general-purpose` with
+`model: "haiku"` pinned on both — verified from the transcripts that both ran
+`claude-haiku-4-5`, same prompt, byte-identical output. n=1 per arm, and **two** things
+differ, tool count and `omitClaudeMd`:
 
 | agent | tools | CLAUDE.md | cold-start prefix | total input, 9 requests |
 |---|--:|:--:|--:|--:|
 | `mechanical` | 6 | omitted | **7.5k** | **98k** |
 | `general-purpose` | all | kept | **42.4k** | **435k** |
 
-**4.4× for the same answer**, and CLAUDE.md is only ~500 tokens of the 34.9k prefix gap —
-the rest is tool schemas, re-sent every request.
+**4.4× on one task** — total input over 9 requests; the cold-start prefix ratio alone is
+5.65×. CLAUDE.md is only ~500 tokens of the 34.9k prefix gap, so tool schemas dominate.
+One task, one run per arm: the order of magnitude is the finding, not the exact constant.
 
 For scale, the prefix of each shipped tier as actually measured (these run *different*
 models, so read the column as prefix-by-tool-surface, not as a controlled comparison):
@@ -204,9 +216,15 @@ in the prompt does nothing — you get the default and believe you tuned it. Eff
 reachable exactly two ways:
 
 1. **A shipped agent definition** whose frontmatter sets `effort:` — then pass its name
-   as `subagent_type`. Frontmatter accepts `low|medium|high|xhigh`. **No `max`.**
-2. **A Workflow**: `agent(prompt, { effort })` — `low|medium|high|xhigh|max`. `max` is
-   Workflow-only.
+   as `subagent_type`. The schema accepts `low|medium|high|xhigh|max`, **or an integer**
+   (read from the Claude Code 2.1.286 agent-config schema:
+   `union([enum(["low","medium","high","xhigh","max"]), int()])`). Note this corrects
+   earlier guidance in this file that frontmatter stopped at `xhigh`. Schema acceptance is
+   verified; runtime honouring of `max` from frontmatter is not — confirm with one run
+   before relying on it.
+2. **A Workflow**: `agent(prompt, { effort })` — `low|medium|high|xhigh|max`. Use this when
+   effort must vary **per call** rather than per definition; it is not the only route to
+   `max`.
 
 `SKILL.md` frontmatter is **not** a third route. `effort:` there is honoured by this
 harness, but it sets **the invoking turn's** effort — not a subagent's. It is also absent
@@ -228,13 +246,13 @@ high-volume subagent work.
 | you want | reachable? | how |
 |---|---|---|
 | session model, session effort | usually | omit `model` — but this yields the *default subagent model*, which `CLAUDE_CODE_SUBAGENT_MODEL` or a configured default can override |
-| session model, `high` | yes | `reviewer` (read-only) or `builder` (can write) — both inherit the model and raise effort |
+| session model, `high` | yes, where the model accepts effort | `reviewer` (read-only) or `builder` (can write) — both inherit the model and raise effort. In a Haiku session the `effort` key is dropped, so you get Haiku at its default, not "Haiku at high" |
 | session model, `medium` or `low` | **no** | Workflow, or ship a 5-line definition file |
 | session model **with Edit/Write** | yes | `builder` — inherits, `high`, has Edit/Write. (`reviewer` inherits but cannot write.) |
-| haiku (any effort) | n/a | `mechanical`. **Haiku 4.5 takes no effort setting** — the harness drops it, and this tier's transcripts record none. Do not ship `effort:` on a Haiku agent; it reads as a tuned knob and does nothing. |
+| haiku (any effort) | n/a | `mechanical`. **Haiku 4.5 takes no effort setting** — its catalog capability list is `["context_management"]`, with no `"effort"`, where Sonnet and Opus carry `"effort"`/`"xhigh_effort"`/`"max_effort"`. Do not ship `effort:` on a Haiku agent; it reads as a tuned knob and does nothing. |
 | sonnet / medium | yes | `worker` |
 | opus / xhigh | yes | `judge` |
-| anything at `max` | **no** | Workflow only |
+| anything at `max` | yes | a definition with `effort: max` (schema-legal; runtime unconfirmed), or a Workflow `agent({effort: 'max'})` — the Workflow route is the verified one |
 
 The Agent tool's `model` enum is `haiku|sonnet|opus|fable` — there is **no `inherit`
 value to pass**. Omitting `model` only *usually* inherits: it resolves to the **default
@@ -315,9 +333,11 @@ agreement; "find what is wrong with this" gets you review.
 
 ## The advisor makes every tier price a floor
 
-**Measured on this harness:** every subagent spawned in this session received an
+**Observed 2026-09-30, one session:** every subagent it spawned received an
 `advisor_tool` attachment with `available: true` and `model: claude-fable-5-1` — the
-**10×** tier. That included `mechanical`, the 1× tier.
+**10×** tier. That included `mechanical`, the 1× tier. The advisor *model* is session
+configuration, not a harness constant — the model catalog assigns an `advisor_rank` per
+model, so another session resolves a different one.
 
 This is session-scoped, not per-agent. The advisor is configured once for the
 conversation (`/advisor`, `/advisor <model>`, `/advisor off`, or `--advisor` at launch)
@@ -340,10 +360,11 @@ and is then injected into every subagent the session spawns. Consequences:
   — a stronger second opinion is the point. On a bulk `mechanical` fan-out it is pure
   cost inversion.
 
-**If you are fanning out many cheap agents and cost predictability matters, turn the
-advisor off for that session** (`/advisor off`, or `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1`
-for a scripted run). If you leave it on, price the fan-out at the advisor's tier, not
-the agent's.
+**If you are fanning out many cheap agents and cost predictability matters, ask the user to
+turn the advisor off for that session** — `/advisor off` is a slash command only they can
+issue, and exporting `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` inside a `Bash` call affects only
+that subprocess, not the session that spawns your agents. Until they do, **price the fan-out
+at the advisor's tier, not the agent's.** That pricing half is always actionable by you.
 
 ### `disallowedTools` is ignored whenever `tools:` is set
 
@@ -386,7 +407,7 @@ Shipped definitions are namespaced: `intelligent-delegate:mechanical`, and so on
 | `mechanical` (haiku, no effort setting) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step |
 | `worker` (sonnet/medium) | well-specified implementation with a deterministic check attached | ambiguous specs — it will pick a reading and commit |
 | `reviewer` (inherit/high) | adversarial verification and code review — judgment at session-model quality for less spend | producing the fix — that is `builder` |
-| `builder` (inherit/high, **writes**) | implementation needing the session model's judgment: ambiguous spec, per-target adaptation, unsafe-to-downgrade blast radius | fully specified work — `worker` does it at half the cost |
+| `builder` (inherit/high, **writes**) | implementation needing the session model's judgment: ambiguous spec, per-target adaptation, unsafe-to-downgrade blast radius | fully specified work — `worker` does it for less whenever the session model is above Sonnet (about half on Opus 5.5, 40% of it on Opus 5; in a Sonnet session the two differ only by an effort step) |
 | `judge` (opus/xhigh) | the call you cannot afford to get wrong, or breaking a tie between two verdicts | routine implementation |
 
 ## Anti-patterns

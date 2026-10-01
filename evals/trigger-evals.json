@@ -1,19 +1,78 @@
 [
-  {"query": "Should I spawn a subagent for this or just do it inline?", "should_trigger": true},
-  {"query": "Which model should I use for these worker agents?", "should_trigger": true},
-  {"query": "I want to fan this out across 30 files in parallel", "should_trigger": true},
-  {"query": "This is burning way too many tokens, can we make it cheaper?", "should_trigger": true},
-  {"query": "What reasoning effort level should these subagents run at?", "should_trigger": true},
-  {"query": "Can I delegate this audit to something cheaper than Opus?", "should_trigger": true},
-  {"query": "Should this be a Workflow or just one Agent call?", "should_trigger": true},
-  {"query": "My subagent came back with a wrong answer — was the tier too low?", "should_trigger": true},
-  {"query": "How do I orchestrate several agents over these 12 directories?", "should_trigger": true},
-  {"query": "Is it worth spinning up agents for this, or is the overhead not worth it?", "should_trigger": true},
-
-  {"query": "Write me a haiku about autumn leaves", "should_trigger": false},
-  {"query": "Fix the padding on this CSS flexbox container", "should_trigger": false},
-  {"query": "What does this regex do: ^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+)@", "should_trigger": false},
-  {"query": "Rename the variable foo to bar in utils.py", "should_trigger": false},
-  {"query": "Explain how git rebase differs from git merge", "should_trigger": false},
-  {"query": "Add a --verbose flag to this CLI parser", "should_trigger": false}
+ {
+  "query": "Should I spawn a subagent for this or just do it inline?",
+  "should_trigger": true
+ },
+ {
+  "query": "Which model should I use for these worker agents?",
+  "should_trigger": true
+ },
+ {
+  "query": "I want to fan this out across 30 files in parallel",
+  "should_trigger": true
+ },
+ {
+  "query": "This is burning way too many tokens, can we make it cheaper?",
+  "should_trigger": true
+ },
+ {
+  "query": "What reasoning effort level should these subagents run at?",
+  "should_trigger": true
+ },
+ {
+  "query": "Can I delegate this audit to something cheaper than Opus?",
+  "should_trigger": true
+ },
+ {
+  "query": "Should this be a Workflow or just one Agent call?",
+  "should_trigger": true
+ },
+ {
+  "query": "My subagent came back with a wrong answer \u2014 was the tier too low?",
+  "should_trigger": true
+ },
+ {
+  "query": "How do I orchestrate several agents over these 12 directories?",
+  "should_trigger": true
+ },
+ {
+  "query": "Is it worth spinning up agents for this, or is the overhead not worth it?",
+  "should_trigger": true
+ },
+ {
+  "query": "Write me a haiku about autumn leaves",
+  "should_trigger": false
+ },
+ {
+  "query": "Fix the padding on this CSS flexbox container",
+  "should_trigger": false
+ },
+ {
+  "query": "What does this regex do: ^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+)@",
+  "should_trigger": false
+ },
+ {
+  "query": "Rename the variable foo to bar in utils.py",
+  "should_trigger": false
+ },
+ {
+  "query": "Explain how git rebase differs from git merge",
+  "should_trigger": false
+ },
+ {
+  "query": "Add a --verbose flag to this CLI parser",
+  "should_trigger": false
+ },
+ {
+  "query": "Should I delegate this to a subagent, and if so which model and reasoning effort should it run at?",
+  "should_trigger": true,
+  "control": true,
+  "note": "must-fire control: names delegation, model choice and effort together. If this misses, the harness or the install is broken, not the description."
+ },
+ {
+  "query": "What is the capital of France?",
+  "should_trigger": false,
+  "control": true,
+  "note": "must-not-fire control: no delegation surface at all. If this fires, the description is over-broad or the matcher is wrong."
+ }
 ]

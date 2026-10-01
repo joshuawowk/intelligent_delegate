@@ -9,8 +9,11 @@ spans Opus 5.5 at 4x and Opus 5 at 5x).
 The Agent tool takes `prompt`, `subagent_type`, `description`, `model`, `isolation`,
 `run_in_background`. Its `model` enum is exactly `sonnet | opus | haiku | fable`, and
 **there is no `effort` parameter**. Effort is reachable in only two places: the `effort:`
-key in an agent definition's frontmatter (`low|medium|high|xhigh`), and the Workflow
-tool's `agent(prompt, {effort})` where `max` is also available.
+key in an agent definition's frontmatter — the schema accepts `low|medium|high|xhigh|max`
+**or an integer** (Claude Code 2.1.286), so `max` is *not* Workflow-only as this repo
+previously claimed; schema acceptance is verified, runtime honouring of frontmatter `max` is
+not — and the Workflow tool's `agent(prompt, {effort})`, which is the verified route to
+`max` and the only way to vary effort per call.
 
 So: *the only way to get a specific effort level out of the Agent tool is to pass the
 name of a definition that pins it.* That is what the five definitions below exist for.
@@ -28,7 +31,7 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 | `mechanical` | `haiku` | *(none — Haiku accepts none)* | 12 | 1x |
 | `worker` | `sonnet` | `medium` | 25 | 2x |
 | `reviewer` | `inherit` | `high` | 50 | session model |
-| `builder` | `inherit` | `high` | 30 | session |
+| `builder` | `inherit` | `high` | 50 | session |
 | `judge` | `opus` | `xhigh` | 50 | 4-5x |
 
 ### `mechanical` — haiku (no effort setting; Haiku accepts none)
@@ -36,11 +39,15 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 - **Do NOT use when:** the task needs a call between defensible alternatives, **or reads a lot** — Haiku's context is 200K, a hard ceiling that no amount of "but it's mechanical" overrides.
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
-### `builder` — inherit / high, with Edit + Write
+### `builder` — inherit / high, with Edit + Write (`maxTurns` raised 30 → 50: it reads,
+resolves ambiguity, edits, then runs tests/build/linter, and a truncated writer leaves a
+partially modified tree with no report of what changed)
 - **Use when:** the work must change files AND needs the session model's judgment — an
   ambiguous spec, per-target adaptation, or a blast radius that makes a downgrade unsafe.
   This is where the safe-downgrade gate sends you when the job still writes code.
-- **Do NOT use when:** the task is fully specified — `worker` does it at half the cost.
+- **Do NOT use when:** the task is fully specified — `worker` does it for less whenever the
+  session model is above Sonnet (roughly half on Opus 5.5, 40% of it on Opus 5; in a Sonnet
+  session the two differ only by an effort step, since `builder` inherits).
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `worker` — sonnet / medium
@@ -51,20 +58,22 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 - **Do NOT use when:** the task is pure mechanical churn (pay 1x instead) or a contested judgment call where being confidently wrong is expensive.
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
-### `reviewer` — inherit / high
+### `reviewer` — inherit / high (high only where the inherited model accepts effort)
 - **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
 - **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
-- **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
+- **Tools:** Read, Grep, Glob, Bash. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox.
 - **`maxTurns` was the binding constraint, and was raised 20 → 50.** Measured 2026-09-30:
   under the old cap of 20, 6 of 7 reviewers and 4 of 4 inventory agents in a repo audit
   landed on **exactly 20 calls** — guillotined mid-task. Only the one that finished at 17
   produced findings that reached the next stage. Then measured uncapped on the same
-  workload: ten broad reviewers used **15, 18, 18, 20, 22, 29, 35, 36, 41, 45** turns, and
-  sixty narrow per-finding verifiers on this tier used **4–17**. 50 covers the broad
+  workload — those agents were **untiered** (`workflow-subagent`: no cap, no allowlist, none
+  of this tier's operating rules), so read the distribution as the closest available proxy
+  for this tier's demand rather than a measurement of it: ten broad reviewers used **15, 18,
+  18, 20, 22, 29, 35, 36, 41, 45** turns, sixty narrow per-finding verifiers **4–17**. 50 covers the broad
   distribution with headroom and is invisible to the narrow one, since a ceiling costs
-  nothing for work that finishes early. This is the same correction `judge` got at 15 → 25,
-  and has since had again at 25 → 50
-  — a turn budget has to fund the mandate the tier's prose sets, and "follow the call
+  nothing for work that finishes early. This is the same correction `judge` got twice, at
+  15 → 25 and again at 25 → 50 — a turn budget has to fund the mandate the tier's prose
+  sets, and "follow the call
   chain, check the callers" is the most read-heavy mandate here. Before the fix `reviewer`
   had the *tightest* non-mechanical cap in the plugin, below `worker` (25) and
   `builder` (30), which was backwards. The case that fixed the number: the reviewer
@@ -73,7 +82,8 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
   destroyed it; 50 clears it by nine turns.
 - **It is not a cost reduction.** `inherit` means an Opus session gets Opus reviewers, so
   picking this tier over none saves nothing — measured 2026-09-30, a 19-agent fan-out that
-  named `reviewer` on every call ran 19/19 on `claude-opus-5`. Fan many of these out and
+  named `reviewer` on all 18 of its review and inventory calls ran 19/19 on `claude-opus-5`
+  (the 19th was a `judge` stage, which pins Opus regardless). Fan many of these out and
   price it at the session model, not at a discount. For spend, the levers are `mechanical`,
   `worker`, an explicit `model:` in a Workflow `agent()` call, or the tool surface.
   Same applies to `builder`.
@@ -94,7 +104,7 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
   in a Fable session, where it downgrades below the caller: adjudicate inline there.
 - **Use when:** adjudicating a contested call — two reviewers disagree, an architectural decision is irreversible, the cost of being wrong dominates the 4-5x token cost.
 - **Do NOT use when:** there is a knowable right answer, or when you have not first measured whether `reviewer` at `high` already gets it. Do not fan `judge` out across many items.
-- **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
+- **Tools:** Read, Grep, Glob, Bash. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox.
 
 ## Built-ins
 

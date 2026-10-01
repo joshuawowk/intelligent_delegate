@@ -79,9 +79,15 @@ So before routing a stage to a tier, ask what it costs in **turns**, not just to
 effort}` at all four call sites. Every agent logged `agentType: "workflow-subagent"` and
 ran `claude-opus-5`: the tiers were never engaged, including a 10-agent stage whose prompt
 was pure schema transcription. A 19-agent run in the same session passed
-`agentType: 'intelligent-delegate:reviewer'` on every call — correct usage — and *also*
-ran all-Opus, because `reviewer` inherits. Both paths cost Opus rates: **$120–145** for 100 agents
-at standard cache rates, against ~$48–58 for the same tokens on Sonnet.
+`agentType: 'intelligent-delegate:reviewer'` on all 18 of its review and inventory calls —
+correct usage; the 19th was a `judge` stage, which pins Opus anyway — and *also* ran
+all-Opus, because `reviewer` inherits. Both paths cost Opus rates: **$120–145** for 100 agents
+at standard cache rates (0.1× input for cache reads, 1.25–2× for writes depending on TTL),
+against ~$48–58 for the same tokens on Sonnet. Derivation: 1.26M output, 75.8M cache-read
+and 5.9M cache-write tokens over 1,052 API calls. That is **~4× the 40K-input/5K-output
+per-agent assumption** used in `model-selection.md`, which is why its table would price 100
+Opus agents near $33 — these agents read far more. Substitute your own per-agent token
+estimate; the figure is linear in it.
 
 Output-token cost ratio: haiku 1x, sonnet 2x, opus 4-5x, fable 10x. `effort` is reachable
 inside a Workflow script and in an agent definition's frontmatter — the `Agent` tool has
@@ -110,8 +116,10 @@ Four rationalizations that do **not** justify one:
 3. "It's cleaner code." Barrier latency is real spend. If the slowest finder takes 3x
    the fastest, the fast ones idle for 2/3 of the stage.
 4. "There are only a few items." One slow outlier still gates everything.
-Smell test: `const a = await parallel(...); const b = transform(a); await parallel(b.map(...))`
+
+**Smell test:** `const a = await parallel(...); const b = transform(a); await parallel(b.map(...))`
 — if `transform` has no cross-item dependency, that barrier is unearned.
+
 ## The named shapes
 
 - **Adversarial verify** — N independent skeptics per finding, each prompted to *refute*,
@@ -121,7 +129,8 @@ Smell test: `const a = await parallel(...); const b = transform(a); await parall
   (correctness / security / perf / does-it-reproduce). For: findings that can fail in more
   than one way, where redundancy would miss the mode nobody looked for.
 - **Judge panel** — generate N attempts from different angles (MVP-first, risk-first,
-  user-first), score with parallel judges, synthesize from the winner while grafting the
+  user-first), score with parallel *scorers* (`reviewer` tier — not the `judge` tier, which
+  is costed on never being fanned out), synthesize from the winner while grafting the
   runners-up. For: wide solution spaces, where one-attempt-iterated locks in early.
 - **Loop-until-dry** — keep spawning finders until K consecutive rounds surface nothing
   new; dedupe against everything *seen*, not everything *confirmed*, or rejected findings
@@ -142,12 +151,18 @@ the one call that decides whether the output is right.
 
 | Shape | Drop to mechanical | Mid tier (`worker` pins sonnet; `reviewer` inherits) | Earns judge |
 |---|---|---|---|
-| Adversarial verify | — | refuters at `effort: 'high'` | tie-break when the vote splits |
-| Perspective-diverse verify | — | each lens at `effort: 'high'` | the lens that gates a release |
+| Adversarial verify | — | refuters at `agentType: '…:reviewer'` | tie-break when the vote splits |
+| Perspective-diverse verify | — | each lens at `agentType: '…:reviewer'` | the lens that gates a release |
 | Judge panel | — | the N generators | the final synthesis |
 | Loop-until-dry | per-round severity/triage classification | the finders | final confirm pass only |
 | Multi-modal sweep | — | each arm (`agentType: 'Explore'`), then the merge | rarely |
-| Completeness critic | — | — | the critic itself, `effort: 'xhigh'` |
+| Completeness critic | — | — | the critic itself, `agentType: '…:judge'` |
+
+Cells name `agentType`, not bare `{effort}`, for the reason at the top of this file: bare
+opts give you the model and effort but none of the tier's cap, tool surface or
+return-value contract. A refuter built from `{effort: 'high'}` alone is an untiered agent
+with write tools it should not have and no instruction that its final message is the
+deliverable — which is exactly the vanished-stage failure described below.
 
 Before dropping a stage to mechanical, ask whether it needs an agent at all: dedupe and
 merge are plain JS, and structured extraction is a `schema` on the upstream agent. The
@@ -169,6 +184,17 @@ is fully specified and verifiable without judgment. Route it to
 because a schema stage is exactly where a cheap model fails by not calling
 StructuredOutput at all. Better still, check whether the stage is needed: a `schema` on
 the upstream agent removes it entirely.
+
+## `schema` injects a tool the allowlist does not list
+
+Passing `schema` to `agent()` makes the stage return through the `StructuredOutput` tool,
+and **that tool is not subject to the definition's `tools:` allowlist.** Verified from
+transcripts: eight agents running `agentType: 'intelligent-delegate:reviewer'`, whose
+allowlist is exactly `[Read, Grep, Glob, Bash]`, each called `StructuredOutput` successfully.
+So you never need to add it to a `tools:` list, and a read-only tier can still satisfy a
+schema. The failure mode is the opposite one — see the turn cap above: a capped agent never
+reaches its schema call, and the stage fails with
+`subagent completed without calling StructuredOutput`.
 
 ## The return value is the deliverable
 
@@ -266,9 +292,10 @@ export const meta = {
   phases: [
     // `model` on a phase entry documents that phase's override — add it whenever a
     // stage passes opts.model, so the progress display matches what actually runs.
-    {title: 'Find', detail: 'one finder per target file', model: 'sonnet'},
-    {title: 'Triage', detail: 'cheap severity classification', model: 'haiku'},  // tier pins haiku
-    {title: 'Verify', detail: 'adversarial refutation', model: 'sonnet'},
+    // Each phase names the model its tier pins, so the progress display matches what runs.
+    {title: 'Find', detail: 'one finder per target file', model: 'sonnet'},      // worker
+    {title: 'Triage', detail: 'cheap severity classification', model: 'haiku'},  // mechanical
+    {title: 'Verify', detail: 'adversarial refutation', model: 'inherit'},       // reviewer
   ],
 }
 
@@ -285,12 +312,14 @@ const targets = args && args.length ? args : ['src/auth.js', 'src/session.js']
 
 const reviewed = await pipeline(
   targets,
-  // Generation: reads the whole file, open-ended. Bare opts on purpose — this stage
-  // pins the same model as the verify stage below so the model-scoped cache survives
-  // across the pipeline, which `agentType: '...:worker'` (medium, fixed) would not let
-  // us tune. Deliberate bare opts, not shorthand for a tier.
+  // Generation: reads the whole file, open-ended. `worker` IS sonnet/medium, so address it
+  // by agentType and inherit its maxTurns, tool surface and operating rules for free.
+  // (An earlier version of this sketch passed {model:'sonnet', effort:'medium'} here and
+  // called it tuning — it is worker's frontmatter verbatim, so it tuned nothing and only
+  // dropped the tier's guarantees. Reach for bare opts when you need a value a definition
+  // does not offer, such as effort: 'max'.)
   (file) => agent(`Review ${file} for correctness bugs. Return each finding.`,
-    {phase: 'Find', schema: FINDINGS, model: 'sonnet', effort: 'medium'}),
+    {phase: 'Find', schema: FINDINGS, agentType: 'intelligent-delegate:worker'}),
 
   // Classification: short, independent input, no file read. Addressed by agentType, so
   // it gets omitClaudeMd and the 6-tool surface too — `{model: 'haiku'}` alone would buy
@@ -306,7 +335,8 @@ const reviewed = await pipeline(
     if (!tri) return null
     const votes = await parallel(tri.triaged.map((f, i) => () =>
       agent(`Try to refute this claim about ${file}: ${f.claim}. Default refuted=true if uncertain.`,
-        {phase: 'Verify', label: `refute ${i}`, schema: VERDICT, model: 'sonnet', effort: 'high'})))
+        {phase: 'Verify', label: `refute ${i}`, schema: VERDICT,
+         agentType: 'intelligent-delegate:reviewer'})))
     const live = votes.filter(Boolean).filter(v => !v.refuted)
     return {file, survived: live.length, total: tri.triaged.length}
   },

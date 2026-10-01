@@ -13,7 +13,7 @@
     {
       "name": "intelligent-delegate",
       "source": "./",
-      "description": "Routes a task to the cheapest execution shape that still gets it right — inline, a single subagent, or a Workflow fan-out — and picks the model tier and reasoning effort to match. Ships five pre-tiered agent definitions (mechanical, worker, reviewer, builder, judge) so a reasoning-effort choice is actually reachable from the Agent tool, which has no effort parameter.",
+      "description": "Routes a task to the cheapest execution shape that still gets it right \u2014 inline, a single subagent, or a Workflow fan-out \u2014 and picks the model tier and reasoning effort to match. Ships five pre-tiered agent definitions so effort is actually reachable from the Agent tool.",
       "version": "0.1.0",
       "author": {
         "name": "Josh Wowk",
@@ -29,7 +29,11 @@
         "model-selection",
         "reasoning-effort",
         "token-efficiency",
-        "cost-optimization"
+        "cost-optimization",
+        "workflow",
+        "fan-out",
+        "parallelism",
+        "agent-routing"
       ]
     }
   ]

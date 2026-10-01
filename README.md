@@ -104,8 +104,26 @@ Skills and agent definitions are registered at session start, so **start a new
 session** afterwards. Verify with `/plugin` — the five agents should appear as
 `intelligent-delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
 
-To work on the plugin in place instead, point the marketplace at this checkout
-directly and `git pull` to update; no reinstall needed, just a new session.
+To work on the plugin in place instead, point the marketplace at this checkout directly.
+**But do not expect edits to go live on their own.** The install is a *copy* under
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`, and the cache path is keyed on
+the `version` in `.claude-plugin/plugin.json`. While that version string does not change,
+`git pull` and local edits leave the cache untouched — measured here, the install sat six
+commits behind the working tree, still serving the previous `maxTurns` values, and agents
+spawned from it ran the old caps. A new session does not fix it.
+
+To actually pick up changes, do one of:
+
+```bash
+# reinstall over the stale copy
+claude plugin install intelligent-delegate@intelligent-delegate --force
+# or verify what is actually installed before trusting a measurement
+python3 -c "import json;d=json.load(open('$HOME/.claude/plugins/installed_plugins.json'));print(json.dumps(d,indent=1))" | grep -A2 installPath
+```
+
+`evals/measure_triggers.py` now compares the installed commit against `git rev-parse HEAD`
+and refuses to run on a mismatch, because an eval against a stale install measures the
+wrong plugin and says nothing about your edits.
 
 ### Verified install
 
@@ -118,9 +136,11 @@ claude plugin install intelligent-delegate@intelligent-delegate
 claude plugin details intelligent-delegate@intelligent-delegate
 ```
 
-`details` reports the registered inventory — **1 skill, 5 agents** — and the
-token cost: **~1,016 tokens always-on**, plus ~5.1k when the `delegate` skill
-actually fires and ~570–740 per agent invocation.
+`details` reports the registered inventory — **1 skill, 5 agents** — and a token cost.
+**Measured 2026-09-30 at commit `d2ba47d`: ~1,016 tokens always-on, ~5.1k when the
+`delegate` skill fires, ~570–740 per agent invocation.** Treat all three as stale: `SKILL.md`
+has grown since, so skill-load is now nearer 6–7k by this repo's own ÷4 rule, and no
+`details` output is archived here. Re-run `details` after editing rather than quoting these.
 
 > **Note on names.** The plugin id is `intelligent-delegate` (kebab-case, so
 > `claude plugin validate` passes clean and it can sync to claude.ai). The **repo and

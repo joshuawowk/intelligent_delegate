@@ -5,7 +5,10 @@ cases; this file prices the hard ones.
 
 ## Cost table
 
-First-party API rates, USD per million tokens.
+First-party API rates, USD per million tokens. Cross-checked 2026-10-01 against the model
+catalog in Claude Code 2.1.286 (`tier_2_10`, `tier_5_25`, `tier_4_20_cache_read_0_20`,
+`tier_10_50_cache_read_0_25`). Re-verify before quoting; a stale row here rots every
+derived ratio in this repo.
 
 | Model | id | In | Out | Context | Output ratio |
 |---|---|--:|--:|--:|:--:|
@@ -20,6 +23,11 @@ Fable 10×**. The `opus` alias covers two priced rows; when that matters to a
 budget, pin the full id in agent frontmatter (`model: claude-opus-5`). Haiku's
 200K context is a *hard* constraint, not a soft cost — the only row in the table
 that can fail outright rather than merely cost more.
+
+**Cache reads are not uniformly 0.1× input.** Opus 5.5 bills them at **0.20×** and
+Fable 5.1 at **0.25×** (the `cache_read_0_20` / `cache_read_0_25` tiers above); the others
+use the standard ~0.1×. This matters wherever input dominates, and it sharpens the advisor
+argument below: a Fable advisor's *cached* input costs 2.5× the usual fraction.
 
 ## Worked spend: a 10-agent fan-out
 
@@ -50,14 +58,30 @@ tier runs it.
 
 ## The effort x model grid
 
-Rows are effort, columns are model. `max` is reachable **only** from Workflow
-`agent({effort: "max"})`; agent frontmatter tops out at `xhigh`.
+Rows are effort, columns are model.
+
+**Effort is not free, and the column multipliers alone will mislead you.** The harness
+carries a per-model effort cost index (read from the Claude Code 2.1.286 catalog,
+`effort_cost_index`):
+
+| model | low | medium | high | xhigh | max |
+|---|--:|--:|--:|--:|--:|
+| Sonnet 5 | 0.47 | 0.74 | 1 | **2.41** | **5.59** |
+| Opus 5 | 0.67 | 0.76 | 1 | 1.6 | 1.7 |
+| Fable 5.1 | 0.75 | 0.86 | 1 | 1.38 | 1.74 |
+| Opus 5.5 | *(no index published)* | | | | |
+| Haiku 4.5 | *(none — accepts no effort)* | | | | |
+
+Multiply the column ratio by the index before comparing two cells. The consequences are
+not small: **sonnet @ xhigh ≈ 2 × 2.41 = 4.8 effective units against opus @ high at 5.0** —
+a wash, not a saving. Sonnet @ max ≈ 11, i.e. above Fable @ high. Opus is comparatively
+flat across effort (1.7 at max) where Sonnet is steep.
 
 | | haiku (1×) | sonnet (2×) | opus (4–5×) | fable (10×) |
 |---|---|---|---|---|
 | **low** | ⬜ n/a — **Haiku accepts no effort setting at all.** Every cell in this column is "model default"; the harness drops whatever you set. `mechanical` therefore ships no `effort:` key. | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
 | **medium** | ⬜ n/a | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
-| **high** | ⬜ n/a | ✅ the `reviewer` / `builder` shape | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
+| **high** | ⬜ n/a | ✅ the `reviewer` / `builder` *shape* — but both are `model: inherit`, so this row moves with the session model and is **not** pinned to the 2× column | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
 | **xhigh** | ⬜ n/a | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
 | **max** (Workflow only) | ⬜ n/a | ⚠️ | ✅ one contested call | ⚠️ |
 
@@ -73,10 +97,12 @@ Why the marked cells are mistakes:
   and does nothing.
 - **If a Haiku task needs more thoroughness, the task is not mechanical.** Promote the
   model — raising effort is not available to you on Haiku.
-- **fable @ low / medium.** Paying 10× for the strongest available reasoning and
-  then capping it. opus @ high (5×) or sonnet @ xhigh (2×) dominates: more actual
-  thinking, less money. Fable is only defensible at high or xhigh, on a task where
-  opus @ xhigh has already been tried and was not good enough.
+- **fable @ low / medium.** Paying 10× for the strongest available reasoning and then
+  capping it. Fable is only defensible at high or xhigh, on a task where opus @ xhigh has
+  already been tried and was not good enough. (Note what the index above does to the usual
+  phrasing of this point: opus @ high at 5.0 effective units and sonnet @ xhigh at ~4.8 are
+  near-identical in cost, so neither "dominates" the other — pick on whether the task is
+  capability-bound or thoroughness-bound, not on price.)
 - **opus @ low.** Opus's advantage is extended reasoning; at low effort you buy a
   5× token price for a terser answer.
 - **`reviewer` is `inherit` @ high** on purpose: finding defects repays effort far
@@ -86,9 +112,11 @@ Why the marked cells are mistakes:
   cost decision and is not one. If the goal is spend, the only levers that bite are the
   pinned tiers (`mechanical`/haiku, `worker`/sonnet), an explicit `model:` on a Workflow
   `agent()` call, or the tool surface below. Measured 2026-09-30: a 19-agent fan-out
-  passed `agentType: 'intelligent-delegate:reviewer'` on every call and ran 19/19 on
-  `claude-opus-5`; a sibling 81-agent run that passed no `agentType` at all produced the
-  identical all-Opus outcome. Correct tier usage and no tier usage cost the same.
+  passed `agentType: 'intelligent-delegate:reviewer'` on all 18 of its review and inventory
+  calls (the 19th was the `judge` consolidation stage, which pins Opus regardless) and ran
+  19/19 on `claude-opus-5`; a sibling 81-agent run that passed no `agentType` at all
+  produced the identical all-Opus outcome. Correct tier usage and no tier usage cost the
+  same.
 
 ## "Best model at lower effort" vs a multi-model cascade
 
@@ -150,36 +178,52 @@ Haiku regardless of how mechanical it looks.
 
 ## The tool surface is the biggest lever
 
-Measured on this harness — same model, same prompt, identical output, only the agent
-definition differed:
+Single paired run on this harness, 2026-09-30 — same model (`haiku` pinned on both),
+same prompt, identical output. **Two things differ between the arms**, tool count *and*
+`omitClaudeMd`, so the gap is their joint effect:
 
 | agent | tools | cold-start prefix | total input, 9 requests |
 |---|--:|--:|--:|
 | `mechanical` (6 tools, `omitClaudeMd: true`) | 6 | 7.5k | **98k** |
 | `general-purpose` (all tools) | all | 42.4k | **435k** |
 
-**4.4× for the same answer.** Tool schemas are re-sent on every request, so the gap
-compounds with turn count; CLAUDE.md was only ~500 tokens of it. Dropping Haiku→nothing
-saves less than trimming an all-tools agent to the six tools it needs. Scope `tools:`
-before you touch model or effort.
+**4.4× on one task** (n=1 per arm — treat it as the order of magnitude, not a constant).
+Two ratios appear above and they measure different things: the cold-start *prefix* ratio is
+42.4/7.5 = **5.65×**, while **4.4×** is total input over 9 requests, which dilutes the fixed
+prefix with accumulated tool results. Tool schemas are re-sent every request, so the gap
+compounds with turn count; CLAUDE.md is only ~500 tokens of it, by subtraction rather than
+by a third arm. Dropping Haiku→nothing saves less than trimming an all-tools agent to the
+six tools it needs — note those levers multiply rather than compete. Scope `tools:` before
+you touch model or effort.
 
 ## Two things that break the table above
 
 **Haiku takes no effort setting.** Haiku 4.5 does not accept a reasoning-effort
 parameter; the harness drops it silently. Every `haiku` cell in the effort grid is
 therefore "model default", not the effort named — and shipping `effort:` on a Haiku
-agent definition produces a knob that reads as tuned and does nothing. Verified from
-this plugin's own subagent transcripts: the Haiku runs record no effort at all, while
-the Sonnet and Opus runs record `medium` and `high` exactly as declared.
+agent definition produces a knob that reads as tuned and does nothing. **Basis:** the
+Claude Code 2.1.286 model catalog gives `claude-haiku-4-5` the capability list
+`["context_management"]` — no `"effort"` — while `claude-sonnet-5`, `claude-opus-5` and
+`claude-fable-5-1` each carry `"effort"`, `"xhigh_effort"` and `"max_effort"`, and Haiku
+alone has no `effort_cost_index`. (Our own Haiku transcripts record no effort either, but
+that is *not* evidence: `mechanical` never declares one, so absence is what you would
+observe either way. The catalog is the falsifiable source.)
 
 **An advisor re-prices every row.** When a session has an advisor configured, each
-subagent receives it — measured here as `claude-fable-5-1` at 10×, injected into every
-tier including `mechanical`. A single consult from a 1× agent costs more than the agent.
+subagent receives it — observed 2026-09-30 in one session as `claude-fable-5-1` at 10×,
+injected into every tier including `mechanical`. The advisor *model* is session
+configuration, not a harness constant: the catalog assigns each model an `advisor_rank`,
+so another session resolves a different one. Price the floor at whatever your own session
+resolved. A single consult from a 1× agent costs more than the agent.
 Treat this table as the floor: it is what the tier costs if nothing escalates. The
 controls are session-wide — `/advisor off`, or `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` for
-scripted runs. Per-agent suppression is impossible: the advisor is a **server-side**
-tool appended to the wire `tools` array after the client list, so it never reaches an
-agent's allow/deny filter.
+scripted runs; a model reading this cannot issue either, so **ask the user**. Per-agent
+suppression is not exposed through any documented surface: read in Claude Code 2.1.286,
+the advisor spec is pushed onto the wire `tools` array *after* the client list and executes
+server-side, so it never reaches an agent's allow/deny filter and a `disallowedTools` entry
+for it is inert. The attachment is gated on a resolved advisor model plus internal
+`advisorActive`/`advisorDeferred` flags that no agent-definition key reaches. Bundle
+internals rot fast — re-check on CLI upgrades.
 
 ## How to set each knob
 
@@ -187,7 +231,7 @@ agent's allow/deny filter.
 |---|---|---|---|---|---|
 | `Agent` tool | ✅ `haiku`\|`sonnet`\|`opus`\|`fable` | ❌ **none** | ❌ | ❌ | ❌ |
 | Workflow `agent(prompt, opts)` | ✅ same tiers; omit to inherit session | ✅ `low`→`max` | ❌ | ❌ | ❌ |
-| Agent definition frontmatter | ✅ alias, full id, or `inherit` | ✅ `low`→`xhigh` | ✅ | ✅ | ✅ **biggest lever** |
+| Agent definition frontmatter | ✅ alias, full id, or `inherit` | ✅ `low`→`max`, or an integer | ✅ | ✅ | ✅ **biggest lever** |
 | `SKILL.md` frontmatter | ❌ | ⚠️ sets *this turn*, never a subagent (see below) | ❌ | ❌ | `allowed-tools` |
 
 ```js
@@ -208,9 +252,10 @@ maxTurns: 25
 no effort setting, so it ships with **no `effort:` key at all**. A Haiku definition can
 demonstrate model pinning but never effort pinning.
 
-Then `Agent({ subagent_type: "intelligent-delegate:mechanical", ... })` gets both
+Then `Agent({ subagent_type: "intelligent-delegate:worker", ... })` gets both
 the model and the effort, which a bare `Agent` call cannot express — **this
-indirection is the mechanical point of the plugin.** Plugin agents are namespaced;
+indirection is the mechanical point of the plugin.** (`:worker`, not `:mechanical`, for
+the reason just given: the Haiku tier has no effort to carry.) Plugin agents are namespaced;
 bare `mechanical` resolves only for a project-local `.claude/agents/mechanical.md`.
 
 `SKILL.md` frontmatter: `effort:` there **is** honoured by this harness — the release

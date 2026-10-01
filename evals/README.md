@@ -116,7 +116,14 @@ measurement. A query counts as firing if it fires in at least half its runs.
 |---|--:|--:|
 | v1 — capability phrasing | 2/10 *(n=1)* | 0/6 |
 | v2 — explicit short-form phrasings + "do not answer from memory" | 7–8/10 *(n=1)* | 0/6 |
-| current — same, with the advisor claim made conditional | **~9/10** *(n=3 on contested queries)* | 0/6 |
+| current — same, with the advisor claim made conditional | **8–9/10**, mixed n — see below | 0/6 *(mixed n)* |
+
+**Read the `current` row with its caveat.** It is a composite, not a single measurement:
+three contested queries were re-run at n=3 (3/3, 2/3, 0/3) and the other seven are n=1
+carry-overs — which this same section says must not be quoted. The honest summary is
+"8–9/10, provisional". No archived artifact backs it (see the note at the bottom). To get a
+single defensible number, re-run all cases at one n:
+`env -u CLAUDECODE python3 evals/measure_triggers.py --runs 3`.
 
 **Single-run numbers on this harness are noise-dominated. Do not quote them.** Two
 consecutive n=1 runs of the current description scored 8/10 and 7/10, which looked like a
@@ -133,6 +140,10 @@ Two of the three "misses" fire reliably or usually; only one is a stable miss. T
 apparent 8→7 regression was a coin flip, and acting on it would have meant tuning a
 description against sampling noise. Always include a known-firing control so a systemic
 failure — auth, a broken install, a harness bug — is distinguishable from a real miss.
+`trigger-evals.json` now ships two, flagged `"control": true`: a must-fire query and a
+must-not-fire query. The harness warns when no control is present and prints
+`CONTROL CASE FAILED` when one breaks, because a failed control invalidates every other
+number in that run.
 
 **The one stable miss** is *"is it worth spinning up agents for this, or is the overhead
 not worth it?"*, whose phrasing appears near-verbatim in the description. It is not a
@@ -141,4 +152,20 @@ the model answers it directly. Chasing it risks the false-positive column, which
 clean across every run. Over-triggering is the more expensive failure — a skill that
 loads on unrelated turns taxes every one of them.
 
-Raw per-query output from the most recent full run is in `last-trigger-run.json`.
+**Provenance of `last-trigger-run.json`.** It is a **stale n=1 artifact of the v2
+description**, kept only as a format example, and it is labelled as such inside the file.
+It predates both the current description and the n=3 default, and the harness that wrote it
+emitted no `rate` field — so it cannot have come from the current script. Its 8/10 and its
+two recorded misses are the sampling noise discussed above. **No archived artifact exists
+for the current description**; regenerating one costs billed `claude -p` runs
+(18 queries × n, concurrency 6).
+
+**What the harness now refuses to do.** Earlier versions never read `claude`'s exit status,
+so a broken install — expired auth, a missing binary, a `stream-json` shape change — scored
+`TP=0 FN=10 FP=0 TN=6` and exited **0**, reproducing the clean false-positive column above
+while measuring nothing. It now distinguishes an `ERROR` case from a miss, exits non-zero on
+any error or mismatch, and refuses to run at all when the installed plugin is not the
+working tree (`--allow-stale` overrides). That last guard matters because **this harness
+measures the installed copy, not your edits**: the plugin cache is keyed on the `version` in
+`plugin.json`, so editing files without bumping it leaves the install stale and your change
+unmeasured.

@@ -13,20 +13,25 @@ tools:
 
 # Reviewer tier
 
-You inherit the caller's model and run at **high** effort. You have no Edit or Write tools:
+You inherit the caller's model and run at **high** effort — high *where the inherited model
+accepts an effort setting*; in a Haiku session the key is dropped and you get the model
+default. You have no Edit or Write tools:
 you find problems, you do not fix them. (Bash is available so you can run the checks that
 make a finding concrete — it is not a sandbox, so do not use it to modify the tree.) Finding what is wrong rewards effort far more than it
 rewards raw model capability, which is why this tier raises effort rather than tier.
 
-**`maxTurns: 50` is sized from measurement, not taste.** Ten uncapped reviewers doing
+**`maxTurns: 50` is sized from measurement — of a proxy, stated as such.** Ten *untiered*
+agents (`workflow-subagent`: no cap, no allowlist, none of these operating rules) doing
 repo-scale audits used 15, 18, 18, 20, 22, 29, 35, 36, 41 and 45 turns; sixty narrow
-per-finding verifiers using this same tier used 4-17. 50 covers the broad case with
-headroom and is invisible to the narrow one — a ceiling costs nothing for work that
-finishes early. It is still a runaway guard, so the rule in "Return value" below holds:
+per-finding verifiers in the same run used 4-17. Those agents were not running this
+definition, so treat the distribution as the closest available proxy for this tier's turn
+demand rather than a measurement of it — a narrower tool surface and an operating mandate
+could move it either way. 50 covers the broad case with headroom and is invisible to the
+narrow one: a ceiling costs nothing for work that finishes early. It is still a runaway guard, so the rule in "Return value" below holds:
 as you near it, return what you have rather than spending the last turn on one more read.
 
-The case that set the number: the reviewer auditing secrets and credential exposure took
-**41 turns** and returned a 25,898-character report finding four independent secrets an
+The case that set the number (same untiered run): the agent auditing secrets and credential
+exposure took **41 turns** and returned a 25,898-character report finding four independent secrets an
 earlier pass had missed. At the old cap of 20 it would have been cut off at turn 20 and
 that dimension would have returned nothing — and a cap of 25, 30 or 35 would have killed
 it too. Broad review is not slow because the agent is wandering; it is slow because the
