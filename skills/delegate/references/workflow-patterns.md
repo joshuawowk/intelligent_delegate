@@ -74,13 +74,13 @@ So before routing a stage to a tier, ask what it costs in **turns**, not just to
   compare to the tier's cap *before* suspecting the model or the prompt. An exact landing
   on the cap is never a coincidence.
 
-**Measured, 2026-09-30.** A 73-agent audit fan-out passed only `{label, phase, schema,
+**Measured, 2026-09-30.** An 81-agent audit fan-out passed only `{label, phase, schema,
 effort}` at all four call sites. Every agent logged `agentType: "workflow-subagent"` and
-ran `claude-opus-5`: the tiers were never engaged, including a 9-agent stage whose prompt
+ran `claude-opus-5`: the tiers were never engaged, including a 10-agent stage whose prompt
 was pure schema transcription. A 19-agent run in the same session passed
 `agentType: 'intelligent-delegate:reviewer'` on every call — correct usage — and *also*
-ran all-Opus, because `reviewer` inherits. Both paths cost Opus rates: roughly **$100–130** for 92
-agents at standard cache rates, against ~$45–50 for the same tokens on Sonnet.
+ran all-Opus, because `reviewer` inherits. Both paths cost Opus rates: **$120–145** for 100 agents
+at standard cache rates, against ~$48–58 for the same tokens on Sonnet.
 
 Output-token cost ratio: haiku 1x, sonnet 2x, opus 4-5x, fable 10x. `effort` is reachable
 inside a Workflow script and in an agent definition's frontmatter — the `Agent` tool has
@@ -202,12 +202,15 @@ if (!report || String(report).trim().length < MIN) {
 }
 ```
 
-**Observed near-miss, 2026-09-30.** In the 73-agent run above, the reviewer covering
+**Observed near-miss, 2026-09-30.** In the 81-agent run above, the reviewer covering
 secrets and credential exposure emitted "The report is durable at 2716 words. Let me have
 the advisor review before finalizing." — 86 characters, under a 200-character guard. Its
-nine sibling reviewers returned 21k–38k characters each. Had its turn ended on that line,
-the only security review in the fan-out would have been dropped on a length check, with no
-log line and no retry. The guard is the single-point-of-failure, not the agent.
+nine sibling reviewers returned 21k–38k characters each. It recovered — the run finished
+and it returned a 25,898-character report at turn 41 — so this was a near-miss, not a loss.
+But had its turn ended on that line, the only security review in the fan-out would have
+been dropped on a length check, with no log line and no retry. And that report is the one
+that found four independent secrets an earlier pass had missed. The guard is the
+single-point-of-failure here, not the agent.
 
 ## Budget-aware scaling
 

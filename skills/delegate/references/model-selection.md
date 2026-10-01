@@ -87,7 +87,7 @@ Why the marked cells are mistakes:
   pinned tiers (`mechanical`/haiku, `worker`/sonnet), an explicit `model:` on a Workflow
   `agent()` call, or the tool surface below. Measured 2026-09-30: a 19-agent fan-out
   passed `agentType: 'intelligent-delegate:reviewer'` on every call and ran 19/19 on
-  `claude-opus-5`; a sibling 73-agent run that passed no `agentType` at all produced the
+  `claude-opus-5`; a sibling 81-agent run that passed no `agentType` at all produced the
   identical all-Opus outcome. Correct tier usage and no tier usage cost the same.
 
 ## "Best model at lower effort" vs a multi-model cascade

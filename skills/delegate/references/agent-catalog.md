@@ -66,7 +66,10 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
   — a turn budget has to fund the mandate the tier's prose sets, and "follow the call
   chain, check the callers" is the most read-heavy mandate here. Before the fix `reviewer`
   had the *tightest* non-mechanical cap in the plugin, below `worker` (25) and
-  `builder` (30), which was backwards.
+  `builder` (30), which was backwards. The case that fixed the number: the reviewer
+  auditing credential exposure needed **41 turns** to return a 25,898-character report
+  finding four secrets an earlier pass missed. Caps of 25, 30 and 35 would all have
+  destroyed it; 50 clears it by nine turns.
 - **It is not a cost reduction.** `inherit` means an Opus session gets Opus reviewers, so
   picking this tier over none saves nothing — measured 2026-09-30, a 19-agent fan-out that
   named `reviewer` on every call ran 19/19 on `claude-opus-5`. Fan many of these out and

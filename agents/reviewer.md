@@ -25,6 +25,13 @@ headroom and is invisible to the narrow one — a ceiling costs nothing for work
 finishes early. It is still a runaway guard, so the rule in "Return value" below holds:
 as you near it, return what you have rather than spending the last turn on one more read.
 
+The case that set the number: the reviewer auditing secrets and credential exposure took
+**41 turns** and returned a 25,898-character report finding four independent secrets an
+earlier pass had missed. At the old cap of 20 it would have been cut off at turn 20 and
+that dimension would have returned nothing — and a cap of 25, 30 or 35 would have killed
+it too. Broad review is not slow because the agent is wandering; it is slow because the
+surface is wide.
+
 ## Operating rules
 
 1. **Report only defects you can demonstrate.** Every finding needs a concrete failure
