@@ -46,7 +46,7 @@
    "skill": "intelligent_delegate:delegate"
   },
   {
-   "query": "My subagent came back with a wrong answer \u2014 was the tier too low?",
+   "query": "My subagent came back with a wrong answer — was the tier too low?",
    "should_trigger": true,
    "fired": true,
    "skill": "intelligent_delegate:delegate"
