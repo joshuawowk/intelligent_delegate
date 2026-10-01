@@ -11,6 +11,7 @@ mismatch unless you pass --allow-stale. See evals/README.md.
 
 Usage:  env -u CLAUDECODE python3 evals/measure_triggers.py
         env -u CLAUDECODE python3 evals/measure_triggers.py --runs 3 --out /tmp/run.json
+        env -u CLAUDECODE python3 evals/measure_triggers.py -v   # per-trial detail
 Reads evals/trigger-evals.json. Spawns one `claude -p` per query per run (billed).
 Exit status: 0 only if every case matched its expectation and no case errored.
 """
@@ -27,7 +28,16 @@ ap.add_argument('--out', default=None, help='where to write results (default: a 
                 'copied over evals/last-trigger-run.json only on a clean run)')
 ap.add_argument('--allow-stale', action='store_true',
                 help='run even if the installed plugin differs from the working tree')
-ap.add_argument('--timeout', type=int, default=150)
+ap.add_argument('--timeout', type=int, default=300,
+                help='per-call timeout. Measured: 150s with 6-way concurrency timed out 7 of '
+                     '18 calls — and a timeout counted as a miss is exactly how a slow API '
+                     'gets misread as a description regression.')
+ap.add_argument('--concurrency', type=int, default=4,
+                help='parallel `claude -p` calls. Higher contends for the API and inflates '
+                     'per-call latency, which shows up as timeouts.')
+ap.add_argument('-v', '--verbose', action='store_true',
+                help='in the summary, print each query in full plus a per-trial breakdown: '
+                'every error untruncated, and which skills fired instead on a miss')
 args = ap.parse_args()
 
 if args.runs < 1:
@@ -70,14 +80,46 @@ def installed_state():
 head = subprocess.run(['git', '-C', REPO, 'rev-parse', 'HEAD'],
                       capture_output=True, text=True).stdout.strip()
 ipath, isha, ierr = installed_state()
+
+# Compare CONTENT, not bookkeeping. The recorded gitCommitSha only moves when plugin.json's
+# version moves, so it is stale after any ordinary commit and makes a SHA check unusable.
+# What actually decides whether this run measures your edits is whether the installed
+# SKILL.md and agent definitions are byte-identical to the tree's.
+WATCH = ['skills/delegate/SKILL.md'] + sorted(
+    'agents/' + f for f in os.listdir(os.path.join(REPO, 'agents')) if f.endswith('.md'))
+
+def content_drift(installed_root):
+    drift, unreadable = [], []
+    for rel in WATCH:
+        a_, b_ = os.path.join(REPO, rel), os.path.join(installed_root, rel)
+        try:
+            if open(a_, 'rb').read() != open(b_, 'rb').read():
+                drift.append(rel)
+        except OSError:
+            unreadable.append(rel)
+    return drift, unreadable
+
 print(f"working tree HEAD   : {head}")
 print(f"installed plugin    : {isha or '?'}  ({ipath or ierr})")
-if isha and head and not head.startswith(isha) and not isha.startswith(head):
-    msg = ("MISMATCH: the installed plugin is not the working tree, so this run does NOT "
-           "measure your edits. Refresh the install first (see evals/README.md).")
-    if not args.allow_stale:
-        sys.exit(msg + "  Pass --allow-stale to measure the installed copy anyway.")
-    print("WARNING: " + msg, file=sys.stderr)
+if ipath and os.path.isdir(ipath):
+    drift, unreadable = content_drift(ipath)
+    if drift:
+        msg = ("MISMATCH: the installed plugin's content differs from the working tree, so "
+               "this run does NOT measure your edits. Differing: " + ', '.join(drift) +
+               ". Bump plugin.json's version, then `claude plugin marketplace update` and "
+               "`claude plugin update` (see README).")
+        if not args.allow_stale:
+            sys.exit(msg + "  Pass --allow-stale to measure the installed copy anyway.")
+        print("WARNING: " + msg, file=sys.stderr)
+    elif unreadable:
+        print(f"NOTE: could not compare {len(unreadable)} file(s) in the install; "
+              f"proceeding.", file=sys.stderr)
+    else:
+        print(f"installed content   : identical to the working tree for "
+              f"{len(WATCH)} watched files")
+else:
+    print("NOTE: no readable install path; cannot confirm what is being measured.",
+          file=sys.stderr)
 
 env = {k: v for k, v in os.environ.items() if k != 'CLAUDECODE'}
 
@@ -114,7 +156,7 @@ def run(job):
     return {**item, 'fired': SKILL_ID in skills, 'error': None, 'skills': skills}
 
 jobs = [(q, i) for q in QUERIES for i in range(args.runs)]
-with cf.ThreadPoolExecutor(max_workers=6) as ex:
+with cf.ThreadPoolExecutor(max_workers=args.concurrency) as ex:
     raw = list(ex.map(run, jobs))
 
 from collections import defaultdict
@@ -154,9 +196,22 @@ print(f"(n={args.runs} per query; a query counts as firing above 50% of non-erro
 for r in out:
     mark = 'ERR' if r['state'] == 'ERROR' else ('OK ' if r['fired'] == r['should_trigger'] else 'BAD')
     ctl = ' [control]' if r.get('control') else ''
-    print(f"  [{mark}] want={str(r['should_trigger']):5s} rate={r['rate']:>5s} | {r['query'][:58]}{ctl}")
-    for e in r['errors'][:1]:
-        print(f"        error: {e[:150]}")
+    if args.verbose:
+        print(f"  [{mark}] want={str(r['should_trigger']):5s} rate={r['rate']:>5s} | "
+              f"{r['query']}{ctl}")
+        # agg preserves job order, so these are in trial order
+        for i, t in enumerate(agg[r['query']], 1):
+            if t['error']:
+                detail = 'ERROR ' + t['error']
+            else:
+                detail = ('fired' if t['fired'] else 'did not fire')
+                detail += ' | skills: ' + (', '.join(t['skills']) or '(none)')
+            print(f"        trial {i}/{args.runs}: {detail}")
+    else:
+        print(f"  [{mark}] want={str(r['should_trigger']):5s} rate={r['rate']:>5s} | "
+              f"{r['query'][:58]}{ctl}")
+        for e in r['errors'][:1]:
+            print(f"        error: {e[:150]}")
 print(f"results: {dest}")
 
 if ctl_bad:
