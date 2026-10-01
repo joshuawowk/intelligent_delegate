@@ -15,7 +15,7 @@ Usage:  env -u CLAUDECODE python3 evals/measure_triggers.py
 Reads evals/trigger-evals.json. Spawns one `claude -p` per query per run (billed).
 Exit status: 0 only if every case matched its expectation and no case errored.
 """
-import os, json, subprocess, sys, argparse, tempfile, shutil
+import os, json, subprocess, sys, argparse, tempfile, shutil, time
 import concurrent.futures as cf
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -156,8 +156,33 @@ def run(job):
     return {**item, 'fired': SKILL_ID in skills, 'error': None, 'skills': skills}
 
 jobs = [(q, i) for q in QUERIES for i in range(args.runs)]
+total = len(jobs)
+print(f"running {total} calls ({len(QUERIES)} queries x n={args.runs}), "
+      f"concurrency {args.concurrency}, {args.timeout}s timeout", flush=True)
+print(f"each line below is one COMPLETED call — this run bills {total} `claude -p` "
+      f"invocations", flush=True)
+
+# as_completed, not ex.map: ex.map returns an iterator that yields in submission order, so a
+# single slow early call blocks every later result and the run prints nothing until the end.
+# A billed run has to show progress while it is spending.
+raw = []
+t0 = time.monotonic()
 with cf.ThreadPoolExecutor(max_workers=args.concurrency) as ex:
-    raw = list(ex.map(run, jobs))
+    futures = {ex.submit(run, j): j for j in jobs}
+    for fut in cf.as_completed(futures):
+        r = fut.result()
+        raw.append(r)
+        n = len(raw)
+        el = time.monotonic() - t0
+        eta = (el / n) * (total - n)
+        if r['error']:
+            mark = 'ERR '
+            detail = r['error'][:60]
+        else:
+            mark = 'fire' if r['fired'] else '  . '
+            detail = ','.join(r['skills']) or '(no Skill call)'
+        print(f"  [{n:>3}/{total}] {mark} {el:6.0f}s elapsed, ~{eta:.0f}s left | "
+              f"{r['query'][:44]:<44} | {detail[:48]}", flush=True)
 
 from collections import defaultdict
 agg = defaultdict(list)
