@@ -29,7 +29,7 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 | `worker` | `sonnet` | `medium` | 25 | 2x |
 | `reviewer` | `inherit` | `high` | 50 | session model |
 | `builder` | `inherit` | `high` | 30 | session |
-| `judge` | `opus` | `xhigh` | 25 | 4-5x |
+| `judge` | `opus` | `xhigh` | 50 | 4-5x |
 
 ### `mechanical` — haiku (no effort setting; Haiku accepts none)
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist.
@@ -62,7 +62,8 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
   workload: ten broad reviewers used **15, 18, 18, 20, 22, 29, 35, 36, 41, 45** turns, and
   sixty narrow per-finding verifiers on this tier used **4–17**. 50 covers the broad
   distribution with headroom and is invisible to the narrow one, since a ceiling costs
-  nothing for work that finishes early. This is the same correction `judge` got at 15 → 25
+  nothing for work that finishes early. This is the same correction `judge` got at 15 → 25,
+  and has since had again at 25 → 50
   — a turn budget has to fund the mandate the tier's prose sets, and "follow the call
   chain, check the callers" is the most read-heavy mandate here. Before the fix `reviewer`
   had the *tightest* non-mechanical cap in the plugin, below `worker` (25) and
@@ -78,6 +79,14 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
   Same applies to `builder`.
 
 ### `judge` — opus / xhigh
+- **`maxTurns` raised 25 → 50, on weaker evidence than `reviewer`'s.** This tier has hit
+  its cap twice — at 15 (raised to 25) and again at exactly 25, truncated mid-adjudication.
+  The one uncapped observation of the same consolidation work used **34** turns; n=1, so 50
+  is a deliberately generous ceiling rather than a fitted number. Justified because a
+  ceiling is free for adjudications that finish early, because this tier is never fanned
+  out (one agent's runaway, not sixty), and because a cap below `reviewer`'s 50 would assert
+  that adjudication investigates less than review — backwards for the tier told to read
+  primary sources and argue the losing side first.
 - **Why it pins while `reviewer`/`builder` inherit:** defect-finding is effort-bound;
   adjudication is capability-bound. Escalating must buy capability the caller lacks, and
   an inherited judge in a Sonnet or Haiku session buys only effort — on Haiku, not even

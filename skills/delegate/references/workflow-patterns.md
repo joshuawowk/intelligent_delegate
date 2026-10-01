@@ -34,7 +34,8 @@ capped stage returns nothing and everything downstream of it silently gets no wo
 
 **Measured, 2026-09-30 — this is what killed a 19-agent run.** Every agent used
 `agentType: 'intelligent-delegate:reviewer'` (cap **20 at the time**, since raised to 50
-on this evidence) or `:judge` (cap 25). Distinct API calls per agent:
+on this evidence) or `:judge` (cap **25 at the time**, since also raised to 50).
+Distinct API calls per agent:
 
 | agent | calls | cap | |
 |---|--:|--:|---|
