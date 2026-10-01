@@ -75,41 +75,16 @@ R  the report — counted TWICE (its output tokens, then your input tokens to re
    three times if you relay it to the user verbatim
 ```
 
-**Paired single run on this harness, 2026-09-30.** `mechanical` vs `general-purpose` with
-`model: "haiku"` pinned on both — verified from the transcripts that both ran
-`claude-haiku-4-5`, same prompt, byte-identical output. n=1 per arm, and **two** things
-differ, tool count and `omitClaudeMd`:
+>  **`S` is the term you can actually move, and it tracks tool count — not model tier and
+>  not project context.** A 4-tool `reviewer` on Opus has a smaller prefix than an 8-tool
+>  `worker` on Sonnet. Restricting `tools:` in a definition is the single biggest token
+>  lever available to you, bigger than `omitClaudeMd` and bigger than dropping a tier.
 
-| agent | tools | CLAUDE.md | cold-start prefix | total input, 9 requests |
-|---|--:|:--:|--:|--:|
-| `mechanical` | 6 | omitted | **7.5k** | **98k** |
-| `general-purpose` | all | kept | **42.4k** | **435k** |
-
-**4.4× on one task** — total input over 9 requests; the cold-start prefix ratio alone is
-5.65×. CLAUDE.md is only ~500 tokens of the 34.9k prefix gap, so tool schemas dominate.
-One task, one run per arm: the order of magnitude is the finding, not the exact constant.
-
-For scale, the prefix of each shipped tier as actually measured (these run *different*
-models, so read the column as prefix-by-tool-surface, not as a controlled comparison):
-
-| agent | tools | CLAUDE.md | model run | cold-start prefix |
-|---|--:|:--:|---|--:|
-| `reviewer` | 4 | kept | `claude-opus-5` | **6.8k** |
-| `mechanical` | 6 | omitted | `claude-haiku-4-5` | **7.5k** |
-| `worker` | 8 | kept | `claude-sonnet-5` | **12.0k** |
-| `general-purpose` | all | kept | (as passed) | **42.4k** |
-
-Prefix tracks tool count, not model tier and not project context — `reviewer` is the
-most expensive *model* here and still has the smallest prefix, on four tools. So:
-
-> **Restricting `tools:` in an agent definition is the single biggest token lever
-> available to you** — bigger than `omitClaudeMd`, bigger than dropping a model tier.
-> Give each definition only the tools its job needs.
-
-Budget `S + C` at **~7–12k** for a scoped definition (4–8 tools, as measured above) and
-**~40k+** for an all-tools agent. Practical break-even: **if D is under ~15k tokens, do it inline** —
-and note that an all-tools agent has already spent more than that before it reads
-anything.
+Measured prefixes, the paired A/B behind that claim, and the per-tier table are in
+`references/model-selection.md` → "The tool surface is the biggest lever". The two numbers
+you need to route *here*: budget `S + C` at **~7–12k** for a scoped definition (4–8 tools)
+and **~40k+** for an all-tools agent. Practical break-even: **if D is under ~15k tokens, do
+it inline** — an all-tools agent has already spent more than that before it reads anything.
 
 - **High D** — grepping a large tree for one fact, reading a long build log, scanning
   forty files to find the three that matter, driving a browser. Delegate these.
@@ -120,8 +95,8 @@ anything.
   reproduce it. Unless D is genuinely large, write it yourself.
 - **`Explore` and `Plan` omit CLAUDE.md**, so their floor is lower. Route locate-only
   work there rather than to `general-purpose`.
-- **Cut `S` first, then `C`.** A narrow `tools:` list is worth ~70× what `omitClaudeMd`
-  is (34k vs 0.5k in the measurement above). Do both, in that order.
+- **Cut `S` first, then `C`.** A narrow `tools:` list is worth roughly 70× what
+  `omitClaudeMd` is. Do both, in that order.
 - **You can zero out `C` yourself.** `omitClaudeMd: true` in an agent definition runs that
   subagent without user, project and local CLAUDE.md. Worth it when the brief is
   self-contained — `mechanical` ships with it set, because `C` is spent inside Haiku's
@@ -427,9 +402,9 @@ Shipped definitions are namespaced: `intelligent-delegate:mechanical`, and so on
    The cascade forfeits cache reuse across its models.
 9. **Not relaying the report.** The user never sees it. An unrelayed result did not happen.
 10. **Spawning an all-tools agent for a narrow job.** `general-purpose` re-sends every
-    tool schema on every request. Measured here: 42k of cold-start prefix versus 7.5k for
-    a 6-tool definition, for the same answer. If you find yourself reaching for
-    `general-purpose` repeatedly, ship a definition with a narrow `tools:` list instead.
+    tool schema on every request — roughly 40k of cold-start prefix against 7–12k for a
+    scoped definition. If you reach for `general-purpose` repeatedly, ship a definition
+    with a narrow `tools:` list instead.
 11. **Editing files an agent you spawned is reading.** It re-reads, sees a mismatch, and
     spends turns establishing which version is real — paid at that agent's tier. Commit
     first and pin the SHA in the brief, or give it a worktree. Read-only does not mean

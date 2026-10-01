@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "intelligent-delegate",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "owner": {
     "name": "Josh Wowk",
     "url": "https://github.com/jwowk"
@@ -14,7 +14,7 @@
       "name": "intelligent-delegate",
       "source": "./",
       "description": "Routes a task to the cheapest execution shape that still gets it right \u2014 inline, a single subagent, or a Workflow fan-out \u2014 and picks the model tier and reasoning effort to match. Ships five pre-tiered agent definitions so effort is actually reachable from the Agent tool.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Josh Wowk",
         "url": "https://github.com/jwowk"

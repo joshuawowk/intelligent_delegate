@@ -79,7 +79,7 @@ flat across effort (1.7 at max) where Sonnet is steep.
 
 | | haiku (1×) | sonnet (2×) | opus (4–5×) | fable (10×) |
 |---|---|---|---|---|
-| **low** | ⬜ n/a — **Haiku accepts no effort setting at all.** Every cell in this column is "model default"; the harness drops whatever you set. `mechanical` therefore ships no `effort:` key. | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
+| **low** | ⬜ n/a — the whole haiku column is "model default"; Haiku accepts no effort setting, see "Two things that break the table above" | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
 | **medium** | ⬜ n/a | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
 | **high** | ⬜ n/a | ✅ the `reviewer` / `builder` *shape* — but both are `model: inherit`, so this row moves with the session model and is **not** pinned to the 2× column | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
 | **xhigh** | ⬜ n/a | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
@@ -87,16 +87,10 @@ flat across effort (1.7 at max) where Sonnet is steep.
 
 Why the marked cells are mistakes:
 
-- **The haiku column is not a set of mistakes — it does not exist.** Haiku 4.5 accepts no
-  effort setting; the harness drops it silently, and this plugin's Haiku transcripts
-  record no effort at all. So there is no "haiku at xhigh" to avoid and no `low` to
-  select: `agents/mechanical.md` ships **no `effort:` key**, deliberately. Effort
-  raises thoroughness *within* one model; it does not lift a ceiling, so you pay
-  extra tokens for output the model was never going to improve — which is why an
-  `effort:` line on a Haiku definition is worse than useless: it reads as a tuned knob
-  and does nothing.
-- **If a Haiku task needs more thoroughness, the task is not mechanical.** Promote the
-  model — raising effort is not available to you on Haiku.
+- **The haiku column is not a set of mistakes — it does not exist.** There is no "haiku at
+  xhigh" to avoid and no `low` to select; the basis is below. If a Haiku task needs more
+  thoroughness, the task is not mechanical — promote the *model*, because raising effort is
+  not available to you there.
 - **fable @ low / medium.** Paying 10× for the strongest available reasoning and then
   capping it. Fable is only defensible at high or xhigh, on a task where opus @ xhigh has
   already been tried and was not good enough. (Note what the index above does to the usual
@@ -248,9 +242,8 @@ maxTurns: 25
 ---
 ```
 
-`worker` is the example here, not `mechanical`: `mechanical` pins Haiku, which accepts
-no effort setting, so it ships with **no `effort:` key at all**. A Haiku definition can
-demonstrate model pinning but never effort pinning.
+`worker` is the example here, not `mechanical`: a Haiku definition can demonstrate model
+pinning but never effort pinning.
 
 Then `Agent({ subagent_type: "intelligent-delegate:worker", ... })` gets both
 the model and the effort, which a bare `Agent` call cannot express — **this

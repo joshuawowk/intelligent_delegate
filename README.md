@@ -112,6 +112,10 @@ the `version` in `.claude-plugin/plugin.json`. While that version string does no
 commits behind the working tree, still serving the previous `maxTurns` values, and agents
 spawned from it ran the old caps. A new session does not fix it.
 
+**Bumping the `version` in `.claude-plugin/plugin.json` is what makes a refresh possible** —
+the cache path contains it, so a new version is a new directory. Treat the version as part
+of the release step for any change you expect to take effect, not as cosmetic metadata.
+
 To actually pick up changes, do one of:
 
 ```bash
