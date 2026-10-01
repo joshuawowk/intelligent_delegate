@@ -33,8 +33,8 @@ the turn, so an agent cannot "just wrap up" — including by emitting its `schem
 capped stage returns nothing and everything downstream of it silently gets no work.
 
 **Measured, 2026-09-30 — this is what killed a 19-agent run.** Every agent used
-`agentType: 'intelligent-delegate:reviewer'` (cap 20) or `:judge` (cap 25). Distinct API
-calls per agent:
+`agentType: 'intelligent-delegate:reviewer'` (cap **20 at the time**, since raised to 50
+on this evidence) or `:judge` (cap 25). Distinct API calls per agent:
 
 | agent | calls | cap | |
 |---|--:|--:|---|
@@ -50,18 +50,29 @@ nothing, and the run then died on the judge with
 *symptom of the cap*, not an agent forgetting: agents in that same run called
 `StructuredOutput` 8 times successfully — the capped ones never got a turn to.
 
-For comparison, untiered agents doing the same review shape in the follow-up run used
-15, 18, 18, 20, 22, 29, 34, 35, 36 and 45 calls. Four of ten exceeded 20. Under the
-shipped `reviewer` cap, those four would have been guillotined.
+The follow-up run left `agentType` off entirely, which removed the tier cap and so
+measured the **natural demand** for the same work. Ten broad reviewers used 15, 18, 18,
+20, 22, 29, 35, 36, 41 and 45 turns — **seven of ten at or over 20.** Sixty narrow
+per-finding verifiers used 4–17, and ten schema-transcription stages used exactly 1 each.
+`reviewer` is now `maxTurns: 50` because of those numbers.
 
 So before routing a stage to a tier, ask what it costs in **turns**, not just tokens:
 
-- Repo-scale review, broad-surface audits, "survey then analyse" — budget well over 20
-  turns. As shipped, `reviewer` cannot fund that. Either pass bare opts deliberately and
-  accept losing the tier's other guarantees, or raise `maxTurns` in the definition.
-- `maxTurns` is frontmatter-only; no `agent()` opt raises it for one stage.
+- **Turn demand tracks breadth, not difficulty.** On identical subject matter: 1 turn to
+  transcribe into a schema, 4–17 to verify one finding, 15–45 to review a whole dimension.
+  Size the cap to the broadest stage that will use the tier.
+- `maxTurns` is frontmatter-only; no `agent()` opt raises it for one stage. If a stage needs
+  more than its tier budgets, your choices are bare opts (losing the tier's other
+  guarantees) or raising the cap in the definition.
+- **A ceiling is free for work that finishes early.** Raising a cap does not pre-allocate
+  anything — the 60 verifiers above would be unaffected by any cap over 17. So size for the
+  worst legitimate case; the cost of a generous ceiling is only how long a genuinely stuck
+  agent runs before dying.
 - Whatever cap applies, **leave a turn for the return**. A schema stage that spends its
   last turn reading one more file fails the stage outright.
+- **Diagnostic:** when a fan-out underdelivers, count distinct `message.id`s per agent and
+  compare to the tier's cap *before* suspecting the model or the prompt. An exact landing
+  on the cap is never a coincidence.
 
 **Measured, 2026-09-30.** A 73-agent audit fan-out passed only `{label, phase, schema,
 effort}` at all four call sites. Every agent logged `agentType: "workflow-subagent"` and

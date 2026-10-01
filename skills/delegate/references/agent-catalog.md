@@ -27,7 +27,7 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 |---|---|---|---|---|
 | `mechanical` | `haiku` | *(none — Haiku accepts none)* | 12 | 1x |
 | `worker` | `sonnet` | `medium` | 25 | 2x |
-| `reviewer` | `inherit` | `high` | 20 | session model |
+| `reviewer` | `inherit` | `high` | 50 | session model |
 | `builder` | `inherit` | `high` | 30 | session |
 | `judge` | `opus` | `xhigh` | 25 | 4-5x |
 
@@ -55,14 +55,18 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 - **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
 - **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
-- **`maxTurns: 20` is the binding constraint, not the model.** Measured 2026-09-30: in a
-  19-agent repo audit, 6 of 7 reviewers and 4 of 4 inventory agents landed on **exactly 20
-  calls** — guillotined mid-task. Only the one that came in at 17 produced findings that
-  reached the next stage; the run then failed on the judge, which also hit exactly 25.
-  Untiered agents doing the same shape used up to 45 calls. **Open design question for
-  this plugin:** by its own rule that a tier's turn budget must fund its mandate (the
-  reason `judge` went 15→25), `reviewer` at 20 is under-budgeted for broad-surface review.
-  Until that is settled, route repo-scale audits with deliberate bare opts or raise the cap.
+- **`maxTurns` was the binding constraint, and was raised 20 → 50.** Measured 2026-09-30:
+  under the old cap of 20, 6 of 7 reviewers and 4 of 4 inventory agents in a repo audit
+  landed on **exactly 20 calls** — guillotined mid-task. Only the one that finished at 17
+  produced findings that reached the next stage. Then measured uncapped on the same
+  workload: ten broad reviewers used **15, 18, 18, 20, 22, 29, 35, 36, 41, 45** turns, and
+  sixty narrow per-finding verifiers on this tier used **4–17**. 50 covers the broad
+  distribution with headroom and is invisible to the narrow one, since a ceiling costs
+  nothing for work that finishes early. This is the same correction `judge` got at 15 → 25
+  — a turn budget has to fund the mandate the tier's prose sets, and "follow the call
+  chain, check the callers" is the most read-heavy mandate here. Before the fix `reviewer`
+  had the *tightest* non-mechanical cap in the plugin, below `worker` (25) and
+  `builder` (30), which was backwards.
 - **It is not a cost reduction.** `inherit` means an Opus session gets Opus reviewers, so
   picking this tier over none saves nothing — measured 2026-09-30, a 19-agent fan-out that
   named `reviewer` on every call ran 19/19 on `claude-opus-5`. Fan many of these out and

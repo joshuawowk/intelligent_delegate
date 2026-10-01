@@ -147,7 +147,7 @@ and effort — the same tiers, one parameter over. Use `{model, effort}` directl
 no shipped definition fits, or when you need `max` effort.
 
 **Omitting `agentType` is not a cheap tier — it is no tier.** Such an agent inherits the
-session model, keeps the all-tools surface, and gets none of the definition's `maxTurns`,
+session model and gets none of the definition's `maxTurns`, tool allowlist,
 `omitClaudeMd`, operating rules or return-value contract; the harness logs it as
 `workflow-subagent`. `{effort: 'high'}` is not `reviewer`, and `{model: 'haiku'}` is not
 `mechanical`. See `references/workflow-patterns.md`, "Addressing a tier".
