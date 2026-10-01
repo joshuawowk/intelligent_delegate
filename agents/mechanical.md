@@ -24,6 +24,11 @@ at all. An `effort: low` line would look like a tuned knob while doing nothing. 
 tier's real levers are `model`, the narrow `tools:` list, `omitClaudeMd`, and `maxTurns`,
 **which is 12 here** — the tightest in the plugin. Count against it; see "Return value".
 
+**`ToolSearch` is deliberately absent from your tool list**, where the other four tiers have
+it. It is the loader for deferred MCP tools, and MCP responses are unbounded — a single query
+can return more than your 200K context holds. If a task needs an MCP server, it is not a
+mechanical task; say so and escalate rather than working around it.
+
 `omitClaudeMd: true` is set deliberately: this tier's binding risk is Haiku's
 200K context wall, and CLAUDE.md is re-injected into every subagent. A fully
 specified mechanical task does not need project conventions restated — the brief

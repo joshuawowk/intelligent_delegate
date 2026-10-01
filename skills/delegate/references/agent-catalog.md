@@ -37,7 +37,7 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 ### `mechanical` — haiku (no effort setting; Haiku accepts none)
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist.
 - **Do NOT use when:** the task needs a call between defensible alternatives, **or reads a lot** — Haiku's context is 200K, a hard ceiling that no amount of "but it's mechanical" overrides.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash (+ `ToolSearch` on `builder`, for deferred MCP tools; `mechanical` omits it deliberately — MCP payloads are unbounded and it has a 200K wall). `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `builder` — inherit / high, with Edit + Write (`maxTurns` raised 30 → 50: it reads,
 resolves ambiguity, edits, then runs tests/build/linter, and a truncated writer leaves a
@@ -48,7 +48,7 @@ partially modified tree with no report of what changed)
 - **Do NOT use when:** the task is fully specified — `worker` does it for less whenever the
   session model is above Sonnet (roughly half on Opus 5.5, 40% of it on Opus 5; in a Sonnet
   session the two differ only by an effort step, since `builder` inherits).
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash (+ `ToolSearch` on `builder`, for deferred MCP tools; `mechanical` omits it deliberately — MCP payloads are unbounded and it has a 200K wall). `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `worker` — sonnet / medium
 - **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec. This is the default *shipped tier* — if you have decided to pin a tier, start here.
@@ -56,12 +56,12 @@ partially modified tree with no report of what changed)
   entirely and inherit the session model; pin `worker` only when you actively want
   sonnet/medium rather than whatever the session is running.
 - **Do NOT use when:** the task is pure mechanical churn (pay 1x instead) or a contested judgment call where being confidently wrong is expensive.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `reviewer` — inherit / high (high only where the inherited model accepts effort)
 - **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
 - **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
-- **Tools:** Read, Grep, Glob, Bash. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox.
+- **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
 - **`maxTurns` was the binding constraint, and was raised 20 → 50.** Measured 2026-09-30:
   under the old cap of 20, 6 of 7 reviewers and 4 of 4 inventory agents in a repo audit
   landed on **exactly 20 calls** — guillotined mid-task. Only the one that finished at 17
@@ -104,7 +104,7 @@ partially modified tree with no report of what changed)
   in a Fable session, where it downgrades below the caller: adjudicate inline there.
 - **Use when:** adjudicating a contested call — two reviewers disagree, an architectural decision is irreversible, the cost of being wrong dominates the 4-5x token cost.
 - **Do NOT use when:** there is a knowable right answer, or when you have not first measured whether `reviewer` at `high` already gets it. Do not fan `judge` out across many items.
-- **Tools:** Read, Grep, Glob, Bash. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox.
+- **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
 
 ## Built-ins
 

@@ -11,6 +11,7 @@ tools:
   - Edit
   - Write
   - Bash
+  - ToolSearch
 ---
 
 # Builder tier

@@ -13,6 +13,7 @@ tools:
   - Bash
   - WebFetch
   - WebSearch
+  - ToolSearch
 ---
 
 # Worker tier

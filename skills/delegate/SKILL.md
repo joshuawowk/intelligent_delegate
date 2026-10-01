@@ -379,11 +379,20 @@ Shipped definitions are namespaced: `intelligent-delegate:mechanical`, and so on
 | `Explore` | locating — which files, where defined, does X exist. Omits CLAUDE.md, cheapest cold start | **review, audit, or absence proofs.** It reads excerpts — an excerpt cannot establish a bug is *not* there |
 | `Plan` | step-by-step plans, critical-file lists. No write tools; omits CLAUDE.md | execution |
 | `general-purpose` | open-ended multi-step, full tool access | anything a tiered definition covers more precisely |
-| `mechanical` (haiku, no effort setting) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step |
+| `mechanical` (haiku, no effort setting) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step; **anything needing an MCP tool** — it is the one tier without `ToolSearch`, deliberately |
 | `worker` (sonnet/medium) | well-specified implementation with a deterministic check attached | ambiguous specs — it will pick a reading and commit |
 | `reviewer` (inherit/high) | adversarial verification and code review — judgment at session-model quality for less spend | producing the fix — that is `builder` |
 | `builder` (inherit/high, **writes**) | implementation needing the session model's judgment: ambiguous spec, per-target adaptation, unsafe-to-downgrade blast radius | fully specified work — `worker` does it for less whenever the session model is above Sonnet (about half on Opus 5.5, 40% of it on Opus 5; in a Sonnet session the two differ only by an effort step) |
 | `judge` (opus/xhigh) | the call you cannot afford to get wrong, or breaking a tie between two verdicts | routine implementation |
+
+**Routing MCP work.** MCP tools arrive deferred and `ToolSearch` loads them, so a tier must
+list `ToolSearch` to reach one — `reviewer`, `worker`, `builder` and `judge` do; `mechanical`
+does not. That is necessary, not sufficient: a session can disable `ToolSearch` outright and
+the disable is inherited by subagents, in which case no tier reaches MCP and only the user can
+change it. Before concluding a tier "cannot do MCP", read the error — a bare
+`No such tool available: X` means the name is not registered, while a trailing
+"disabled for this session, in subagents as well as here" means the session is the blocker.
+`references/model-selection.md` → "Reaching MCP tools from a tier" has the full table.
 
 ## Anti-patterns
 

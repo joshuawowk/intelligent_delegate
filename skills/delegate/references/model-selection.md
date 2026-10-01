@@ -219,6 +219,55 @@ for it is inert. The attachment is gated on a resolved advisor model plus intern
 `advisorActive`/`advisorDeferred` flags that no agent-definition key reaches. Bundle
 internals rot fast — re-check on CLI upgrades.
 
+## Reaching MCP tools from a tier, and reading the error when you cannot
+
+MCP tools arrive **deferred**: the schema is not loaded and `ToolSearch` is the documented
+loader. Since `tools:` is an allowlist that *replaces* the default set, a tier that does not
+list `ToolSearch` cannot load any MCP tool. `reviewer`, `worker`, `builder` and `judge`
+therefore list it. `mechanical` deliberately does not — MCP responses are unbounded and it
+has a hard 200K wall; an MCP task is not a mechanical task.
+
+**Listing it is necessary, not sufficient — verified 2026-10-01.** A probe run as
+`reviewer` tried to reach MCP and got:
+
+```
+Error: No such tool available: ToolSearch. ToolSearch is disabled for this
+session, in subagents as well as here.
+```
+
+A session can disable `ToolSearch` outright, and the disable **propagates into subagents**.
+When that is in force, no tier reaches MCP whatever its allowlist says, and the fix is at the
+session/permission layer, not in a definition. The same probe found no `mcp__*` tool exposed
+to the subagent at all, loaded or deferred.
+
+**The error text tells you which of three cases you are in.** This is the fastest diagnostic
+available and the three have different fixes:
+
+| what you see | what it means | where the fix is |
+|---|---|---|
+| bare `No such tool available: X`, no explanation | the name is not registered — wrong name, or that server is not configured for the session | the name, or the session's MCP config |
+| `No such tool available: X. X is disabled for this session, in subagents as well as here.` | session-level disable, inherited by every subagent | session / permissions — ask the user |
+| `No such tool available: X. X is not available in this session — <workaround>` | session-level unavailability with a suggested substitute | use the substitute, or ask the user |
+
+A tool missing only from a definition's `tools:` list is a fourth case; our probe could not
+isolate it, because the session-level disable above masks it. Do not assume the two produce
+the same message.
+
+**Corollary, and it bites: a `tools:` entry for a tool the session has disabled is inert.**
+All five tiers list `Grep` and `Glob`. In a session where both were disabled, a 92-agent
+fan-out made **zero** `Grep` and **zero** `Glob` calls — the whole census was
+`Bash 1524, Read 45, StructuredOutput 78, Write 1`, with every search done through `Bash`.
+The declarations read as capabilities and were not, which is the same failure class as a
+`disallowedTools` line sitting under an allowlist: a line that looks like a control and is
+not one. When a fan-out behaves as though a tool does not exist, check whether it does before
+concluding the agents chose otherwise.
+
+**`mcpServers` is a legal agent-frontmatter key** (it sits in the accepted set alongside
+`tools`, `model`, `effort`, `maxTurns`, `omitClaudeMd`), and is the declared channel for
+giving one agent its own MCP servers. This plugin ships no tier that uses it, and we have not
+tested whether it bypasses a session-level `ToolSearch` disable — so treat it as the place to
+look, not as a known workaround.
+
 ## How to set each knob
 
 | Where | model | effort | maxTurns | omitClaudeMd | tools |
