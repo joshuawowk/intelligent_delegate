@@ -112,18 +112,28 @@ Run with `evals/measure_triggers.py`, which drives the **installed** plugin rath
 stub. **It defaults to n=3 per query** — see the warning below for why n=1 is not a
 measurement. A query counts as firing if it fires in at least half its runs.
 
-| description | recall (should fire) | false positives (should not) |
-|---|--:|--:|
-| v1 — capability phrasing | 2/10 *(n=1)* | 0/6 |
-| v2 — explicit short-form phrasings + "do not answer from memory" | 7–8/10 *(n=1)* | 0/6 |
-| current — same, with the advisor claim made conditional | **8–9/10**, mixed n — see below | 0/6 *(mixed n)* |
+| description | recall (should fire) | false positives (should not) | n |
+|---|--:|--:|:--:|
+| v1 — capability phrasing | 2/10 | 0/6 | 1 |
+| v2 — explicit short-form phrasings + "do not answer from memory" | 7–8/10 | 0/6 | 1 |
+| **current** — same, with the advisor claim made conditional | **9/9 measured** | **0/6** | **3** |
 
-**Read the `current` row with its caveat.** It is a composite, not a single measurement:
-three contested queries were re-run at n=3 (3/3, 2/3, 0/3) and the other seven are n=1
-carry-overs — which this same section says must not be quoted. The honest summary is
-"8–9/10, provisional". No archived artifact backs it (see the note at the bottom). To get a
-single defensible number, re-run all cases at one n:
-`env -u CLAUDECODE python3 evals/measure_triggers.py --runs 3`.
+The `current` row is a single real run of all 18 cases at n=3 against the installed plugin,
+archived in `last-trigger-run.json` with its timestamp, HEAD, installed SHA and skill id.
+`TP=10 FN=0 FP=0 TN=7 ERROR=1`. Reading it honestly:
+
+- **Nine of the ten non-control positives were fully measured and all fired** — eight at 3/3,
+  one at 2/3. The tenth ("this is burning way too many tokens…") **errored on a 300s
+  timeout** and is excluded from the denominator rather than counted as a miss; it fired on
+  the one run of it that did complete, so treat it as unmeasured, not as a regression.
+- **All six non-control negatives fired 0/3.** The false-positive column is still clean, now
+  at n=3 rather than n=1.
+- **Both control cases behaved**: the must-fire control 3/3, the must-not-fire control 0/3.
+  That is what makes the rest of the numbers worth reading at all.
+- The only skill id observed anywhere in the run was `intelligent-delegate:delegate`.
+
+The v1 and v2 rows remain n=1 and are kept only to show the direction of travel. Do not
+compare them to the n=3 row as if they were measured the same way.
 
 **Single-run numbers on this harness are noise-dominated. Do not quote them.** Two
 consecutive n=1 runs of the current description scored 8/10 and 7/10, which looked like a
@@ -140,25 +150,36 @@ Two of the three "misses" fire reliably or usually; only one is a stable miss. T
 apparent 8→7 regression was a coin flip, and acting on it would have meant tuning a
 description against sampling noise. Always include a known-firing control so a systemic
 failure — auth, a broken install, a harness bug — is distinguishable from a real miss.
-`trigger-evals.json` now ships two, flagged `"control": true`: a must-fire query and a
-must-not-fire query. The harness warns when no control is present and prints
+`trigger-evals.json` ships two, flagged `"control": true`: a must-fire query and a
+must-not-fire query. Both passed in the archived run (3/3 and 0/3). The harness warns when no control is present and prints
 `CONTROL CASE FAILED` when one breaks, because a failed control invalidates every other
 number in that run.
 
-**The one stable miss** is *"is it worth spinning up agents for this, or is the overhead
-not worth it?"*, whose phrasing appears near-verbatim in the description. It is not a
-lexical gap: it reads as asking for a judgement rather than for reference material, and
-the model answers it directly. Chasing it risks the false-positive column, which is
-clean across every run. Over-triggering is the more expensive failure — a skill that
-loads on unrelated turns taxes every one of them.
+**The "one stable miss" is no longer a miss.** Earlier notes called
+*"is it worth spinning up agents for this, or is the overhead not worth it?"* a stable 0/3
+failure and reasoned at length about why — that it read as asking for a judgement rather
+than for reference material. At n=3 against the current description it fires **3/3**. The
+earlier 0/3 was either noise or was fixed by a description change nobody attributed. This is
+the second time on this suite that a confident explanation was built on top of a number that
+did not survive re-measurement; the first was the 8→7 "regression" below. **Re-measure before
+explaining.**
 
-**Provenance of `last-trigger-run.json`.** It is a **stale n=1 artifact of the v2
-description**, kept only as a format example, and it is labelled as such inside the file.
-It predates both the current description and the n=3 default, and the harness that wrote it
-emitted no `rate` field — so it cannot have come from the current script. Its 8/10 and its
-two recorded misses are the sampling noise discussed above. **No archived artifact exists
-for the current description**; regenerating one costs billed `claude -p` runs
-(18 queries × n, concurrency 6).
+Over-triggering remains the more expensive failure — a skill that loads on unrelated turns
+taxes every one of them — so the clean false-positive column is the one to protect.
+
+**Provenance of `last-trigger-run.json`.** It is now a real n=3 run of the current
+description against the installed plugin, carrying its own `generated_utc`, `runs_per_query`,
+`head`, `installed_sha`, `skill_id` and totals. Regenerating it costs billed `claude -p`
+calls — 18 queries × n at the configured concurrency — so re-run it when the description
+changes, not routinely. A run is archived unless *every* case errored; errored cases stay
+visible in the file as `state: "ERROR"` and are excluded from the totals.
+
+**Timeouts are the main source of noise, and they are not misses.** At 150s with 6-way
+concurrency, 7 of 18 calls timed out; at 300s with 4-way, 1 of 18 did. Those are slow calls,
+not description failures — the defaults are now 300s and concurrency 4, and `--timeout` /
+`--concurrency` are tunable. A timed-out case is reported as `ERROR` and left out of the
+denominator, because counting it as a miss is exactly how a slow API gets misread as a
+regression.
 
 **What the harness now refuses to do.** Earlier versions never read `claude`'s exit status,
 so a broken install — expired auth, a missing binary, a `stream-json` shape change — scored

@@ -1,103 +1,316 @@
 {
- "_README": "STALE ARTIFACT, kept as a format example only. This is an n=1 run of the v2 description, committed at 7e354d1 and never regenerated. It predates both the current description and the n=3 default, and it was produced by a harness version that wrote no 'rate' field. Its 8/10 recall and its two recorded misses were later shown to be sampling noise, so do NOT quote it as a measurement. Regenerating costs billed `claude -p` runs: `env -u CLAUDECODE python3 evals/measure_triggers.py`.",
- "_superseded": true,
- "runs": 1,
+ "_README": "Real run of evals/measure_triggers.py against the installed plugin — not a stub. One case errored on a 300s timeout and is marked state=\"ERROR\"; it is excluded from the totals rather than counted as a miss. See evals/README.md.",
+ "generated_utc": "2026-10-01T22:14:30+00:00",
+ "runs_per_query": 3,
+ "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+ "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+ "skill_id": "intelligent-delegate:delegate",
+ "totals": {
+  "TP": 10,
+  "FN": 0,
+  "FP": 0,
+  "TN": 7,
+  "ERROR": 1
+ },
  "results": [
   {
    "query": "Should I spawn a subagent for this or just do it inline?",
    "should_trigger": true,
-   "fired": false,
-   "skill": "-"
+   "state": "FIRED",
+   "fired": true,
+   "rate": "2/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Which model should I use for these worker agents?",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "I want to fan this out across 30 files in parallel",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "This is burning way too many tokens, can we make it cheaper?",
    "should_trigger": true,
-   "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "state": "ERROR",
+   "fired": false,
+   "rate": "1/1",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [
+    "timeout after 300s",
+    "timeout after 300s"
+   ],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "What reasoning effort level should these subagents run at?",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Can I delegate this audit to something cheaper than Opus?",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Should this be a Workflow or just one Agent call?",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "My subagent came back with a wrong answer — was the tier too low?",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "How do I orchestrate several agents over these 12 directories?",
    "should_trigger": true,
+   "state": "FIRED",
    "fired": true,
-   "skill": "intelligent_delegate:delegate"
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Is it worth spinning up agents for this, or is the overhead not worth it?",
    "should_trigger": true,
-   "fired": false,
-   "skill": "-"
+   "state": "FIRED",
+   "fired": true,
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Write me a haiku about autumn leaves",
    "should_trigger": false,
+   "state": "NOT_FIRED",
    "fired": false,
-   "skill": "-"
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Fix the padding on this CSS flexbox container",
    "should_trigger": false,
+   "state": "NOT_FIRED",
    "fired": false,
-   "skill": "-"
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "What does this regex do: ^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+)@",
    "should_trigger": false,
+   "state": "NOT_FIRED",
    "fired": false,
-   "skill": "-"
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Rename the variable foo to bar in utils.py",
    "should_trigger": false,
+   "state": "NOT_FIRED",
    "fired": false,
-   "skill": "-"
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Explain how git rebase differs from git merge",
    "should_trigger": false,
+   "state": "NOT_FIRED",
    "fired": false,
-   "skill": "-"
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   },
   {
    "query": "Add a --verbose flag to this CLI parser",
    "should_trigger": false,
+   "state": "NOT_FIRED",
    "fired": false,
-   "skill": "-"
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
+  },
+  {
+   "query": "Should I delegate this to a subagent, and if so which model and reasoning effort should it run at?",
+   "should_trigger": true,
+   "control": true,
+   "note": "must-fire control: names delegation, model choice and effort together. If this misses, the harness or the install is broken, not the description.",
+   "state": "FIRED",
+   "fired": true,
+   "rate": "3/3",
+   "skills_observed": [
+    "intelligent-delegate:delegate"
+   ],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
+  },
+  {
+   "query": "What is the capital of France?",
+   "should_trigger": false,
+   "control": true,
+   "note": "must-not-fire control: no delegation surface at all. If this fires, the description is over-broad or the matcher is wrong.",
+   "state": "NOT_FIRED",
+   "fired": false,
+   "rate": "0/3",
+   "skills_observed": [],
+   "errors": [],
+   "harness": {
+    "runs": 3,
+    "head": "596278931705e0d5d6f2cb92b3f3aa058ebde132",
+    "installed_sha": "fbff281169fea5f5d1ce3d9d58afed056fcf60c8",
+    "skill_id": "intelligent-delegate:delegate"
+   }
   }
  ]
 }
