@@ -55,6 +55,20 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 - **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
 - **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
 - **Tools:** Read, Grep, Glob, Bash; Edit, Write, Agent disallowed.
+- **`maxTurns: 20` is the binding constraint, not the model.** Measured 2026-09-30: in a
+  19-agent repo audit, 6 of 7 reviewers and 4 of 4 inventory agents landed on **exactly 20
+  calls** — guillotined mid-task. Only the one that came in at 17 produced findings that
+  reached the next stage; the run then failed on the judge, which also hit exactly 25.
+  Untiered agents doing the same shape used up to 45 calls. **Open design question for
+  this plugin:** by its own rule that a tier's turn budget must fund its mandate (the
+  reason `judge` went 15→25), `reviewer` at 20 is under-budgeted for broad-surface review.
+  Until that is settled, route repo-scale audits with deliberate bare opts or raise the cap.
+- **It is not a cost reduction.** `inherit` means an Opus session gets Opus reviewers, so
+  picking this tier over none saves nothing — measured 2026-09-30, a 19-agent fan-out that
+  named `reviewer` on every call ran 19/19 on `claude-opus-5`. Fan many of these out and
+  price it at the session model, not at a discount. For spend, the levers are `mechanical`,
+  `worker`, an explicit `model:` in a Workflow `agent()` call, or the tool surface.
+  Same applies to `builder`.
 
 ### `judge` — opus / xhigh
 - **Why it pins while `reviewer`/`builder` inherit:** defect-finding is effort-bound;

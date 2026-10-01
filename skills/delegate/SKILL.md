@@ -146,6 +146,12 @@ have to read them again.
 and effort — the same tiers, one parameter over. Use `{model, effort}` directly only when
 no shipped definition fits, or when you need `max` effort.
 
+**Omitting `agentType` is not a cheap tier — it is no tier.** Such an agent inherits the
+session model, keeps the all-tools surface, and gets none of the definition's `maxTurns`,
+`omitClaudeMd`, operating rules or return-value contract; the harness logs it as
+`workflow-subagent`. `{effort: 'high'}` is not `reviewer`, and `{model: 'haiku'}` is not
+`mechanical`. See `references/workflow-patterns.md`, "Addressing a tier".
+
 Inside a Workflow, `pipeline()` is the default — per-item streaming, no barrier. Reach
 for `parallel()` only when stage N genuinely needs cross-item context from **all** of
 stage N−1 (dedup, rank, early-exit on zero). "I need to flatten first" is not a reason;

@@ -3,14 +3,73 @@
 Routing already concluded "this needs a Workflow." Two decisions remain: which
 **shape**, and what **tier** each stage runs at. The second one is where the money is.
 
-Tier shorthand used throughout — these are just `agent()` opts:
+## Addressing a tier: `agentType`, not bare opts
 
-- **mechanical** — `{model: 'haiku'}` — no `effort`; Haiku accepts none, so passing one is inert
-- **worker** — `{model: 'sonnet', effort: 'medium'}`
-- **builder** — `{agentType: 'intelligent-delegate:builder'}` when you want its write tools;
-  `tools` is NOT settable through `agent()` opts, only in a definition's frontmatter
-- **reviewer** — `{effort: 'high'}`; omitting `model` inherits the session model
-- **judge** — `{model: 'opus', effort: 'xhigh'}`
+`agent()` opts can set a stage's `model` and `effort` (plus `schema`, `label`, `phase`,
+`isolation`). What they **cannot** set is everything else a tier carries: `tools`,
+`maxTurns`, `omitClaudeMd`, the operating rules and the return-value contract all live in
+the definition's frontmatter and body, reachable **only** through `agentType`.
+
+So an `agent()` call with no `agentType` is not a cheap tier. It is an untiered agent that
+**inherits the session model** and gets the harness default for everything a definition
+would otherwise scope. The harness logs it as `agentType: "workflow-subagent"`.
+
+| You want | Write | Bare-opts form, and what it silently loses |
+|---|---|---|
+| mechanical | `{agentType: 'intelligent-delegate:mechanical'}` | `{model: 'haiku'}` buys Haiku pricing but **not** `omitClaudeMd`, the 6-tool allowlist or `maxTurns: 12` — and tool surface is the lever that measured **4.4× the input for an identical answer** (`model-selection.md`, "The tool surface is the biggest lever"). No `effort` either way; Haiku accepts none. |
+| worker | `{agentType: 'intelligent-delegate:worker'}` | `{model: 'sonnet', effort: 'medium'}` — loses `maxTurns: 25` and the operating rules |
+| reviewer | `{agentType: 'intelligent-delegate:reviewer'}` | `{effort: 'high'}` **does not give you `reviewer`.** No `maxTurns`, no read-only tool surface, no return-value contract — and it inherits the session model, so it is not a downgrade at all |
+| builder | `{agentType: 'intelligent-delegate:builder'}` | none worth using: the point of this tier is its Edit/Write surface, and `tools` is not settable through opts |
+| judge | `{agentType: 'intelligent-delegate:judge'}` | `{model: 'opus', effort: 'xhigh'}` — reach for opts here only when you need `effort: 'max'`, which frontmatter cannot express |
+
+Pass bare `{model, effort}` deliberately — for `max` effort, when no shipped definition
+fits, **or when the stage needs more turns than the tier budgets** — never as shorthand for
+a tier.
+
+### The turn cap is the constraint that decides this
+
+`agentType` brings `maxTurns` with it, and that cap is enforced mid-task: the harness ends
+the turn, so an agent cannot "just wrap up" — including by emitting its `schema` call. A
+capped stage returns nothing and everything downstream of it silently gets no work.
+
+**Measured, 2026-09-30 — this is what killed a 19-agent run.** Every agent used
+`agentType: 'intelligent-delegate:reviewer'` (cap 20) or `:judge` (cap 25). Distinct API
+calls per agent:
+
+| agent | calls | cap | |
+|---|--:|--:|---|
+| 4 of 4 Inventory | 20 | 20 | at cap |
+| 6 of 7 Review | 20 | 20 | at cap |
+| `review:mcp-correctness` | 17 | 20 | finished |
+| Consolidate (judge) | 25 | 25 | at cap |
+
+**11 of 19 agents landed exactly on their cap.** Only the one reviewer that came in under
+it produced findings that reached the Verify stage — the other six dimensions contributed
+nothing, and the run then died on the judge with
+`agent({schema}): subagent completed without calling StructuredOutput`. That error is the
+*symptom of the cap*, not an agent forgetting: agents in that same run called
+`StructuredOutput` 8 times successfully — the capped ones never got a turn to.
+
+For comparison, untiered agents doing the same review shape in the follow-up run used
+15, 18, 18, 20, 22, 29, 34, 35, 36 and 45 calls. Four of ten exceeded 20. Under the
+shipped `reviewer` cap, those four would have been guillotined.
+
+So before routing a stage to a tier, ask what it costs in **turns**, not just tokens:
+
+- Repo-scale review, broad-surface audits, "survey then analyse" — budget well over 20
+  turns. As shipped, `reviewer` cannot fund that. Either pass bare opts deliberately and
+  accept losing the tier's other guarantees, or raise `maxTurns` in the definition.
+- `maxTurns` is frontmatter-only; no `agent()` opt raises it for one stage.
+- Whatever cap applies, **leave a turn for the return**. A schema stage that spends its
+  last turn reading one more file fails the stage outright.
+
+**Measured, 2026-09-30.** A 73-agent audit fan-out passed only `{label, phase, schema,
+effort}` at all four call sites. Every agent logged `agentType: "workflow-subagent"` and
+ran `claude-opus-5`: the tiers were never engaged, including a 9-agent stage whose prompt
+was pure schema transcription. A 19-agent run in the same session passed
+`agentType: 'intelligent-delegate:reviewer'` on every call — correct usage — and *also*
+ran all-Opus, because `reviewer` inherits. Both paths cost Opus rates: roughly **$100–130** for 92
+agents at standard cache rates, against ~$45–50 for the same tokens on Sonnet.
 
 Output-token cost ratio: haiku 1x, sonnet 2x, opus 4-5x, fable 10x. `effort` is reachable
 inside a Workflow script and in an agent definition's frontmatter — the `Agent` tool has
@@ -91,6 +150,54 @@ cheapest mechanical stage is no agent. Three rules override the table:
   rationalization if that stage needs two retries. Measure best-model-at-lower-effort
   before building a cascade.
 
+One stage shape is always mechanical: **transcribing an upstream agent's prose into a
+schema.** "Convert this report into structured findings; do not add, remove or invent"
+is fully specified and verifiable without judgment. Route it to
+`agentType: 'intelligent-delegate:mechanical'` — but keep the retry from the next section,
+because a schema stage is exactly where a cheap model fails by not calling
+StructuredOutput at all. Better still, check whether the stage is needed: a `schema` on
+the upstream agent removes it entirely.
+
+## The return value is the deliverable
+
+A workflow harvests each agent's **final message**. Not files it wrote, not what it logged.
+An agent that writes its report to disk and returns "report is durable at 2716 words" has
+returned nothing the pipeline can use.
+
+Two things make that shape likely, and they compound:
+
+- **An untiered agent has no return-value contract.** Every shipped definition closes with
+  "Your final message IS the return value — the caller reads it programmatically and the
+  user never sees it." An `agent()` call without `agentType` never sees that line.
+- **An injected advisor tells agents to persist first, then hand off.** When the session has
+  an advisor configured, every subagent inherits it (`model-selection.md`, "An advisor
+  re-prices every row") together with instructions to make the deliverable durable *before*
+  consulting. Followed literally, that produces precisely the write-then-announce shape.
+
+So **never silently drop a short return.** This guard destroys a completed stage:
+
+```js
+if (!report || String(report).trim().length < 200) return null   // work vanishes, unlogged
+```
+
+Log what you discarded and retry once with the contract restated:
+
+```js
+if (!report || String(report).trim().length < MIN) {
+  log(`${d.key}: return too short (${String(report || '').length} ch): ${String(report).slice(0, 200)}`)
+  report = await agent(
+    `${d.prompt}\n\nYour FINAL MESSAGE is the deliverable. Do not write it to a file, and do not end on a status line — emit the full report as your reply.`,
+    {agentType: 'intelligent-delegate:reviewer', label: `review:${d.key}:retry`, phase: 'Review'})
+}
+```
+
+**Observed near-miss, 2026-09-30.** In the 73-agent run above, the reviewer covering
+secrets and credential exposure emitted "The report is durable at 2716 words. Let me have
+the advisor review before finalizing." — 86 characters, under a 200-character guard. Its
+nine sibling reviewers returned 21k–38k characters each. Had its turn ended on that line,
+the only security review in the fan-out would have been dropped on a length check, with no
+log line and no retry. The guard is the single-point-of-failure, not the agent.
+
 ## Budget-aware scaling
 
 `budget` is `{total: number|null, spent(): number, remaining(): number}`. `total` is null
@@ -145,7 +252,7 @@ export const meta = {
     // `model` on a phase entry documents that phase's override — add it whenever a
     // stage passes opts.model, so the progress display matches what actually runs.
     {title: 'Find', detail: 'one finder per target file', model: 'sonnet'},
-    {title: 'Triage', detail: 'cheap severity classification', model: 'haiku'},
+    {title: 'Triage', detail: 'cheap severity classification', model: 'haiku'},  // tier pins haiku
     {title: 'Verify', detail: 'adversarial refutation', model: 'sonnet'},
   ],
 }
@@ -163,15 +270,20 @@ const targets = args && args.length ? args : ['src/auth.js', 'src/session.js']
 
 const reviewed = await pipeline(
   targets,
-  // Generation: reads the whole file, open-ended. Worker tier — same model as the
-  // verify stage below, so the model-scoped cache survives across the pipeline.
+  // Generation: reads the whole file, open-ended. Bare opts on purpose — this stage
+  // pins the same model as the verify stage below so the model-scoped cache survives
+  // across the pipeline, which `agentType: '...:worker'` (medium, fixed) would not let
+  // us tune. Deliberate bare opts, not shorthand for a tier.
   (file) => agent(`Review ${file} for correctness bugs. Return each finding.`,
     {phase: 'Find', schema: FINDINGS, model: 'sonnet', effort: 'medium'}),
 
-  // Classification: short, independent input, no file read. Mechanical tier.
+  // Classification: short, independent input, no file read. Addressed by agentType, so
+  // it gets omitClaudeMd and the 6-tool surface too — `{model: 'haiku'}` alone would buy
+  // the price and keep the all-tools prefix.
   (found, file) => found
     ? agent(`Assign each finding a severity of high, medium or low. Findings: ${JSON.stringify(found.findings)}`,
-        {phase: 'Triage', label: `triage ${file}`, schema: TRIAGED, model: 'haiku'})
+        {phase: 'Triage', label: `triage ${file}`, schema: TRIAGED,
+         agentType: 'intelligent-delegate:mechanical'})
     : null,
 
   // Verification: a different job from generation. Same model, higher effort.
