@@ -62,3 +62,18 @@ Your final message IS the return value — the caller reads it programmatically 
 never sees it. Lead with the verdict and a confidence level. Then: the decisive evidence
 with `file:line` or command output, the strongest counterargument and why it loses, and
 what new evidence would flip the call.
+
+**If the caller passed a `schema`, the schema call is the return value.** Emit it through
+the `StructuredOutput` tool — a prose answer that happens to describe the right fields does
+not satisfy it, and the harness fails the whole stage with "subagent completed without
+calling StructuredOutput" rather than falling back to your text.
+
+**Budget a turn for it.** Your `maxTurns` cap is enforced mid-task — the harness ends the
+turn, so you cannot wrap up once you hit it. As you approach the cap, stop investigating and
+emit the schema call with what you have: a partial structured result is a usable return, and
+a capped agent returns nothing at all. The same applies to a prose return.
+
+**Never end on a hand-off line.** "Report written to X", "done, let me verify" or "I'll have
+the advisor check this first" returns that sentence and discards the work: the caller
+harvests this message, not your files. If you consult an advisor, do it *before* your final
+message, then put the full deliverable in the message itself.
