@@ -81,7 +81,7 @@ flat across effort (1.7 at max) where Sonnet is steep.
 |---|---|---|---|---|
 | **low** | ⬜ n/a — the whole haiku column is "model default"; Haiku accepts no effort setting, see "Two things that break the table above" | ✅ cheap bulk drafting | ⚠️ pays for a ceiling it throttles | ❌ incoherent |
 | **medium** | ⬜ n/a | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
-| **high** | ⬜ n/a | ✅ the `reviewer` / `builder` *shape* — but both are `model: inherit`, so this row moves with the session model and is **not** pinned to the 2× column | ✅ strong for hard analysis | ⚠️ only if opus@xhigh already failed |
+| **high** | ⬜ n/a | ✅ **`inspector` (read-only) and `drafter` (writes)** — pinned to the 2× column, ~2.0 effective units. The default rung for both verification and generation | ✅ strong for hard analysis — and where `reviewer`/`builder` land in an Opus session, at ~5.0 effective units | ⚠️ only if opus@xhigh already failed |
 | **xhigh** | ⬜ n/a | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
 | **max** (Workflow only) | ⬜ n/a | ⚠️ | ✅ one contested call | ⚠️ |
 
@@ -103,14 +103,24 @@ Why the marked cells are mistakes:
   more than raw capability, so its cell moves with the session model. **The corollary
   is a cost trap:** on an Opus session every inherit tier — `reviewer`, `builder` — runs
   at Opus rates, so choosing one of them saves nothing. Selecting a tier feels like a
-  cost decision and is not one. If the goal is spend, the only levers that bite are the
-  pinned tiers (`mechanical`/haiku, `worker`/sonnet), an explicit `model:` on a Workflow
-  `agent()` call, or the tool surface below. Measured 2026-09-30: a 19-agent fan-out
+  cost decision and is not one. Measured 2026-09-30: a 19-agent fan-out
   passed `agentType: 'intelligent-delegate:reviewer'` on all 18 of its review and inventory
   calls (the 19th was the `judge` consolidation stage, which pins Opus regardless) and ran
   19/19 on `claude-opus-5`; a sibling 81-agent run that passed no `agentType` at all
   produced the identical all-Opus outcome. Correct tier usage and no tier usage cost the
-  same.
+  same. It happened a third time on 2026-10-08, across four scripts — see
+  `workflow-patterns.md` → "Measured".
+
+- **That trap is why 0.3.0 ships `inspector` and `drafter`,** and the grid above now shows
+  why it was a real hole rather than a documentation gap. The sonnet/high cell is **2 × 1 =
+  2.0 effective units**; `reviewer`/`builder` in an Opus session are **4–5 × 1 = 4–5**. So
+  the pinned pair is a genuine 2–2.5× saving at *the same effort level* — the "lower effort
+  before lowering model" trade this file recommends, except here it is "same effort, lower
+  model", which keeps the thoroughness and gives up only capability the stage did not need.
+  Note the direction of the Sonnet index: going *up* from sonnet/high to sonnet/xhigh costs
+  2.41×, landing at ~4.8 — level with opus/high. So **sonnet/high is the efficient Sonnet
+  cell**, and if a stage genuinely needs more than it, escalating the model is no more
+  expensive than escalating Sonnet's effort. That is the whole argument for this rung.
 
 ## "Best model at lower effort" vs a multi-model cascade
 
@@ -254,7 +264,7 @@ isolate it, because the session-level disable above masks it. Do not assume the 
 the same message.
 
 **Corollary, and it bites: a `tools:` entry for a tool the session has disabled is inert.**
-All five tiers list `Grep` and `Glob`. In a session where both were disabled, a 92-agent
+All seven tiers list `Grep` and `Glob`. In a session where both were disabled, a 92-agent
 fan-out made **zero** `Grep` and **zero** `Glob` calls — the whole census was
 `Bash 1524, Read 45, StructuredOutput 78, Write 1`, with every search done through `Bash`.
 The declarations read as capabilities and were not, which is the same failure class as a

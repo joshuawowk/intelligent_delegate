@@ -16,7 +16,7 @@ not — and the Workflow tool's `agent(prompt, {effort})`, which is the verified
 `max` and the only way to vary effort per call.
 
 So: *the only way to get a specific effort level out of the Agent tool is to pass the
-name of a definition that pins it.* That is what the five definitions below exist for.
+name of a definition that pins it.* That is what the seven definitions below exist for.
 `SKILL.md` frontmatter is **not** a third lever: it does not set a subagent's effort —
 only an agent definition does. (See `model-selection.md` for what `effort:` in `SKILL.md` does and does not do.)
 
@@ -26,13 +26,23 @@ namespaced: `intelligent-delegate:worker` when the bare name is ambiguous.
 
 ## Shipped by this plugin
 
-| `subagent_type` | model | effort | maxTurns | output cost |
-|---|---|---|---|---|
-| `mechanical` | `haiku` | *(none — Haiku accepts none)* | 12 | 1x |
-| `worker` | `sonnet` | `medium` | 25 | 2x |
-| `reviewer` | `inherit` | `high` | 50 | session model |
-| `builder` | `inherit` | `high` | 50 | session |
-| `judge` | `opus` | `xhigh` | 50 | 4-5x |
+| `subagent_type` | model | effort | maxTurns | writes? | output cost |
+|---|---|---|---|---|---|
+| `mechanical` | `haiku` | *(none — Haiku accepts none)* | 12 | yes | 1x |
+| `worker` | `sonnet` | `medium` | 25 | yes | 2x |
+| `drafter` | `sonnet` | `high` | 50 | **yes** | 2x |
+| `inspector` | `sonnet` | `high` | 50 | no | 2x |
+| `reviewer` | `inherit` | `high` | 50 | no | session model |
+| `builder` | `inherit` | `high` | 50 | yes | session model |
+| `judge` | `opus` | `xhigh` | 50 | no | 4-5x |
+
+**Read this table as two columns of defaults and one of escalations.** `drafter` and
+`inspector` are the sonnet/high pair added in 0.3.0; they are where generation and
+verification should start. `reviewer` and `builder` are the same pair at the session
+model — escalations, not defaults. Before 0.3.0 the ladder jumped from sonnet/**medium**
+straight to `inherit`, so there was no way to say "sonnet, but think harder" — the advice
+this plugin gives in two other places. Three measured fan-outs ran entirely on Opus partly
+for that reason; see `workflow-patterns.md` → "Measured".
 
 ### `mechanical` — haiku (no effort setting; Haiku accepts none)
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist.
@@ -49,6 +59,42 @@ partially modified tree with no report of what changed)
   session model is above Sonnet (roughly half on Opus 5.5, 40% of it on Opus 5; in a Sonnet
   session the two differ only by an effort step, since `builder` inherits).
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash (+ `ToolSearch` on `builder`, for deferred MCP tools; `mechanical` omits it deliberately — MCP payloads are unbounded and it has a 200K wall). `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+
+### `drafter` — sonnet / high, with Edit + Write
+- **Use when:** a stage *produces* something substantial from source material you supply —
+  documentation from an evidence file, a runbook, a skill, a well-scoped implementation, a
+  pattern applied across targets with per-target adaptation. **This is the default
+  generation tier.** Reach for it before `builder` every time; it is the same `high`
+  effort, pinned to Sonnet.
+- **Do NOT use when:** two readings of the brief genuinely survive, correctness rests on an
+  invariant the brief does not state, the blast radius is security/auth/money/migrations/
+  concurrency, or a failure would be silent to you — those are `builder`. Also not when the
+  brief fully specifies the output: `worker` does that for less, and `mechanical` does
+  specified-by-example edits for less still.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash, ToolSearch. `tools:` is an allowlist, so
+  anything unlisted — `Agent` included — is already unavailable.
+- **Its mandate is anti-rot**, which matters when the artifact is documentation: write the
+  command that re-derives a volatile value rather than the value, and name gaps in the
+  source instead of filling them plausibly.
+
+### `inspector` — sonnet / high, read-only
+- **Use when:** the verb is review, verify or audit and the job is bounded — checking a
+  generated artifact against its source, verifying one claimed finding, a per-item
+  correctness pass in a fan-out, edge cases in a contained diff. **This is the default
+  inspection tier**, and it is the right home for a refuter panel: refuting one named
+  claim is narrow work, so paying session-model rates per claim is the classic
+  over-escalation.
+- **Do NOT use when:** the deliverable is a negative or universal claim ("nothing else
+  writes this field" — absence proofs need exhaustive reading), the blast radius is
+  security/auth/money/migrations/concurrency, correctness rests on an unstated invariant,
+  or the caller will build many turns on the verdict without re-checking it. Escalate those
+  to `reviewer`. Escalate a *split* verdict to `judge`.
+- **Tools:** Read, Grep, Glob, Bash, ToolSearch. No Edit or Write — which is the practical
+  reason to address it by `agentType` rather than passing `{model:'sonnet',effort:'high'}`:
+  bare opts leave it holding write tools, and a "reviewer" that can edit the artifact under
+  review is a different and worse thing.
+- **It is told to flag its own uncertainty**, so a caller can spend `reviewer` on the two
+  items that need it instead of the whole stage.
 
 ### `worker` — sonnet / medium
 - **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec. This is the default *shipped tier* — if you have decided to pin a tier, start here.
@@ -142,10 +188,15 @@ Full tool access, multi-step, open-ended.
 | Same, but 400K of input | `worker` | Haiku's 200K context is a hard wall |
 | Implement a scoped feature | `worker` | Comprehension with a knowable right answer |
 | Trace how a subsystem works | `worker` | Needs whole files, not excerpts |
-| Write the fix a reviewer found | `builder` | Needs judgment AND write tools; `reviewer` cannot write |
+| **Write docs/a runbook from an evidence file** | `drafter` | Generation from supplied source: sonnet/high with write tools |
+| **Draft N artifacts in a fan-out** | `drafter` | The default build stage; `builder` here is the most expensive habit in this plugin |
+| Write the fix a reviewer found | `worker` | Findings make it fully specified — cheapest tier that still writes with comprehension |
 | Ambiguous spec that still ships code | `builder` | Safe-downgrade gate fails but the job writes |
-| Review a diff for defects | `reviewer` | No Edit/Write, `high`, tracks session model |
-| Verify another agent's claim | `reviewer` | Adversarial read, no write authority |
+| **Check an artifact against its source** | `inspector` | Bounded verification; read-only, sonnet/high |
+| **Refute one claimed finding (xN)** | `inspector` | Narrow per-item read — never fan `reviewer` out across items |
+| Review a diff for defects | `inspector` first | Escalate to `reviewer` only if a no-downgrade predicate fires |
+| Prove nothing else writes field X | `reviewer` | A universal claim needs exhaustive reading, not a cheap tier |
+| The one pass that gates the result | `reviewer` | Cross-cutting and silent on failure — escalate here, once |
 | Two reviewers disagree | `judge` | Adjudication at 4-5x, once, not per item |
 | Irreversible architectural call | `judge` | Cost of being wrong dominates spend |
 | Doesn't fit any of the above | `general-purpose` | Last resort; no effort pinned |

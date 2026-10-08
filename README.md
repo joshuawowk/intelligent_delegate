@@ -8,8 +8,9 @@ A Claude Code plugin that answers three questions before work gets handed off:
 2. **What shape?** — inline, one subagent, or a Workflow fan-out
 3. **At what tier?** — which model, and which reasoning effort
 
-It ships a `delegate` skill (the routing procedure) and five pre-tiered agent
-definitions (the thing that makes an effort choice actually reachable).
+It ships a `delegate` skill (the routing procedure), seven pre-tiered agent
+definitions (the thing that makes an effort choice actually reachable), and a
+`PreToolUse` hook that refuses a Workflow whose `agent()` calls carry no `agentType`.
 
 ## The constraint this plugin exists to solve
 
@@ -33,15 +34,25 @@ So advice like "run mechanical stages at low effort" is unexecutable from a plai
 effort baked in. That is what `agents/` here is for. Pass one as `subagent_type`
 and you get its model *and* its effort.
 
-## The five tiers
+## The seven tiers
 
 | `subagent_type` | Model | Effort | Output cost | Use when |
 |---|---|---|:---:|---|
 | `mechanical` | haiku | — ¹ | **1×** | Fully specified, deterministic, verifiable without judgment |
-| `worker` | sonnet | medium | **2×** | Ordinary implementation and research — the default |
-| `reviewer` | inherit | high | *session* | Finding what is wrong (no Edit/Write) |
-| `builder` | inherit | high | *session* | Implementation needing judgment — **writes** |
+| `worker` | sonnet | medium | **2×** | Ordinary implementation and research against a clear spec |
+| `drafter` | sonnet | high | **2×** | **Default to generate** — an artifact from source you supply; **writes** |
+| `inspector` | sonnet | high | **2×** | **Default to verify** — review, audit, per-item checks (no Edit/Write) |
+| `reviewer` | inherit | high | *session* | **Escalation** above `inspector`: absence proofs, the gating verdict (no Edit/Write) |
+| `builder` | inherit | high | *session* | **Escalation** above `drafter`: genuine ambiguity, silent-failure blast radius — **writes** |
 | `judge` | opus | xhigh | **4–5×** | A contested call where being wrong is expensive (no Edit/Write) |
+
+**Start at `drafter` / `inspector`, escalate on blast radius.** `reviewer` and `builder`
+are `model: inherit` — in an Opus session they *are* Opus, so picking one is not a saving.
+That is not a hypothetical: three measured fan-outs (2026-09-30 ×2, 2026-10-08 ×4 scripts)
+ran 100% on Opus, and **two of them were passing `agentType` correctly**. The sonnet/high
+pair added in 0.3.0 is the rung that was missing — the ladder used to jump from
+sonnet/*medium* straight to the session model, so "more than `worker` deserves" had
+nowhere to go but Opus.
 
 ¹ **Haiku 4.5 accepts no reasoning-effort setting** — the harness drops it and the
 transcripts record none, so `mechanical` deliberately ships without an `effort:` line
@@ -74,7 +85,14 @@ Plugin agents are namespaced — the full names are `intelligent-delegate:mechan
   plugin.json                   # the plugin manifest
   marketplace.json              # single-plugin marketplace, source "./"
 agents/
-  mechanical.md   worker.md   reviewer.md   builder.md   judge.md
+  mechanical.md   worker.md                   # haiku, sonnet/medium
+  drafter.md      inspector.md                # sonnet/high — the defaults
+  reviewer.md     builder.md                  # model: inherit — the escalations
+  judge.md                                    # opus/xhigh
+hooks/
+  hooks.json                      # PreToolUse on Workflow
+  tier_check.py                   # denies agent() calls with no agentType
+  test_tier_check.py              # 20 cases; run it directly
 skills/delegate/
   SKILL.md                        # the routing procedure
   references/
@@ -82,6 +100,36 @@ skills/delegate/
     workflow-patterns.md          # fan-out shapes and per-stage tiering
     agent-catalog.md              # every subagent_type and what it costs
 ```
+
+## The hook, and why a hook
+
+Guidance in this repo told you to put `agentType` on every `agent()` call. It was correct,
+it was specific, and it was ignored three times — including by a session with the skill
+loaded, eleven days after the failure was written up in `workflow-patterns.md`.
+
+So 0.3.0 stops asking. `hooks/tier_check.py` runs as `PreToolUse` on `Workflow`, lexes the
+script, and **denies** the call if any `agent()` has no `agentType`, listing the line
+numbers and the default tier for each stage kind.
+
+Three properties worth knowing:
+
+- **It lexes, it does not grep.** Workflow prompts discuss `agent()` constantly — this
+  repo's own docs do — and a regex would block correct scripts. String bodies, template
+  text and comments are not code. `subagent(` and `obj.agent(` are not matches.
+- **It fails open.** Unparseable input, an unexpected payload shape, an internal error, a
+  workflow invoked by saved `name` — all exit 0 and allow. A cost-control hook that wedges
+  a legitimate run gets switched off, and then it protects nothing.
+- **One escape hatch.** `effort: 'max'` is unreachable from frontmatter, so bare opts are
+  sometimes right. Put `// untiered: <reason>` on or just above the call. The reason is the
+  point: it costs one sentence of thought, which is all the check is buying.
+
+It also emits a non-blocking note when every call is tiered but several use
+`reviewer`/`builder`, since those inherit and are therefore an escalation rather than a
+saving.
+
+Tests: `python3 hooks/test_tier_check.py` — 20 cases, most of them guarding against a
+false *deny*. It was also run against the four real workflow scripts from the 2026-10-08
+incident and denies all four at the correct line numbers.
 
 ## Install
 
@@ -100,9 +148,10 @@ commands and won't run in the desktop app's Code tab:
 /plugin install intelligent-delegate@intelligent-delegate
 ```
 
-Skills and agent definitions are registered at session start, so **start a new
-session** afterwards. Verify with `/plugin` — the five agents should appear as
-`intelligent-delegate:mechanical`, `:worker`, `:reviewer`, `:builder`, and `:judge`.
+Skills, agent definitions and hooks are registered at session start, so **start a new
+session** afterwards. Verify with `/plugin` — the seven agents should appear as
+`intelligent-delegate:mechanical`, `:worker`, `:drafter`, `:inspector`, `:reviewer`,
+`:builder`, and `:judge`.
 
 To work on the plugin in place instead, point the marketplace at this checkout directly —
 and know which copy a session actually loads, because there are two and only one matters.

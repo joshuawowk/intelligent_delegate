@@ -14,12 +14,25 @@ So an `agent()` call with no `agentType` is not a cheap tier. It is an untiered 
 **inherits the session model** and gets the harness default for everything a definition
 would otherwise scope. The harness logs it as `agentType: "workflow-subagent"`.
 
+**As of 0.3.0 this is enforced, not advised.** A `PreToolUse` hook
+(`hooks/tier_check.py`) lexes the script you pass to `Workflow` and denies the call if any
+`agent()` has no `agentType`, naming the line numbers. It lexes rather than greps, so
+`agent()` discussed inside a prompt string — which these docs do constantly — is not a
+call site. It fails open on anything it cannot parse. Waive a call with
+`// untiered: <reason>` on or just above it.
+
+The hook exists because the advice did not work. It was written correctly, in this file,
+and three measured fan-outs ignored it anyway — see "Measured" below. Guidance that has
+failed three times needs an exit code, not a fourth printing.
+
 | You want | Write | Bare-opts form, and what it silently loses |
 |---|---|---|
 | mechanical | `{agentType: 'intelligent-delegate:mechanical'}` | `{model: 'haiku'}` buys Haiku pricing but **not** `omitClaudeMd`, the 6-tool allowlist or `maxTurns: 12` — and tool surface is the lever that measured **4.4× the input for an identical answer** (`model-selection.md`, "The tool surface is the biggest lever"). No `effort` either way; Haiku accepts none. |
 | worker | `{agentType: 'intelligent-delegate:worker'}` | `{model: 'sonnet', effort: 'medium'}` — loses `maxTurns: 25` and the operating rules |
-| reviewer | `{agentType: 'intelligent-delegate:reviewer'}` | `{effort: 'high'}` **does not give you `reviewer`.** No `maxTurns`, no read-only tool surface, no return-value contract — and it inherits the session model, so it is not a downgrade at all |
-| builder | `{agentType: 'intelligent-delegate:builder'}` | none worth using: the point of this tier is its Edit/Write surface, and `tools` is not settable through opts |
+| **drafter** (default to generate) | `{agentType: 'intelligent-delegate:drafter'}` | `{model: 'sonnet', effort: 'high'}` gets the price but not the Edit/Write surface, `maxTurns: 50`, or the rules about not upgrading a snapshot into a standing fact |
+| **inspector** (default to verify) | `{agentType: 'intelligent-delegate:inspector'}` | `{model: 'sonnet', effort: 'high'}` gets the price but **not** the read-only tool surface — so your "reviewer" can edit the thing it is reviewing — nor `maxTurns: 50`, nor the return-value contract |
+| reviewer (escalation) | `{agentType: 'intelligent-delegate:reviewer'}` | `{effort: 'high'}` **does not give you `reviewer`.** No `maxTurns`, no read-only tool surface, no return-value contract — and it inherits the session model, so it is not a downgrade at all. Note this tier is the *escalation* above `inspector`, not the default |
+| builder (escalation) | `{agentType: 'intelligent-delegate:builder'}` | none worth using: the point of this tier is its Edit/Write surface, and `tools` is not settable through opts. The *default* writing tier is `drafter` |
 | judge | `{agentType: 'intelligent-delegate:judge'}` | `{model: 'opus', effort: 'xhigh'}` — reach for opts here only when you need `effort: 'max'`, which frontmatter cannot express |
 
 Pass bare `{model, effort}` deliberately — for `max` effort, when no shipped definition
@@ -89,6 +102,22 @@ per-agent assumption** used in `model-selection.md`, which is why its table woul
 Opus agents near $33 — these agents read far more. Substitute your own per-agent token
 estimate; the figure is linear in it.
 
+**Measured again, 2026-10-08 — the same defect, in a session with this skill loaded.**
+Four scripts, 13 `agent()` calls, 100% `claude-opus-5`. Eight calls passed
+`{label, phase}` only; the other five passed `agentType: '…:reviewer'`, which inherits. So
+both 2026-09-30 failure modes recurred simultaneously, eleven days after both were written
+up here. Two conclusions, and 0.3.0 acts on both:
+
+1. **The prose was not the fix.** Hence the `PreToolUse` hook above. It was tested against
+   these four scripts and denies all four, at the right line numbers.
+2. **One of the two was not a usage error at all.** The job was writing eighteen
+   documentation skills from a verified facts file — textbook `sonnet`/high generation. But
+   the ladder went `worker` (sonnet/**medium**) straight to `builder`/`reviewer`
+   (`model: inherit`). There was **no `sonnet`/high rung**, so "more than `worker`
+   deserves" had only one destination: the session model. The plugin was recommending
+   "lower effort before lowering model" and `sonnet`/medium → `sonnet`/high while shipping
+   a tier set that could not express it. `drafter` and `inspector` close that gap.
+
 Output-token cost ratio: haiku 1x, sonnet 2x, opus 4-5x, fable 10x. `effort` is reachable
 inside a Workflow script and in an agent definition's frontmatter — the `Agent` tool has
 no `effort` parameter. That is why per-stage tiering is a Workflow capability.
@@ -149,20 +178,27 @@ narrower and often repays a *different* model entirely. A workflow that runs eve
 at the session tier is paying generation prices for clerical work and clerical prices for
 the one call that decides whether the output is right.
 
-| Shape | Drop to mechanical | Mid tier (`worker` pins sonnet; `reviewer` inherits) | Earns judge |
+| Shape | Drop to mechanical | Default rung (pinned sonnet) | Escalate (inherits / opus) |
 |---|---|---|---|
-| Adversarial verify | — | refuters at `agentType: '…:reviewer'` | tie-break when the vote splits |
-| Perspective-diverse verify | — | each lens at `agentType: '…:reviewer'` | the lens that gates a release |
-| Judge panel | — | the N generators | the final synthesis |
-| Loop-until-dry | per-round severity/triage classification | the finders | final confirm pass only |
+| Build → review → fix | — | build at `…:drafter`, review at `…:inspector`, fix at `…:worker` | the one cross-cutting pass at `…:reviewer` |
+| Adversarial verify | — | refuters at `…:inspector` | `…:judge` tie-break when the vote splits |
+| Perspective-diverse verify | — | each lens at `…:inspector` | the lens that gates a release, at `…:reviewer` |
+| Judge panel | — | the N generators at `…:drafter` | the final synthesis at `…:judge` |
+| Loop-until-dry | per-round severity/triage classification | the finders at `…:inspector` | final confirm pass only |
 | Multi-modal sweep | — | each arm (`agentType: 'Explore'`), then the merge | rarely |
 | Completeness critic | — | — | the critic itself, `agentType: '…:judge'` |
+
+**The middle column is the one that changed in 0.3.0.** It used to read "`worker` pins
+sonnet; `reviewer` inherits", which meant every judgment-shaped mid-tier stage resolved to
+the session model. `inspector` and `drafter` pin sonnet at **high** effort, so the default
+rung is now a real rung rather than a pointer back at the top of the ladder.
 
 Cells name `agentType`, not bare `{effort}`, for the reason at the top of this file: bare
 opts give you the model and effort but none of the tier's cap, tool surface or
 return-value contract. A refuter built from `{effort: 'high'}` alone is an untiered agent
 with write tools it should not have and no instruction that its final message is the
-deliverable — which is exactly the vanished-stage failure described below.
+deliverable — which is exactly the vanished-stage failure described below. It is also what
+the shipped hook denies.
 
 Before dropping a stage to mechanical, ask whether it needs an agent at all: dedupe and
 merge are plain JS, and structured extraction is a `schema` on the upstream agent. The
@@ -295,7 +331,7 @@ export const meta = {
     // Each phase names the model its tier pins, so the progress display matches what runs.
     {title: 'Find', detail: 'one finder per target file', model: 'sonnet'},      // worker
     {title: 'Triage', detail: 'cheap severity classification', model: 'haiku'},  // mechanical
-    {title: 'Verify', detail: 'adversarial refutation', model: 'inherit'},       // reviewer
+    {title: 'Verify', detail: 'adversarial refutation', model: 'sonnet'},        // inspector
   ],
 }
 
@@ -330,13 +366,17 @@ const reviewed = await pipeline(
          agentType: 'intelligent-delegate:mechanical'})
     : null,
 
-  // Verification: a different job from generation. Same model, higher effort.
+  // Verification: a different job from generation. Same model, higher effort — which is
+  // exactly what `inspector` is (sonnet/high, read-only). An earlier version of this
+  // sketch sent these refuters to `reviewer`; that is `model: inherit`, so in an Opus
+  // session every per-finding refuter was an Opus agent. Refuting one named claim is a
+  // narrow, bounded read: it is `inspector` work. Escalate the tie-break, not the panel.
   async (tri, file) => {
     if (!tri) return null
     const votes = await parallel(tri.triaged.map((f, i) => () =>
       agent(`Try to refute this claim about ${file}: ${f.claim}. Default refuted=true if uncertain.`,
         {phase: 'Verify', label: `refute ${i}`, schema: VERDICT,
-         agentType: 'intelligent-delegate:reviewer'})))
+         agentType: 'intelligent-delegate:inspector'})))
     const live = votes.filter(Boolean).filter(v => !v.refuted)
     return {file, survived: live.length, total: tri.triaged.length}
   },
@@ -352,3 +392,76 @@ or it dies after retries, and a stage that throws drops that item to `null` for 
 of the pipeline. Nothing in a workflow script may call `Date.now()`, `Math.random()`, or
 argless `new Date()` — they throw. Vary agents by index or label, never by randomness;
 sample deterministically with `slice`.
+
+## Sketch: build → review → fix, the shape that keeps getting mis-tiered
+
+This is the shape of all four 2026-10-08 scripts, and the shape the Workflow tool's own
+canonical example shows — with the tiers it should have had. Copy this rather than the
+tool's example, which omits `agentType` on its build stage.
+
+```js
+export const meta = {
+  name: 'build-and-verify',
+  description: 'Generate each artifact, review it against its source, fix what review found',
+  phases: [
+    {title: 'Build', detail: 'one artifact per item', model: 'sonnet'},     // drafter
+    {title: 'Review', detail: 'check each against its source', model: 'sonnet'}, // inspector
+    {title: 'Fix', detail: 'apply confirmed corrections', model: 'sonnet'},  // worker
+  ],
+}
+
+const VERDICT = {type: 'object', required: ['clean'],
+  properties: {clean: {type: 'boolean'}, findings: {type: 'array', items: {type: 'string'}}}}
+
+const ITEMS = args && args.length ? args : []
+
+const results = await pipeline(
+  ITEMS,
+  // GENERATE. Writes a substantial artifact from supplied source material. `drafter` is
+  // sonnet at HIGH effort with Edit/Write — the rung this used to lack, which is why it
+  // used to land on the session model.
+  (it) => agent(`${it.brief}\n\nWrite to: ${it.path}`,
+    {label: `build:${it.name}`, phase: 'Build',
+     agentType: 'intelligent-delegate:drafter'}),
+
+  // VERIFY. A different job from generation, so a different tier — and read-only, so it
+  // cannot "helpfully" edit what it is reviewing. A `schema` makes the verdict machine-
+  // readable, which is free validation at the seam.
+  (built, it) => agent(
+    `Review ${it.path} against its source. Report only defects you can demonstrate.`,
+    {label: `review:${it.name}`, phase: 'Review', schema: VERDICT,
+     agentType: 'intelligent-delegate:inspector'}),
+
+  // FIX. Now fully specified — the findings say what to change — so this is the cheapest
+  // tier that still writes with comprehension. Skip the stage entirely when review was
+  // clean; an agent that has nothing to do still costs a cold start.
+  (verdict, it) => {
+    if (!verdict || verdict.clean) { log(`${it.name}: clean`); return {item: it.name, fixed: false} }
+    return agent(
+      `Apply these confirmed corrections to ${it.path}:\n${verdict.findings.join('\n')}`,
+      {label: `fix:${it.name}`, phase: 'Fix', agentType: 'intelligent-delegate:worker'})
+      .then(() => ({item: it.name, fixed: true, findings: verdict.findings}))
+  },
+)
+
+// ONE cross-cutting pass earns the escalation: it is the call that gates the result, it
+// must reason over every artifact at once, and a miss here is silent. Note it is one
+// agent, not one per item — that is what makes the escalation affordable.
+phase('Gate')
+const gate = await agent(
+  `Read every artifact listed and find CROSS-FILE problems only: contradictions between
+   files, a claim in one that another refutes, coverage gaps across the set.`,
+  {label: 'cross-cutting-gate', phase: 'Gate',
+   agentType: 'intelligent-delegate:reviewer'})
+
+return {results: results.filter(Boolean), gate}
+```
+
+**Why this costs roughly half of the all-session-model version.** Three of the four stage
+kinds are pinned to Sonnet, and the one `inherit` stage runs **once** instead of once per
+item. The escalation is spent where failure is silent and cross-cutting, which is the rule
+in `model-selection.md` → "Escalate on blast radius, not on difficulty."
+
+**Pipeline, not parallel.** Each item's review starts the moment its build finishes; item
+two's build does not wait for item one's review. The only barrier is the gate, which
+genuinely needs all of them.

@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Route work to the right execution shape and tier — inline, one subagent, or a Workflow fan-out — and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up, including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. Do not answer these from memory. The Agent tool has no effort parameter, Haiku silently ignores effort settings, and when the session has an advisor configured every subagent silently gets it, which can invert the saving you delegated for. Guessing costs real tokens.
+description: Route work to the right execution shape and tier — inline, one subagent, or a Workflow fan-out — and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up, including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. READ THIS BEFORE WRITING ANY WORKFLOW SCRIPT: an agent() call with no agentType silently inherits the session model, and reviewer/builder are model:inherit, so three measured fan-outs ran 100% on Opus — twice while passing agentType correctly. Do not answer these from memory. The Agent tool has no effort parameter, Haiku silently ignores effort settings, and when the session has an advisor configured every subagent silently gets it, which can invert the saving you delegated for. Guessing costs real tokens.
 license: MIT
 ---
 
@@ -8,6 +8,48 @@ license: MIT
 
 Routing guidance for handing work to subagents. Read the ladder, stop at the first
 match, and only read further if that call was close.
+
+## If you are writing a Workflow script, read this first
+
+**Every `agent()` call needs an `agentType`.** Nothing else in this file matters as much,
+because this is the one mistake that has been measured three times:
+
+| when | what happened |
+|---|---|
+| 2026-09-30 | an 81-agent fan-out passed `{label, phase, schema, effort}` at all four call sites. Every agent logged `agentType: "workflow-subagent"` and ran Opus. |
+| 2026-09-30 | a 19-agent run passed `agentType: '…:reviewer'` correctly on 18 calls — and **still** ran all-Opus, because `reviewer` is `model: inherit`. |
+| 2026-10-08 | four scripts, 13 `agent()` calls. 8 had no `agentType`; the other 5 were `reviewer`. **100% Opus again**, both failure modes at once, in a session that had this skill loaded. |
+
+Two distinct causes, and you need both fixes:
+
+1. **Omitting `agentType` is not a cheap tier — it is no tier.** It inherits the session
+   model and loses the definition's `maxTurns`, tool allowlist, `omitClaudeMd`, operating
+   rules and return-value contract. **The Workflow tool's own canonical example omits
+   `agentType` on its build stage** — that example is the thing that gets copied, so
+   copying it is how this keeps happening.
+2. **`reviewer` and `builder` are `model: inherit`.** They raise *effort*, not thrift. In
+   an Opus session they are Opus. They are escalations; `inspector` and `drafter` are the
+   defaults.
+
+**Default tier by stage kind.** Start here and depart with a reason:
+
+| the stage | tier | what it is |
+|---|---|---|
+| generate / draft prose or code | `intelligent-delegate:drafter` | sonnet, high, writes |
+| review / verify / audit | `intelligent-delegate:inspector` | sonnet, high, read-only |
+| fully-specified fix from findings | `intelligent-delegate:worker` | sonnet, medium, writes |
+| transcribe prose into a schema | `intelligent-delegate:mechanical` | haiku (or delete the stage — put the `schema` on the upstream agent) |
+| the one call that gates the result | `intelligent-delegate:reviewer` | session model, high |
+| contested tie-break, after a split | `intelligent-delegate:judge` | opus, xhigh |
+
+**Generation and verification are different jobs and must not share a tier.** A workflow
+that runs every stage at the session tier pays generation prices for clerical work and
+clerical prices for the one call that decides whether the output is right.
+
+A `PreToolUse` hook ships with this plugin and **blocks** a `Workflow` whose `agent()`
+calls have no `agentType`. If you genuinely need bare opts — `effort: 'max'` is not
+expressible in frontmatter — put `// untiered: <reason>` on or just above the call. The
+hook fails open on anything it cannot parse, so it is a backstop, not a gate you can lean on.
 
 ## Route it in ten seconds
 
@@ -128,10 +170,11 @@ have to read them again.
 - You need `effort` or a validated `schema` and no shipped definition provides it.
   This flips even a single item.
 
-**The five tiers work inside a Workflow too.** `agent()` takes `agentType`, so
-`agent(prompt, {agentType: 'intelligent-delegate:worker'})` gets that definition's model
+**All seven tiers work inside a Workflow too.** `agent()` takes `agentType`, so
+`agent(prompt, {agentType: 'intelligent-delegate:drafter'})` gets that definition's model
 and effort — the same tiers, one parameter over. Use `{model, effort}` directly only when
-no shipped definition fits, or when you need `max` effort.
+no shipped definition fits, or when you need `max` effort — and mark that call
+`// untiered: <reason>` so the shipped hook passes it.
 
 **Omitting `agentType` is not a cheap tier — it is no tier.** Such an agent inherits the
 session model and gets none of the definition's `maxTurns`, tool allowlist,
@@ -226,6 +269,7 @@ high-volume subagent work.
 | session model **with Edit/Write** | yes | `builder` — inherits, `high`, has Edit/Write. (`reviewer` inherits but cannot write.) |
 | haiku (any effort) | n/a | `mechanical`. **Haiku 4.5 takes no effort setting** — its catalog capability list is `["context_management"]`, with no `"effort"`, where Sonnet and Opus carry `"effort"`/`"xhigh_effort"`/`"max_effort"`. Do not ship `effort:` on a Haiku agent; it reads as a tuned knob and does nothing. |
 | sonnet / medium | yes | `worker` |
+| sonnet / high | yes | `drafter` (writes) or `inspector` (read-only) — the rung this plugin's own "lower effort before lowering model" advice needs, and did not ship until 0.3.0 |
 | opus / xhigh | yes | `judge` |
 | anything at `max` | yes | a definition with `effort: max` (schema-legal; runtime unconfirmed), or a Workflow `agent({effort: 'max'})` — the Workflow route is the verified one |
 
@@ -246,8 +290,22 @@ model-scoped.
 
 Output-token cost is the number to reason with: **Haiku 1× / Sonnet 2× / Opus 4–5× /
 Fable 10×.** (`opus` is an alias for your configured default Opus, which spans two priced
-rows — Opus 5.5 at 4×, Opus 5 at 5×. Pin the full id when a budget turns on the difference.) Default: **inherit the session model.** Depart only with high confidence,
-which means evaluating the predicates below rather than waving at them.
+rows — Opus 5.5 at 4×, Opus 5 at 5×. Pin the full id when a budget turns on the difference.)
+
+**The default depends on how many agents you are about to spawn, and this is the correction
+0.3.0 exists to make.** Earlier versions of this file said simply "default: inherit the
+session model", which is right for *one* delegated call and wrong for a fan-out — it is
+how three measured runs cost Opus rates end to end.
+
+- **One agent, and you need session-model judgment** → inherit (`reviewer` / `builder`).
+  The cold-start overhead dominates; a tier change saves little and risks the answer.
+- **A fan-out, or any multi-stage Workflow** → **start at the pinned-Sonnet rung**
+  (`drafter` to generate, `inspector` to verify) and escalate the specific stages where a
+  no-downgrade predicate fires. Per-stage escalation is the point of a Workflow; a uniform
+  session-model fan-out throws that away and is the single most expensive habit here.
+
+Departing downward from Sonnet to Haiku needs high confidence, which means evaluating the
+predicates below rather than waving at them.
 
 **No-downgrade — any ONE of these is disqualifying:**
 
@@ -347,7 +405,7 @@ A second verified gotcha from the same dig, and it applies to every definition y
 write: the frontmatter schema says `disallowedTools` is *"Tools removed from the default
 set. **Ignored if `tools` is set.**"* Since `tools:` is an allowlist that **replaces**
 the default set, listing both means the deny list does nothing — anything absent from
-`tools:` is already gone. This plugin's five definitions originally carried
+`tools:` is already gone. This plugin's original five definitions carried
 `disallowedTools: [Agent]` alongside a `tools:` allowlist; the line was inert in all
 five and has been removed. **Pick one mechanism.** A deny list sitting under an
 allowlist reads as a control and is not one.
@@ -381,8 +439,10 @@ Shipped definitions are namespaced: `intelligent-delegate:mechanical`, and so on
 | `general-purpose` | open-ended multi-step, full tool access | anything a tiered definition covers more precisely |
 | `mechanical` (haiku, no effort setting) | homogeneous, specified-by-example edits on small inputs | anything near 150K; anything with a judgment step; **anything needing an MCP tool** — it is the one tier without `ToolSearch`, deliberately |
 | `worker` (sonnet/medium) | well-specified implementation with a deterministic check attached | ambiguous specs — it will pick a reading and commit |
-| `reviewer` (inherit/high) | adversarial verification and code review — judgment at session-model quality for less spend | producing the fix — that is `builder` |
-| `builder` (inherit/high, **writes**) | implementation needing the session model's judgment: ambiguous spec, per-target adaptation, unsafe-to-downgrade blast radius | fully specified work — `worker` does it for less whenever the session model is above Sonnet (about half on Opus 5.5, 40% of it on Opus 5; in a Sonnet session the two differ only by an effort step) |
+| **`drafter` (sonnet/high, writes)** | **the default generation tier.** Producing an artifact from source material you supply: documentation from an evidence file, a runbook, a well-scoped implementation, a pattern applied with per-target adaptation | genuine ambiguity, or a silent-failure blast radius — that is `builder`. Fully specified output — `worker` |
+| **`inspector` (sonnet/high, read-only)** | **the default inspection tier.** Ordinary review, verification and audit: checking an artifact against its source, verifying one finding, per-item correctness in a fan-out | negative/universal claims, security-auth-money blast radius, or a verdict carrying many turns — that is `reviewer` |
+| `reviewer` (**inherit**/high) | the **escalation** above `inspector`: absence proofs, an invariant the brief does not state, the one verdict that gates the result | ordinary review — `inspector` is half the price whenever the session is above Sonnet. Producing the fix — that is `builder` |
+| `builder` (**inherit**/high, **writes**) | the **escalation** above `drafter`: two readings genuinely survive, unsafe-to-downgrade blast radius, failure would be silent | fully specified work — `worker`; ordinary generation — `drafter`. Both cost about half whenever the session model is above Sonnet (in a Sonnet session `drafter` and `builder` are the same thing) |
 | `judge` (opus/xhigh) | the call you cannot afford to get wrong, or breaking a tie between two verdicts | routine implementation |
 
 **Routing MCP work.** MCP tools arrive deferred and `ToolSearch` loads them, so a tier must
@@ -422,6 +482,14 @@ change it. Before concluding a tier "cannot do MCP", read the error — a bare
     session, every subagent can reach it — here, Fable at 10×. Price the floor.
 13. **Silent caps.** If you bound coverage — top-N, no-retry, sampling — say what was
     dropped. Silent truncation reads as "covered everything" when it didn't.
+14. **A uniformly-tiered fan-out.** The most expensive habit in this file, and the one
+    with three measurements behind it. If every stage carries the same tier — or no tier —
+    you are paying generation prices for clerical work and clerical prices for the call
+    that decides whether the output is right. Per-stage tiering is the whole reason to
+    reach for a Workflow rather than a loop of Agent calls.
+15. **Reading `model: inherit` as "the cheap option".** `reviewer` and `builder` lower
+    *effort*, not model. In an Opus session they are Opus. The pinned-Sonnet rung
+    (`inspector`, `drafter`) is the actual downgrade.
 
 ## References
 
