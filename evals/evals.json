@@ -80,6 +80,51 @@
         "It cites Haiku's 200K context limit as a hard wall rather than a cost concern",
         "It notes that cold-start overhead is spent inside that same window"
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "I'm writing a Workflow to build 18 documentation skills from a verified facts file, then review each one, then fix what review finds. I'm on Opus. Here's my stage: agent(brief, {label: `build:${s.name}`, phase: 'Build'}).",
+      "expected_output": "Catches the missing agentType AND routes the build stage to drafter, not builder. This is the 2026-10-08 failure verbatim.",
+      "expectations": [
+        "It flags that the agent() call has no agentType and therefore inherits the session model (Opus)",
+        "It names the lost guarantees beyond price: maxTurns, the tool allowlist, operating rules, or the return-value contract",
+        "It routes the build/generation stage to drafter (sonnet/high), not to builder or an untiered call",
+        "It gives review and fix different tiers from build rather than one tier for the whole pipeline",
+        "It does not claim that adding effort: 'high' to the opts is equivalent to naming a tier"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "My Workflow passes agentType: 'intelligent-delegate:reviewer' on every single call, so the tiers are engaged and I'm getting the discount. I'm on an Opus session.",
+      "expected_output": "Corrects the premise: reviewer is model: inherit, so this is an all-Opus fan-out at full price.",
+      "expectations": [
+        "It states that reviewer is model: inherit and therefore runs Opus in an Opus session",
+        "It says this is not a discount or saving",
+        "It names inspector (or a pinned-sonnet tier) as the actual cheaper route for ordinary review",
+        "It does not congratulate the user on correct tier usage without correcting the cost premise"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "I have 40 claimed findings and I want one adversarial refuter per finding to try to knock each one down. Which tier for the refuters?",
+      "expected_output": "inspector, not reviewer and not judge. Refuting one named claim is narrow bounded work; fanning an inherit tier across 40 items is the over-escalation this plugin exists to prevent.",
+      "expectations": [
+        "It routes the per-finding refuters to inspector (sonnet/high) rather than reviewer",
+        "It does not fan judge out across the 40 items",
+        "It reserves an escalated tier for a tie-break or a split verdict, if it mentions one at all",
+        "The reasoning distinguishes a narrow per-item read from a broad or cross-cutting one"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Why did my Workflow get blocked with something about agentType? I just want to run it.",
+      "expected_output": "Explains the shipped PreToolUse hook, the real cost reason behind it, and the legitimate escape hatch -- without suggesting the user disable the hook as the fix.",
+      "expectations": [
+        "It explains that an agent() call with no agentType inherits the session model rather than being a cheap tier",
+        "It tells the user to add agentType per stage, and suggests tiers by stage kind",
+        "It mentions the // untiered: <reason> waiver only as the deliberate-bare-opts case, such as effort: 'max'",
+        "It does not recommend removing, disabling or bypassing the hook as the primary fix"
+      ]
     }
   ]
 }
