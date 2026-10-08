@@ -105,8 +105,8 @@ estimate; the figure is linear in it.
 **Measured again, 2026-10-08 — the same defect, in a session with this skill loaded.**
 Four scripts, 13 `agent()` calls, 100% `claude-opus-5`. Eight calls passed
 `{label, phase}` only; the other five passed `agentType: '…:reviewer'`, which inherits. So
-both 2026-09-30 failure modes recurred simultaneously, eleven days after both were written
-up here. Two conclusions, and 0.3.0 acts on both:
+both 2026-09-30 failure modes recurred simultaneously, **seven days** after both were
+written up here (commit `279aa14`, 2026-10-01). Two conclusions, and 0.3.0 acts on both:
 
 1. **The prose was not the fix.** Hence the `PreToolUse` hook above. It was tested against
    these four scripts and denies all four, at the right line numbers.
@@ -158,8 +158,9 @@ Four rationalizations that do **not** justify one:
   (correctness / security / perf / does-it-reproduce). For: findings that can fail in more
   than one way, where redundancy would miss the mode nobody looked for.
 - **Judge panel** — generate N attempts from different angles (MVP-first, risk-first,
-  user-first), score with parallel *scorers* (`reviewer` tier — not the `judge` tier, which
-  is costed on never being fanned out), synthesize from the winner while grafting the
+  user-first), score with parallel *scorers* (`inspector` tier — not `judge`, which is
+  costed on never being fanned out, and not `reviewer`, which inherits and so makes the
+  scorer panel a session-model fan-out), synthesize from the winner while grafting the
   runners-up. For: wide solution spaces, where one-attempt-iterated locks in early.
 - **Loop-until-dry** — keep spawning finders until K consecutive rounds surface nothing
   new; dedupe against everything *seen*, not everything *confirmed*, or rejected findings
@@ -457,9 +458,12 @@ const gate = await agent(
 return {results: results.filter(Boolean), gate}
 ```
 
-**Why this costs roughly half of the all-session-model version.** Three of the four stage
-kinds are pinned to Sonnet, and the one `inherit` stage runs **once** instead of once per
-item. The escalation is spent where failure is silent and cross-cutting, which is the rule
+**Why this costs much less than the all-session-model version — in an Opus session.**
+Three of the four stage kinds are pinned to Sonnet, and the one `inherit` stage runs
+**once** instead of once per item. On the published effort-cost index that is 2.0 effective
+units per pinned stage against 4–5 for an inherit stage, so roughly 40–50% on the pinned
+stages. In a **Sonnet** session the saving is only the `worker` effort step; in a **Haiku**
+session this shape costs *more* than inheriting, and you should pin nothing. The escalation is spent where failure is silent and cross-cutting, which is the rule
 in `model-selection.md` → "Escalate on blast radius, not on difficulty."
 
 **Pipeline, not parallel.** Each item's review starts the moment its build finishes; item

@@ -83,7 +83,7 @@ flat across effort (1.7 at max) where Sonnet is steep.
 | **medium** | ⬜ n/a | ✅ the `worker` default | ⚠️ usually beaten by sonnet@xhigh | ❌ incoherent |
 | **high** | ⬜ n/a | ✅ **`inspector` (read-only) and `drafter` (writes)** — pinned to the 2× column, ~2.0 effective units. The default rung for both verification and generation | ✅ strong for hard analysis — and where `reviewer`/`builder` land in an Opus session, at ~5.0 effective units | ⚠️ only if opus@xhigh already failed |
 | **xhigh** | ⬜ n/a | ✅ coding / long-horizon | ✅ the `judge` tier | ⚠️ last resort |
-| **max** (Workflow only) | ⬜ n/a | ⚠️ | ✅ one contested call | ⚠️ |
+| **max** | ⬜ n/a | ⚠️ | ✅ one contested call | ⚠️ |
 
 Why the marked cells are mistakes:
 
@@ -114,9 +114,14 @@ Why the marked cells are mistakes:
 - **That trap is why 0.3.0 ships `inspector` and `drafter`,** and the grid above now shows
   why it was a real hole rather than a documentation gap. The sonnet/high cell is **2 × 1 =
   2.0 effective units**; `reviewer`/`builder` in an Opus session are **4–5 × 1 = 4–5**. So
-  the pinned pair is a genuine 2–2.5× saving at *the same effort level* — the "lower effort
-  before lowering model" trade this file recommends, except here it is "same effort, lower
-  model", which keeps the thoroughness and gives up only capability the stage did not need.
+  the pinned pair is a 2–2.5× saving at *the same effort level* — the "lower effort before
+  lowering model" trade this file recommends, except here it is "same effort, lower model",
+  which keeps the thoroughness and gives up only capability the stage did not need.
+  **The assumption in that comparison, stated because it is not free:** each model's index
+  is normalised to *its own* `high`, so multiplying column × index only compares across
+  models if the two emit roughly the same number of output tokens at `high`. Nothing here
+  measures that. If Sonnet is more verbose at high effort than Opus is, the real saving is
+  smaller than 2–2.5×. Opus 5.5 also publishes no index at all, so its row assumes 1.
   Note the direction of the Sonnet index: going *up* from sonnet/high to sonnet/xhigh costs
   2.41×, landing at ~4.8 — level with opus/high. So **sonnet/high is the efficient Sonnet
   cell**, and if a stage genuinely needs more than it, escalating the model is no more
@@ -233,7 +238,8 @@ internals rot fast — re-check on CLI upgrades.
 
 MCP tools arrive **deferred**: the schema is not loaded and `ToolSearch` is the documented
 loader. Since `tools:` is an allowlist that *replaces* the default set, a tier that does not
-list `ToolSearch` cannot load any MCP tool. `reviewer`, `worker`, `builder` and `judge`
+list `ToolSearch` cannot load any MCP tool. `worker`, `drafter`, `inspector`, `reviewer`,
+`builder` and `judge`
 therefore list it. `mechanical` deliberately does not — MCP responses are unbounded and it
 has a hard 200K wall; an MCP task is not a mechanical task.
 
@@ -288,7 +294,9 @@ look, not as a known workaround.
 | `SKILL.md` frontmatter | ❌ | ⚠️ sets *this turn*, never a subagent (see below) | ❌ | ❌ | `allowed-tools` |
 
 ```js
-// Workflow — the only place effort: "max" is reachable
+// Workflow — the VERIFIED route to effort: "max", and the only way to vary it per call.
+// Frontmatter `effort: max` is schema-legal too (see agent-catalog.md), but whether the
+// runtime honours it from frontmatter is unconfirmed — so prefer this when it matters.
 await agent(prompt, { model: "opus", effort: "max", label: "adjudicate" });
 ```
 ```markdown

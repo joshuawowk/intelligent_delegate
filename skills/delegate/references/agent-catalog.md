@@ -54,7 +54,8 @@ resolves ambiguity, edits, then runs tests/build/linter, and a truncated writer 
 partially modified tree with no report of what changed)
 - **Use when:** the work must change files AND needs the session model's judgment — an
   ambiguous spec, per-target adaptation, or a blast radius that makes a downgrade unsafe.
-  This is where the safe-downgrade gate sends you when the job still writes code.
+  This is where an escalation predicate sends you when the job still writes code — after
+  `drafter` has been ruled out, not instead of considering it.
 - **Do NOT use when:** the task is fully specified — `worker` does it for less whenever the
   session model is above Sonnet (roughly half on Opus 5.5, 40% of it on Opus 5; in a Sonnet
   session the two differ only by an effort step, since `builder` inherits).
@@ -97,15 +98,16 @@ partially modified tree with no report of what changed)
   items that need it instead of the whole stage.
 
 ### `worker` — sonnet / medium
-- **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec. This is the default *shipped tier* — if you have decided to pin a tier, start here.
-  It does **not** override the skill body's rule that the default is to omit `model`
-  entirely and inherit the session model; pin `worker` only when you actively want
-  sonnet/medium rather than whatever the session is running.
+- **Use when:** ordinary multi-step implementation or research that needs real comprehension but has a knowable right answer — a scoped feature, tracing a subsystem, tests against a clear spec, **or applying a fix that a review has already specified**.
+  As of 0.3.0 this is no longer "the default shipped tier": for a stage that *generates* a
+  substantial artifact, `drafter` is the default and runs the same model a step higher. Pick
+  `worker` when the brief genuinely settles the output, which is also when it is about 26%
+  cheaper than `drafter`.
 - **Do NOT use when:** the task is pure mechanical churn (pay 1x instead) or a contested judgment call where being confidently wrong is expensive.
 - **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
 
 ### `reviewer` — inherit / high (high only where the inherited model accepts effort)
-- **Use when:** the job is *finding what is wrong* — code review, spec-versus-implementation diffs, adversarial verification of another agent's output. `high` is the sweet spot balancing quality and token efficiency, and `inherit` is deliberate: review quality should track the session model rather than being pinned below it.
+- **Use when:** an *escalation* predicate fires on inspection work — a negative or universal claim to establish, a security/auth/money/migration/concurrency blast radius, an invariant the brief does not state, or the single cross-cutting pass that gates the result. `inherit` is deliberate: when review quality has to track the session model, this is the tier that does it. **Ordinary code review, spec-versus-implementation diffs and per-finding adversarial verification go to `inspector` first** — same effort, pinned to Sonnet. Routing all review here is how three measured fan-outs cost Opus rates.
 - **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
 - **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
 - **`maxTurns` was the binding constraint, and was raised 20 → 50.** Measured 2026-09-30:
@@ -130,9 +132,11 @@ partially modified tree with no report of what changed)
   picking this tier over none saves nothing — measured 2026-09-30, a 19-agent fan-out that
   named `reviewer` on all 18 of its review and inventory calls ran 19/19 on `claude-opus-5`
   (the 19th was a `judge` stage, which pins Opus regardless). Fan many of these out and
-  price it at the session model, not at a discount. For spend, the levers are `mechanical`,
-  `worker`, an explicit `model:` in a Workflow `agent()` call, or the tool surface.
-  Same applies to `builder`.
+  price it at the session model, not at a discount. For spend, the levers are the pinned
+  tiers — `inspector` and `drafter` at sonnet/high, `worker` at sonnet/medium, `mechanical`
+  at haiku — an explicit `model:` in a Workflow `agent()` call, or the tool surface.
+  `inspector` is the direct substitute for this tier and the first thing to try.
+  Same applies to `builder`, whose substitute is `drafter`.
 
 ### `judge` — opus / xhigh
 - **`maxTurns` raised 25 → 50, on weaker evidence than `reviewer`'s.** This tier has hit
@@ -161,7 +165,8 @@ Read-only fan-out search. Reads **excerpts, not whole files**, takes a breadth h
 - **NOT good for:** review, audit, or any verdict. Explore *locates* code; it does not
   judge it, and it never saw the whole file it quoted from. This is the routine misuse —
   an "Explore, and check whether the auth is sound" call returns confident-sounding
-  findings drawn from excerpts. Locate with `Explore`, then judge with `reviewer`.
+  findings drawn from excerpts. Locate with `Explore`, then judge with `inspector` —
+  or `reviewer` if an escalation predicate fires.
   Also not for anything that writes, and not for work needing project conventions,
   since it does not get CLAUDE.md.
 
@@ -184,7 +189,7 @@ Full tool access, multi-step, open-ended.
 |---|---|---|
 | "Where is X handled?" | `Explore` | Locating, not judging; cheapest cold start |
 | "Plan the migration" | `Plan` | Architect, no write tools to misfire |
-| Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 1x — **only if the safe-downgrade gate passes**; if "the same edit" could mean adapted-per-target, use `builder` instead |
+| Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 1x — **only if the safe-downgrade gate passes**; if "the same edit" could mean adapted-per-target, use `drafter` when the brief says how each target differs and `builder` when working that out is part of the job |
 | Same, but 400K of input | `worker` | Haiku's 200K context is a hard wall |
 | Implement a scoped feature | `worker` | Comprehension with a knowable right answer |
 | Trace how a subsystem works | `worker` | Needs whole files, not excerpts |
@@ -194,7 +199,7 @@ Full tool access, multi-step, open-ended.
 | Ambiguous spec that still ships code | `builder` | Safe-downgrade gate fails but the job writes |
 | **Check an artifact against its source** | `inspector` | Bounded verification; read-only, sonnet/high |
 | **Refute one claimed finding (xN)** | `inspector` | Narrow per-item read — never fan `reviewer` out across items |
-| Review a diff for defects | `inspector` first | Escalate to `reviewer` only if a no-downgrade predicate fires |
+| Review a diff for defects | `inspector` first | Escalate to `reviewer` only if an escalation predicate fires |
 | Prove nothing else writes field X | `reviewer` | A universal claim needs exhaustive reading, not a cheap tier |
 | The one pass that gates the result | `reviewer` | Cross-cutting and silent on failure — escalate here, once |
 | Two reviewers disagree | `judge` | Adjudication at 4-5x, once, not per item |

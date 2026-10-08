@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Route work to the right execution shape and tier — inline, one subagent, or a Workflow fan-out — and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up, including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. READ THIS BEFORE WRITING ANY WORKFLOW SCRIPT: an agent() call with no agentType silently inherits the session model, and reviewer/builder are model:inherit, so three measured fan-outs ran 100% on Opus — twice while passing agentType correctly. Do not answer these from memory. The Agent tool has no effort parameter, Haiku silently ignores effort settings, and when the session has an advisor configured every subagent silently gets it, which can invert the saving you delegated for. Guessing costs real tokens.
+description: Route work to the right execution shape and tier — inline, one subagent, or a Workflow fan-out — and which model and reasoning effort each one gets. Use whenever delegation, parallelism, subagents, or agent cost comes up, including short asks like "should I delegate this or do it inline", "which model for these agents", "what effort level", "fan this out", "run these in parallel", "spawn some agents", "this is burning too many tokens", "can something cheaper do it", "Workflow or one Agent call", "is the overhead worth it", or when a delegated result came back wrong and the tier may be why. READ THIS BEFORE WRITING ANY WORKFLOW SCRIPT: an agent() call with no agentType silently inherits the session model, and reviewer/builder are model:inherit, so three measured fan-outs ran 100% on Opus — one of them while passing agentType correctly on every call, another on 5 of its 13. Do not answer these from memory. The Agent tool has no effort parameter, Haiku silently ignores effort settings, and when the session has an advisor configured every subagent silently gets it, which can invert the saving you delegated for. Guessing costs real tokens.
 license: MIT
 ---
 
@@ -83,12 +83,14 @@ Answer the first question that hits. Stop there. Everything below is backing det
 **Precedence, when two rules fire:** 5 and 6 beat 1 and 3. Within those, answer in order.
 
 **Losing tier arbitrage does not un-justify the delegation.** If you named tier arbitrage
-at rule 3 and the safe-downgrade gate later disqualifies the cheap tier, you do **not**
-fall back to inline — you delegate at the inherited model — that is what `builder`
-is for when the work writes, `reviewer` when it does not — and collect the other payoffs
-(parallelism, context protection) instead. Only the *tier* changes, never the *shape*.
-Shape is decided by the ladder; tier is decided by the predicates, and they are
-independent questions answered in that order.
+at rule 3 and a gate later disqualifies the tier you had in mind, you do **not** fall back
+to inline — you step up one rung and collect the other payoffs (parallelism, context
+protection) instead. **Step up one rung, not to the top:** failing the Haiku gate lands you
+on `drafter`/`inspector` (sonnet, high), not on the session model. Only an *escalation*
+predicate takes you to `builder`/`reviewer`. Collapsing those two steps into one is how a
+fan-out that merely "needed more than Haiku" ends up on Opus. Only the *tier* changes,
+never the *shape*. Shape is decided by the ladder; tier is decided by the predicates, and
+they are independent questions answered in that order.
 
 Two ways rule 1 misfires, both worth memorising:
 
@@ -286,7 +288,7 @@ Opus session a Haiku subagent — the exact downgrade this section exists to pre
 warm. Dropping a tier swaps the model and forfeits cache reuse, because caches are
 model-scoped.
 
-## Model tier: the no-downgrade predicates
+## Model tier: the two gates and their predicates
 
 Output-token cost is the number to reason with: **Haiku 1× / Sonnet 2× / Opus 4–5× /
 Fable 10×.** (`opus` is an alias for your configured default Opus, which spans two priced
@@ -298,7 +300,10 @@ session model", which is right for *one* delegated call and wrong for a fan-out 
 how three measured runs cost Opus rates end to end.
 
 - **One agent, and you need session-model judgment** → inherit (`reviewer` / `builder`).
-  The cold-start overhead dominates; a tier change saves little and risks the answer.
+  The saving from pinning is real but it is *one agent's worth*, while the risk of a wrong
+  tier is concentrated in the one result you are going to act on. Pin anyway when the job
+  is plainly ordinary — `inspector` and `drafter` are not a gamble, they are the same
+  effort on a cheaper model — and inherit when you would not want to re-run it.
 - **A fan-out, or any multi-stage Workflow** → **start at the pinned-Sonnet rung**
   (`drafter` to generate, `inspector` to verify) and escalate only the stages where an
   **escalation predicate** fires. Per-stage escalation is the point of a Workflow; a
@@ -476,13 +481,13 @@ Shipped definitions are namespaced: `intelligent-delegate:mechanical`, and so on
 | `worker` (sonnet/medium) | well-specified implementation with a deterministic check attached | ambiguous specs — it will pick a reading and commit |
 | **`drafter` (sonnet/high, writes)** | **the default generation tier.** Producing an artifact from source material you supply: documentation from an evidence file, a runbook, a well-scoped implementation, a pattern applied with per-target adaptation | genuine ambiguity, or a silent-failure blast radius — that is `builder`. Fully specified output — `worker` |
 | **`inspector` (sonnet/high, read-only)** | **the default inspection tier.** Ordinary review, verification and audit: checking an artifact against its source, verifying one finding, per-item correctness in a fan-out | negative/universal claims, security-auth-money blast radius, or a verdict carrying many turns — that is `reviewer` |
-| `reviewer` (**inherit**/high) | the **escalation** above `inspector`: absence proofs, an invariant the brief does not state, the one verdict that gates the result | ordinary review — `inspector` is half the price whenever the session is above Sonnet. Producing the fix — that is `builder` |
+| `reviewer` (**inherit**/high) | the **escalation** above `inspector`: absence proofs, an invariant the brief does not state, the one verdict that gates the result | ordinary review — `inspector` costs 40–50% of this in an Opus session, the same in a Sonnet one, and *more* in a Haiku one. Producing the fix — that is `builder` |
 | `builder` (**inherit**/high, **writes**) | the **escalation** above `drafter`: two readings genuinely survive, unsafe-to-downgrade blast radius, failure would be silent | fully specified work — `worker`; ordinary generation — `drafter`. Both cost about half whenever the session model is above Sonnet (in a Sonnet session `drafter` and `builder` are the same thing) |
 | `judge` (opus/xhigh) | the call you cannot afford to get wrong, or breaking a tie between two verdicts | routine implementation |
 
 **Routing MCP work.** MCP tools arrive deferred and `ToolSearch` loads them, so a tier must
-list `ToolSearch` to reach one — `reviewer`, `worker`, `builder` and `judge` do; `mechanical`
-does not. That is necessary, not sufficient: a session can disable `ToolSearch` outright and
+list `ToolSearch` to reach one — `worker`, `drafter`, `inspector`, `reviewer`, `builder`
+and `judge` all do; `mechanical` is the only tier that does not. That is necessary, not sufficient: a session can disable `ToolSearch` outright and
 the disable is inherited by subagents, in which case no tier reaches MCP and only the user can
 change it. Before concluding a tier "cannot do MCP", read the error — a bare
 `No such tool available: X` means the name is not registered, while a trailing

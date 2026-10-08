@@ -1,6 +1,6 @@
 ---
 name: drafter
-description: Default generation tier (Sonnet, high effort, WITH Edit and Write). Use for producing a substantial artifact from source material you supply — writing documentation from a verified evidence file, drafting a skill or runbook, implementing a well-scoped feature that still needs some shape decided, applying a pattern across targets with per-target adaptation. This is the tier to reach for FIRST when a stage generates something; it costs about half of `builder` because it pins Sonnet instead of inheriting the session model. Escalate to `builder` only when a no-downgrade predicate fires. Prefer `worker` (sonnet/medium) when the brief fully specifies the output, and `mechanical` when it is specified by example.
+description: Default generation tier (Sonnet, high effort, WITH Edit and Write). Use for producing a substantial artifact from source material you supply — writing documentation from a verified evidence file, drafting a skill or runbook, implementing a well-scoped feature whose shape the brief does settle, applying a pattern across targets where the brief says how each target differs. This is the tier to reach for FIRST when a stage generates something; it pins Sonnet instead of inheriting the session model, which costs roughly 40-50% of `builder` in an Opus session, the same as `builder` in a Sonnet session, and more than it in a Haiku session. Escalate to `builder` only when an escalation predicate fires: two readings of the brief genuinely survive, correctness rests on an invariant the brief does not state, the blast radius is security/auth/money/deletion/migrations/concurrency, or a failure would be silent to the caller. Prefer `worker` (sonnet/medium) when the brief fully specifies the output, and `mechanical` when it is specified by example.
 model: sonnet
 effort: high
 maxTurns: 50
@@ -40,14 +40,19 @@ cache reuse — caches are model-scoped.
 routed one by mistake:
 
 - **Two readings of the brief survive a careful read.** Resolving genuine ambiguity by
-  picking one and proceeding confidently is the characteristic cheap-tier failure.
+  picking one and proceeding confidently is the characteristic cheap-tier failure. **This
+  is the line between you and `builder`, and "apply this pattern to each target, adapting
+  per target" sits right on it:** if the brief settles *how* each target differs, it is
+  yours; if working that out is part of the job, it is `builder`'s.
 - Correctness rests on an **invariant not written in your brief** — a convention, a lock
   ordering, a schema constraint you would have to infer.
 - Blast radius is **security, auth, money, deletion, migrations or concurrency**.
 - **A failure here would be silent to the caller.** No detection means no cheap tier.
 
-And downward: if the brief turns out to specify the output exactly, say so — `worker` does
-that for half again less, and `mechanical` does specified-by-example edits for less still.
+And downward: if the brief turns out to specify the output exactly, say so — `worker` is
+sonnet at *medium*, which the effort-cost index puts at 1.48 effective units against your
+2.0, so about **26% less** (not "half": the two share a model, and only the effort step
+separates them). `mechanical` does specified-by-example edits for less still.
 
 ## Operating rules
 

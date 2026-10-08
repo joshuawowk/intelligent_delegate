@@ -49,7 +49,10 @@ and you get its model *and* its effort.
 **Start at `drafter` / `inspector`, escalate on blast radius.** `reviewer` and `builder`
 are `model: inherit` — in an Opus session they *are* Opus, so picking one is not a saving.
 That is not a hypothetical: three measured fan-outs (2026-09-30 ×2, 2026-10-08 ×4 scripts)
-ran 100% on Opus, and **two of them were passing `agentType` correctly**. The sonnet/high
+ran 100% on Opus. **One of them was passing `agentType` correctly throughout** — the
+19-agent 2026-09-30 run — and a second was doing so on 5 of its 13 calls. (An earlier
+draft of this README said "two of them" without that qualification; the 81-agent run
+passed no `agentType` at all, so only one is a clean case.) The sonnet/high
 pair added in 0.3.0 is the rung that was missing — the ladder used to jump from
 sonnet/*medium* straight to the session model, so "more than `worker` deserves" had
 nowhere to go but Opus.
@@ -105,7 +108,8 @@ skills/delegate/
 
 Guidance in this repo told you to put `agentType` on every `agent()` call. It was correct,
 it was specific, and it was ignored three times — including by a session with the skill
-loaded, eleven days after the failure was written up in `workflow-patterns.md`.
+loaded, **seven days** after the failure was written up in `workflow-patterns.md`
+(commit `279aa14`, 2026-10-01; recurrence 2026-10-08).
 
 So 0.3.0 stops asking. `hooks/tier_check.py` runs as `PreToolUse` on `Workflow`, lexes the
 script, and **denies** the call if any `agent()` has no `agentType`, listing the line
@@ -123,9 +127,10 @@ Three properties worth knowing:
   sometimes right. Put `// untiered: <reason>` on or just above the call. The reason is the
   point: it costs one sentence of thought, which is all the check is buying.
 
-It also emits a non-blocking note when every call is tiered but several use
+It also emits a non-blocking note when every call is tiered but **any** of them use
 `reviewer`/`builder`, since those inherit and are therefore an escalation rather than a
-saving.
+saving — and a note when a call could not be checked at all, so an unchecked call is never
+mistaken for a checked one.
 
 > **If a deny names a tier and that tier then errors as "not found", your session predates
 > the upgrade.** Hit while building this release: a Workflow passing
@@ -144,7 +149,7 @@ incident and denies all four at the correct line numbers, with no false positive
 several hundred lines of embedded prompt text.
 
 **Verified end-to-end, 2026-10-08**, because a hook that only works in unit tests is a
-file, not a control. Three probes in fresh `claude -p` sessions against this checkout:
+file, not a control. Four probes in fresh `claude -p` sessions against this checkout:
 
 | probe | result |
 |---|---|
@@ -153,8 +158,15 @@ file, not a control. Three probes in fresh `claude -p` sessions against this che
 | correctly tiered `agent()` | **ran.** Not blocked; the agent returned. |
 | all tiered but using `reviewer` | ran, and the non-blocking note **is** surfaced in the hook event stream (`--include-hook-events`) |
 
-The last two were run with `--model haiku` so that `reviewer`'s `inherit` resolved to the
-cheap tier — the probe costs pennies and still exercises the real path.
+The two `reviewer` probes (rows 3 and 4) were run with `--model haiku`, so that
+`inherit` resolved to the cheap tier: they cost pennies and still exercise the real path.
+
+Two limits on what a reader can check from the repo alone. The four incident scripts live
+in a session transcript directory and are **not committed here**, so "denies all four at
+the correct line numbers" is reproducible by the author and not by you — treat it as a
+claim, not a verifiable one. And the probes confirm the hook *loads and fires*; they do
+not measure whether the tier choices it recommends produce better output, which nothing
+in this repo measures.
 
 ## Install
 
@@ -223,7 +235,7 @@ claude plugin install intelligent-delegate@intelligent-delegate
 claude plugin details intelligent-delegate@intelligent-delegate
 ```
 
-`details` reports the registered inventory — **1 skill, 5 agents** — and a token cost.
+`details` reports the registered inventory — **1 skill, 7 agents** — and a token cost.
 **Measured 2026-09-30 at commit `d2ba47d`: ~1,016 tokens always-on, ~5.1k when the
 `delegate` skill fires, ~570–740 per agent invocation.** Treat all three as stale: `SKILL.md`
 has grown since, so skill-load is now nearer 6–7k by this repo's own ÷4 rule, and no
