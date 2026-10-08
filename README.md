@@ -127,6 +127,17 @@ It also emits a non-blocking note when every call is tiered but several use
 `reviewer`/`builder`, since those inherit and are therefore an escalation rather than a
 saving.
 
+> **If a deny names a tier and that tier then errors as "not found", your session predates
+> the upgrade.** Hit while building this release: a Workflow passing
+> `agentType: 'intelligent-delegate:inspector'` failed with
+> `agent type 'intelligent-delegate:inspector' not found. Available agents: … builder,
+> judge, mechanical, reviewer, worker` — the pre-0.3.0 five. Agent definitions are
+> registered at session start, so a session that began before `drafter` and `inspector`
+> existed cannot address them, even though the files are on disk and a fresh session sees
+> all seven. Restart, or `/reload-plugins`. The hook and the tiers normally load together,
+> so this only bites in the session where you installed or edited the plugin — which is
+> exactly the session where you are most likely to be testing it.
+
 Tests: `python3 hooks/test_tier_check.py` — 20 cases, most of them guarding against a
 false *deny*. It was also run against the four real workflow scripts from the 2026-10-08
 incident and denies all four at the correct line numbers, with no false positives from

@@ -300,14 +300,47 @@ how three measured runs cost Opus rates end to end.
 - **One agent, and you need session-model judgment** → inherit (`reviewer` / `builder`).
   The cold-start overhead dominates; a tier change saves little and risks the answer.
 - **A fan-out, or any multi-stage Workflow** → **start at the pinned-Sonnet rung**
-  (`drafter` to generate, `inspector` to verify) and escalate the specific stages where a
-  no-downgrade predicate fires. Per-stage escalation is the point of a Workflow; a uniform
-  session-model fan-out throws that away and is the single most expensive habit here.
+  (`drafter` to generate, `inspector` to verify) and escalate only the stages where an
+  **escalation predicate** fires. Per-stage escalation is the point of a Workflow; a
+  uniform session-model fan-out throws that away and is the single most expensive habit
+  here.
 
-Departing downward from Sonnet to Haiku needs high confidence, which means evaluating the
-predicates below rather than waving at them.
+### Two gates, not one — read this before using the predicates
 
-**No-downgrade — any ONE of these is disqualifying:**
+There are **two** tier decisions below and they do not share a test. Conflating them is
+how you end up back at an all-session-model fan-out:
+
+| Gate | The question | The list to use |
+|---|---|---|
+| **Escalation gate** | pinned Sonnet → the session model? | the *escalation* predicates, next. Narrow, because sonnet at **high** effort is already a judgment-capable tier |
+| **Haiku gate** | Sonnet → `mechanical`? | the *no-downgrade* predicates after it. Strict: a tier with no effort setting and a 200K wall |
+
+**The distinction this file previously got wrong.** "The verb is *review, audit, assess*"
+is a sound reason not to send work to **Haiku**. It is **not** a reason to escalate to the
+session model, because `inspector` — sonnet at high effort, read-only — exists precisely to
+do review work. Read as an escalation trigger it fires on every inspection stage, routes
+every one to `reviewer`, and reproduces the defect 0.3.0 exists to fix. **Judgment work is
+the pinned rung's job; only the escalation predicates take it off that rung.**
+
+**Escalation — pinned Sonnet to the session model. Any ONE is enough:**
+
+- **Two readings of the brief survive a careful read.** If you cannot tell, that is the
+  second reading surviving.
+- **Correctness rests on an invariant not written in the brief** — a codebase convention,
+  a lock ordering, a schema constraint the agent would have to infer.
+- **The deliverable contains a negative or universal claim** — "no other callers",
+  "nothing else writes this field". Absence proofs need exhaustive reading.
+- **Blast radius is security, auth, money, deletion, migrations or concurrency.**
+- **Failure would be silent to you**, or you will build many turns on the result without
+  re-checking it.
+
+Nothing else earns it. Not "this one matters", not the verb, and not a long input — a
+large read is a reason to *delegate*, and sonnet/high reads as well as the session model
+does. One further shape earns it: **a single cross-cutting pass that must reason over
+every item at once.** Note that is *one* agent, not one per item, which is what makes it
+affordable — fanning an inherit tier across items is anti-pattern 14.
+
+**No-downgrade to Haiku — any ONE of these is disqualifying:**
 
 - Two readings of the brief survive a careful read. Cheap tiers resolve ambiguity by
   silently picking one and proceeding confidently. **If you cannot tell whether two
@@ -319,6 +352,8 @@ predicates below rather than waving at them.
   convention, a lock ordering, a schema constraint it would have to infer.
 - The verb is *review, audit, assess, decide, is-this-safe, did-I-miss*. Judgment tasks
   have no deterministic check, so a wrong answer arrives looking exactly like a right one.
+  **Haiku-gate only** — it says such work does not belong on `mechanical`, not that it
+  needs the session model. Its home is `inspector`.
 - The deliverable contains a **negative or universal claim** — "no other callers",
   "nothing else writes this field". Absence proofs require exhaustive reading; a cheap
   tier stops early and asserts anyway.
