@@ -129,7 +129,21 @@ saving.
 
 Tests: `python3 hooks/test_tier_check.py` — 20 cases, most of them guarding against a
 false *deny*. It was also run against the four real workflow scripts from the 2026-10-08
-incident and denies all four at the correct line numbers.
+incident and denies all four at the correct line numbers, with no false positives from
+several hundred lines of embedded prompt text.
+
+**Verified end-to-end, 2026-10-08**, because a hook that only works in unit tests is a
+file, not a control. Three probes in fresh `claude -p` sessions against this checkout:
+
+| probe | result |
+|---|---|
+| seven tiers registered | `intelligent-delegate:` + `builder drafter inspector judge mechanical reviewer worker` |
+| untiered `agent()` | **blocked.** `PreToolUse:Workflow hook error: … 1 of 1 agent() calls … have no agentType`, followed by the stage-kind table. The script never ran. |
+| correctly tiered `agent()` | **ran.** Not blocked; the agent returned. |
+| all tiered but using `reviewer` | ran, and the non-blocking note **is** surfaced in the hook event stream (`--include-hook-events`) |
+
+The last two were run with `--model haiku` so that `reviewer`'s `inherit` resolved to the
+cheap tier — the probe costs pennies and still exercises the real path.
 
 ## Install
 
