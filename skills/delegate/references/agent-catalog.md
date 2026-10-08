@@ -90,10 +90,12 @@ partially modified tree with no report of what changed)
   security/auth/money/migrations/concurrency, correctness rests on an unstated invariant,
   or the caller will build many turns on the verdict without re-checking it. Escalate those
   to `reviewer`. Escalate a *split* verdict to `judge`.
-- **Tools:** Read, Grep, Glob, Bash, ToolSearch. No Edit or Write — which is the practical
-  reason to address it by `agentType` rather than passing `{model:'sonnet',effort:'high'}`:
-  bare opts leave it holding write tools, and a "reviewer" that can edit the artifact under
-  review is a different and worse thing.
+- **Tools:** Read, Grep, Glob, Bash, ToolSearch — identical to `reviewer`'s. No Edit or
+  Write, which is the practical reason to address it by `agentType` rather than passing
+  `{model:'sonnet',effort:'high'}`: bare opts leave it holding write tools, and a
+  "reviewer" whose easy path includes editing the artifact under review is a different and
+  worse thing. **As with `reviewer`, read-only is a mandate, not a sandbox:** Bash can
+  still write, so removing Edit/Write narrows the path rather than closing it.
 - **It is told to flag its own uncertainty**, so a caller can spend `reviewer` on the two
   items that need it instead of the whole stage.
 
