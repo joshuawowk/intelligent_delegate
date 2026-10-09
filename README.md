@@ -159,18 +159,34 @@ Tests: `python3 hooks/test_tier_check.py` — 53 cases. The 0.3.0 suite also den
 real workflow scripts from the 2026-10-08 incident at the correct line numbers, with no
 false positives from several hundred lines of embedded prompt text.
 
-**Verified end-to-end, 2026-10-08**, because a hook that only works in unit tests is a
-file, not a control. Four probes in fresh `claude -p` sessions against this checkout:
+**Verified end-to-end, 2026-10-09**, because a hook that only works in unit tests is a
+file, not a control, and a tier whose frontmatter says `low` has proved nothing until one
+runs at `low`. Both checks are scripts: each starts fresh `claude -p --plugin-dir <this
+repo>` sessions and reads what the harness recorded, not what a model said.
 
-| probe | result |
+| `evals/probe_tiers.py` — parent at `haiku`/`max` | declared | ran as |
+|---|---|---|
+| `mechanical`, `scout` | haiku / low | `claude-haiku-5-5` at `low` |
+| `worker`, `inspector` | sonnet / medium | `claude-sonnet-5-5` at `medium` |
+| `drafter` | sonnet / high | `claude-sonnet-5-5` at `high` |
+| `reviewer`, `builder` | inherit / high | `claude-haiku-5-5` (the session's) at `high` |
+| `judge` | opus / xhigh | `claude-opus-5-5` at `xhigh` |
+
+The parent runs at `max`, an effort no tier pins, so a tier that had lost its effort would
+show `max` instead of quietly matching — which is how `mechanical` was caught running at
+the session's `xhigh` before 0.4.0. **8 of 8 ran as declared.**
+
+| `evals/probe_hook.py` | result |
 |---|---|
-| seven tiers registered | `intelligent-delegate:` + `builder drafter inspector judge mechanical reviewer worker` |
-| untiered `agent()` | **blocked.** `PreToolUse:Workflow hook error: … 1 of 1 agent() calls … have no agentType`, followed by the stage-kind table. The script never ran. |
-| correctly tiered `agent()` | **ran.** Not blocked; the agent returned. |
-| all tiered but using `reviewer` | ran, and the non-blocking note **is** surfaced in the hook event stream (`--include-hook-events`) |
+| untiered `agent()` | **refused.** The deny reason and the stage table reach the session; the script never ran. |
+| correctly tiered `agent()` | **ran.** The hook said nothing. |
+| tiered, on `reviewer` | ran, and the inherit note is surfaced in the hook event stream |
+| waived, with no `effort` named | ran, and the unset-effort warning is surfaced |
 
-The two `reviewer` probes (rows 3 and 4) were run with `--model haiku`, so that
-`inherit` resolved to the cheap tier: they cost pennies and still exercise the real path.
+Each session's init event names the path it loaded the plugin from, and both scripts fail
+a case that loaded any other copy. That matters on a machine where the installed plugin is
+a synced copy: see "Install". (0.3.0 recorded four hand-run probes on 2026-10-08 that
+found the same first three hook results for its seven tiers.)
 
 Two limits on what a reader can check from the repo alone. The four incident scripts are
 **not committed here**, so "denies all four at the correct line numbers" is reproducible

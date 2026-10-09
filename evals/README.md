@@ -112,8 +112,9 @@ recall is a worse artifact than a narrow one.
 
 ## Measured results
 
-Run with `evals/measure_triggers.py`, which drives the **installed** plugin rather than a
-stub. **It defaults to n=3 per query** — see the warning below for why n=1 is not a
+Run with `evals/measure_triggers.py`, which drives the plugin itself rather than a stub —
+loaded from this checkout with `--plugin-dir`, and confirmed from each session's own init
+event. **It defaults to n=3 per query** — see the warning below for why n=1 is not a
 measurement. A query counts as firing if it fires in at least half its runs.
 
 | description | recall (should fire) | false positives (should not) | n |
@@ -182,11 +183,14 @@ concurrency, 7 of 18 calls timed out; at 300s with 4-way, 1 of 18 did. The defau
 **What the harness now refuses to do.** Earlier versions never read `claude`'s exit status,
 so a broken install — expired auth, a missing binary, a `stream-json` shape change — scored
 `TP=0 FN=10 FP=0 TN=6` and exited **0**, reproducing a clean false-positive column while
-measuring nothing. It now distinguishes an `ERROR` case from a miss, exits non-zero on any
-error or mismatch, and refuses to run when the installed plugin is not the working tree
-(`--allow-stale` overrides). That guard matters because **this harness measures the
-installed copy, not your edits**: the plugin cache is keyed on the `version` in
-`plugin.json`, so editing without bumping it leaves your change unmeasured. An install can
-also be a synced copy (`claude plugin list` shows `@synced`), which does not pick up
-working-tree edits; verify a changed description or definition in a session that loads the
-checkout explicitly, `claude -p --plugin-dir <repo>`.
+measuring nothing. It now distinguishes an `ERROR` case from a miss and exits non-zero on
+any error or mismatch.
+
+**And it no longer takes the install's word for what it measured.** Every call passes
+`--plugin-dir <this repo>`; each session's init event is read for the path it loaded the
+plugin from; a call that loaded any other copy is an `ERROR`, and the run reports how many
+calls were confirmed. Until 0.4.0 the script printed "measuring the WORKING TREE" on the
+strength of a 2026-10-01 probe of a local-path install. On a machine where the plugin is a
+synced copy (`claude plugin list` shows `@synced`) that sentence was false, nothing tested
+it, and the run would have reported a clean measurement of the previous release. A line
+the script prints is not a check the script performs.

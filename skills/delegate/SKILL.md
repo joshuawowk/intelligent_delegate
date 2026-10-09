@@ -123,8 +123,7 @@ Measured prefixes and the paired A/B behind that claim are in
 you need to route *here*: budget `S + C` at **about 7-9k** for a scoped definition and
 **about 38-42k** for an all-tools agent (measured 2026-10-09 on a one-line echo: 6,824-8,869
 subagent tokens for the scoped tiers against 38,112 and 38,131 for `general-purpose`,
-4.3-5.6x; and 7.5k against 42.4k on 2026-09-30). **If D is not clearly larger than that
-cold start, do it inline.**
+4.3-5.6x). **If D is not clearly larger than that cold start, do it inline.**
 
 - **High D** — grepping a large tree for one fact, reading a long build log, scanning
   forty files to find the three that matter, driving a browser. Delegate these.
@@ -289,8 +288,8 @@ The levers, in the order they paid — check them in this order when a fan-out i
    `medium`, `xhigh` took 2.9x (Haiku), 3.7x (Sonnet) and 3.9x (Opus) the time, and `high`
    1.4x, 1.5x and 1.9x. `low` was only 17%, 8% and 9% faster — stop at `medium`.
 2. **Tier.** Sonnet is the fast model. Haiku is the cheap model, not the fast one: at
-   `medium` it took 1.6x as long as Sonnet. Opus at `medium` also took 1.6x as long as Sonnet
-   and cost 2.4x as much, for the same score. An untiered call gets
+   `medium` it took 1.6x as long as Sonnet, because it writes about three times the output
+   tokens. Opus at `medium` also took 1.6x as long and cost 2.4x as much, for the same score. An untiered call gets
    both levers wrong at once.
 3. **Shape.** Judged, not measured by the sweep: a fan-out hides per-agent latency, which
    is where the Haiku tiers belong, and `pipeline()` has no barrier to wait behind.
@@ -339,8 +338,9 @@ review work; read as an escalation trigger it routes every inspection stage to `
 **Escalation — pinned Sonnet to the session model. Any ONE is enough:**
 
 - **Two readings of the brief survive a careful read.** If you cannot tell, that is the
-  second reading surviving. ("Apply the same edit to each" is the classic case: an
-  identical literal diff, or the same *kind* of change adapted per target?)
+  second reading surviving. ("Apply the same edit to each": an identical literal diff, or
+  the same *kind* of change per target?) **Kill one first if you can** — ask, or read one
+  target; across a fan-out that beats escalating every item, and you tier by the answer.
 - **Correctness rests on an invariant not written in the brief** — a codebase convention,
   a lock ordering, a schema constraint the agent would have to infer.
 - **The deliverable contains a negative or universal claim** — "no other callers",

@@ -14,11 +14,11 @@
     {
       "id": 2,
       "prompt": "Digest this 60,000-line vendor changelog and tell me which entries affect our USB stack. It's only two tool calls to read it.",
-      "expected_output": "Routes to a subagent despite the low tool-call count, because rule 1 is a volume test. The tier follows from whether the answer will be checked: inspector for a read the user will act on, scout only if the caller can check the quoted lines.",
+      "expected_output": "Routes to a subagent despite the low tool-call count, because rule 1 is a volume test. The tier is inspector: \"which entries affect our stack\" is a read the user will act on, and a missed entry looks the same as a complete list. scout would fit only if the caller could check the quoted lines.",
       "expectations": [
         "The answer is to delegate, not to do it inline",
         "It explicitly distinguishes volume of discarded reading from number of tool calls",
-        "It routes the tier by whether the answer will be checked: inspector for a read the user will act on unchecked, scout (Haiku, read-only) only if the caller can check the quoted evidence and a wrong answer is cheap",
+        "It routes this read to inspector, because the user will act on the answer and a missed entry would be silent; if it considers scout at all, it rejects it or makes it conditional on the caller checking the quoted evidence",
         "It does not route this to the mechanical tier, which writes and converts by rule and is the wrong tool for reading",
         "It does not describe Haiku's context window as a limit this input would hit"
       ]
@@ -39,7 +39,7 @@
       "expected_output": "Confirms the premise is valid: the Agent tool takes effort and it overrides the definition's. But a tier also brings the tool allowlist, maxTurns, omitClaudeMd and the operating rules, and mechanical already pins low, so the better route is the tier, not a bare call.",
       "expectations": [
         "It states the Agent tool does take an effort parameter and that the call-site value overrides the definition's",
-        "It says a tier brings things effort cannot: the tool allowlist, maxTurns, omitClaudeMd, operating rules and the return-value contract",
+        "It names at least one thing a tier brings that a bare call with effort does not — the tool allowlist or smaller cold start, maxTurns, omitClaudeMd, the operating rules, or the return-value contract",
         "It routes the lint fixes to the mechanical tier through agentType or subagent_type, noting that mechanical already pins low effort",
         "If it quantifies what low effort saves, it says the saving over medium is small and that low is where the misses happened",
         "It does not suggest putting effort instructions in the prompt text",
@@ -49,11 +49,11 @@
     {
       "id": 5,
       "prompt": "Port this driver across 12 board directories; each one needs the same edit applied.",
-      "expected_output": "Workflow pipeline(). Tier is builder (inherits the session model), NOT mechanical/worker/drafter — \"the same edit\" admits two readings (identical literal diff vs same kind of change adapted per board), so the two-readings escalation predicate fires. No worktree: the twelve directories are disjoint paths, which do not conflict.",
+      "expected_output": "Workflow pipeline(). \"The same edit\" admits two readings (an identical literal diff, or the same kind of change adapted per board), and that has to be dealt with before a tier is chosen: resolve it first — ask, or read one board — and tier by the answer (mechanical or worker for a literal diff, drafter when the brief says how each board differs), or, if it cannot be resolved, builder on the two-readings escalation predicate. What is wrong is fanning a cheap tier out over the ambiguity. No worktree: the twelve directories are disjoint paths, which do not conflict.",
       "expectations": [
         "It routes to a Workflow rather than a single Agent call",
         "It uses pipeline() rather than parallel(), or justifies any barrier by a genuine cross-item dependency",
-        "It does NOT downgrade to mechanical, worker or drafter, citing that \"the same edit\" admits two readings and the ambiguity predicate disqualifies a cheaper tier",
+        "It does not fan a cheap tier out over the unresolved ambiguity: it names the two readings of \"the same edit\", and either resolves them first (asking, or reading one board) and then tiers by the answer, or routes the port stage to builder on the two-readings escalation predicate",
         "It does NOT require worktree isolation, or explicitly notes that disjoint paths do not conflict; isolation would only be needed if a stage ran git operations or two stages wrote the same path"
       ]
     },
@@ -140,9 +140,9 @@
       "expected_output": "No. An omitted effort runs at the session's effort, not at a default, so this is Haiku at xhigh. Pin effort in the definition or pass it on the call; call-site beats definition beats session.",
       "expectations": [
         "It states that a definition with no effort runs at the session's effort (xhigh here), not at a default and not at a low effort because the model is Haiku",
-        "It states the precedence: call-site effort beats the definition's, which beats the session's",
+        "It says that an effort passed on the call overrides the definition's, or gives the full precedence (call-site, then definition, then session)",
         "It tells the user to pin an effort in the definition or pass one on the call, or to use the mechanical tier, which pins low",
-        "If it quantifies the cost of leaving it unset, it says Haiku at xhigh measured 2.5x slower than at low for the same score on a transform task",
+        "If it quantifies the cost of leaving it unset, the figure is one the skill gives — for example xhigh taking 2.9x as long as medium on Haiku, or 2.5x slower than low on the transform task — and not an invented one",
         "It does not say the catalog's default effort applies to a subagent that names none"
       ]
     },
@@ -153,9 +153,9 @@
       "expectations": [
         "It says Haiku is the cheap model, not the fast one, and that it measured slower than Sonnet at the same effort (1.6x at medium)",
         "Any Haiku-versus-Sonnet cost ratio it gives says which it is: 20x on price, or about 10x measured",
-        "It explains why Haiku is slower: it writes about three times the output tokens",
+        "If it explains why Haiku is slower, the reason it gives is output volume — Haiku writes about three times the output tokens",
         "It points to what does shorten the run: pinning or lowering effort, and Sonnet at medium as the fast cell measured",
-        "It allows Haiku where the goal is cost and parallelism hides the latency, and only if a wrong result is quickly detectable"
+        "It allows Haiku as a cost choice, and only where a wrong result would be quickly detectable"
       ]
     },
     {
