@@ -1,0 +1,17 @@
+{
+  "description": "Blocks a Workflow whose agent() calls carry no agentType — the defect that made three measured fan-outs run 100% on the session model. Fails open on any error; waived per call with a `// untiered: <reason>` comment.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/tier_check.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
