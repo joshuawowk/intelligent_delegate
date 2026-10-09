@@ -4,9 +4,9 @@ export const meta = {
   phases: [
     { title: 't1 transform', detail: '40 records specified by example' },
     { title: 't2 extract', detail: 'ten questions over a 2,400-line log' },
-    { title: 't3 review', detail: 'eight seeded defects against a numbered spec' },
+    { title: 't3 review', detail: 'seeded defects against a numbered spec, each finding graded by its repro' },
     { title: 't4 implement', detail: 'three functions against hidden tests' },
-    { title: 'Fixture review', detail: 'pilot only: hunt for ambiguity before the sweep spends agents on it' },
+    { title: 'Fixture review', detail: 'on request: hunt for ambiguity before the sweep spends agents on it' },
   ],
 }
 
@@ -14,7 +14,7 @@ export const meta = {
 const BRIEFS = {
   "t1": "Convert every line of input.txt into one line of output.jsonl in this directory \u2014 same\norder, one JSON object per line.\n\nInput line:   id|full name|qty|unit price|date|status\n              (pipe-separated; trim the spaces around each field)\nOutput keys:  id, first, middle, last, qty, unit_price, total, date, status, refund\n\nRules\n- first = the first word of the name; last = the last word; middle = the words between\n  them, joined by one space, with a trailing \".\" removed from each word; null when there\n  are none.\n- qty = an integer (a JSON number). It may be negative or zero.\n- unit_price = a string with exactly two decimals (\"5\" -> \"5.00\", \"5.5\" -> \"5.50\").\n- total = qty x unit price, as a string with exactly two decimals; negative when qty is\n  negative (\"-39.98\"); \"0.00\" when qty is zero.\n- date = MM/DD/YYYY rewritten as YYYY-MM-DD.\n- status = by code, case-insensitive: S shipped, P pending, C cancelled, R returned,\n  H on_hold; any other code -> \"unknown\".\n- refund = true when qty < 0, otherwise false.\n\nWorked examples\nORD-90001|Dana R. Whitfield|3|19.99|03/07/2026|S\n-> {\"id\":\"ORD-90001\",\"first\":\"Dana\",\"middle\":\"R\",\"last\":\"Whitfield\",\"qty\":3,\"unit_price\":\"19.99\",\"total\":\"59.97\",\"date\":\"2026-03-07\",\"status\":\"shipped\",\"refund\":false}\nORD-90002| Li Wei |-2|5.5|12/01/2025|c\n-> {\"id\":\"ORD-90002\",\"first\":\"Li\",\"middle\":null,\"last\":\"Wei\",\"qty\":-2,\"unit_price\":\"5.50\",\"total\":\"-11.00\",\"date\":\"2025-12-01\",\"status\":\"cancelled\",\"refund\":true}\nORD-90003|Mary Ann K. Lopez-Diaz|1|40|01/15/2026|X\n-> {\"id\":\"ORD-90003\",\"first\":\"Mary\",\"middle\":\"Ann K\",\"last\":\"Lopez-Diaz\",\"qty\":1,\"unit_price\":\"40.00\",\"total\":\"40.00\",\"date\":\"2026-01-15\",\"status\":\"unknown\",\"refund\":false}\n\nThe grader parses each output line as JSON and compares values and types with the\nexpected object. Do the conversion by hand or with a script, as you prefer; only\noutput.jsonl is graded.\n",
   "t2": "service.log in this directory is a service log, one entry per line:\n\n  <timestamp> [<service>] <SEVERITY> req=<id> node=<node> msg=\"<message>\"\n\nAnswer the ten questions below from the log. Use any method you like \u2014 reading, grep,\nawk, a script. Each answer is graded by exact match.\n\nq1  (integer) How many entries have severity CRITICAL?\nq2  (string)  Which service has the most ERROR entries? Give the service name.\nq3  (string)  Exactly one CRITICAL entry from service payments has a message mentioning\n              \"ledger\". Give its req id.\nq4  (string)  One deploy of service search was rolled back. Which version was it rolled\n              back TO?\nq5  (string)  What reason= value was recorded on that search rollback?\nq6  (string)  Give the timestamp of the earliest WARN entry from service auth on\n              2026-03-15 whose message mentions \"token cache\".\nq7  (string)  Which node logged the most entries whose message mentions \"disk pressure\"?\n              Give the node name.\nq8  (integer) Service gateway had its max_connections setting changed more than once.\n              What is the new= value of the LAST such change?\nq9  (string)  Give the full msg text, without the surrounding quotes, of the entry on the\n              line immediately after the entry with req=23218c.\nq10 (integer) How many DISTINCT req ids appear among ERROR entries from service billing?\n",
-  "t3": "Review ledger.py against SPEC.md, both in this directory. SPEC.md is the contract: where\nthe code's behaviour contradicts a numbered clause, that is a defect.\n\nReport every defect you can demonstrate. For each one give the line number in ledger.py\nwhere the faulty code is, a one-sentence description, and the number of the SPEC clause\nit violates.\n\nReport only behaviour that contradicts a numbered clause \u2014 not style, naming, performance\nor features the spec does not ask for. A report padded with speculation is worse than a\nshort one. You may run Python to confirm a suspicion. Do not modify ledger.py or SPEC.md;\ncopy the file if you want to experiment.\n",
+  "t3": "Review ledger.py against SPEC.md, both in this directory. SPEC.md is the contract: where\nthe code's behaviour contradicts it, that is a defect.\n\nReport every defect you can demonstrate. For each one give:\n\n- line        the line number in ledger.py where the faulty code is\n- clause      the number of the SPEC clause it violates (0 if it rests on the Terms section)\n- description one sentence saying what is wrong\n- repro       a few lines of Python that FAIL because of the defect \u2014 normally a failed\n              assert \u2014 and that would run without error on an implementation that\n              follows SPEC.md. `Inventory` and `InsufficientStock` are already in scope;\n              do not import anything from ledger.\n\nA repro has this shape (this one shows the form only; it is not a defect):\n\n    inv = Inventory()\n    inv.add_stock(\"a\", 2)\n    assert inv.on_hand(\"a\") == 2\n\nEach finding is graded by running its repro. It must fail on this ledger.py and pass on\na correct implementation; the description is not graded. A finding whose repro does not\ndo both counts against you, so a report padded with speculation scores worse than a\nshort one. Report each defect once \u2014 do not repeat one defect under several clauses.\n\nReport only behaviour that contradicts SPEC.md \u2014 not style, naming, performance or\nfeatures the spec does not ask for. You may run Python to try your repros against\nledger.py. Do not modify ledger.py or SPEC.md; copy the file if you want to experiment.\n",
   "t4": "Implement solution.py in this directory exactly as SPEC.md (also in this directory)\nspecifies. Standard library only. Hidden tests that you cannot see check every numbered\nclause, so verify your own work before returning.\n"
 }
 
@@ -29,14 +29,11 @@ const TASK_AGENT = {
   t3: 'intelligent-delegate:inspector',
   t4: 'intelligent-delegate:worker',
 }
-const ARMS = [
-  ['haiku', 'low'], ['haiku', 'medium'], ['haiku', 'high'],
-  ['sonnet', 'low'], ['sonnet', 'medium'], ['sonnet', 'high'],
-  ['opus', 'medium'], ['opus', 'high'],
-]
-// What `mechanical` actually ran at before 0.4.0 in an xhigh session: no effort declared.
-const EXTRA = { t1: [['haiku', 'xhigh']] }
-const PILOT = [['t1', 'haiku', 'low'], ['t2', 'haiku', 'low'], ['t3', 'opus', 'medium'], ['t4', 'sonnet', 'low']]
+// Every effort the shipped tiers use, on every model family a tier can resolve to. `max`
+// is left out: no tier pins it, and it is reachable only through a waiver.
+const ARMS = []
+for (const m of ['haiku', 'sonnet', 'opus']) for (const e of ['low', 'medium', 'high', 'xhigh']) ARMS.push([m, e])
+const PILOT = [['t3', 'haiku', 'low'], ['t3', 'sonnet', 'medium'], ['t3', 'opus', 'medium']]
 
 const RUN_ID = { type: 'string' }
 const SCHEMA = {
@@ -72,8 +69,9 @@ const SCHEMA = {
             line: { type: 'integer' },
             clause: { type: 'integer' },
             description: { type: 'string' },
+            repro: { type: 'string' },
           },
-          required: ['line', 'clause', 'description'],
+          required: ['line', 'clause', 'description', 'repro'],
         },
       },
     },
@@ -114,7 +112,7 @@ const REVIEW = {
 
 const cfg = args || {}
 if (!cfg.root) throw new Error('args.root is required: the directory make_runs.py laid the runs out under')
-const reps = cfg.reps || 3
+const reps = cfg.reps || 5
 
 function buildRuns() {
   const runs = []
@@ -122,7 +120,7 @@ function buildRuns() {
     for (const p of PILOT) runs.push({ task: p[0], model: p[1], effort: p[2], rep: 1 })
   } else {
     for (const task of TASKS) {
-      for (const arm of ARMS.concat(EXTRA[task] || [])) {
+      for (const arm of ARMS) {
         for (let rep = 1; rep <= reps; rep++) runs.push({ task: task, model: arm[0], effort: arm[1], rep: rep })
       }
     }
@@ -158,7 +156,7 @@ function prompt(r) {
 }
 
 const runs = buildRuns()
-log((cfg.pilot ? 'PILOT: ' : 'SWEEP: ') + runs.length + ' runs under ' + cfg.root + (cfg.pilot ? '' : ' — ' + reps + ' reps x ' + ARMS.length + ' arms x ' + TASKS.length + ' tasks, plus haiku/xhigh on t1. Well above the default 10-agent guideline, deliberately: the tier defaults this sets govern every later fan-out.'))
+log((cfg.pilot ? 'PILOT: ' : 'SWEEP: ') + runs.length + ' runs under ' + cfg.root + (cfg.pilot ? '' : ' — ' + reps + ' reps x ' + ARMS.length + ' arms x ' + TASKS.length + ' tasks. Well above the default 10-agent guideline, deliberately: the tier defaults this sets govern every later fan-out, and runs take seconds.'))
 
 const sweep = pipeline(
   runs,
@@ -173,7 +171,7 @@ const sweep = pipeline(
 )
 
 let review = null
-if (cfg.pilot) {
+if (cfg.review) {
   review = agent([
     'You are checking measurement fixtures before about a hundred agent runs are spent on them.',
     'A flaw here silently corrupts every result built on it, so be adversarial.',

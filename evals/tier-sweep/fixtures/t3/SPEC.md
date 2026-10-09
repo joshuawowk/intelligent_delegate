@@ -43,8 +43,8 @@ clauses below are the whole contract. Quantities are whole units; money is integ
 ## Pricing
 
 8. `price_total(items, prices, discount_pct=0)` takes `items` as `(sku, qty)` pairs and
-   `prices` as `{sku: cents}`. It raises `ValueError` unless `discount_pct` is an integer
-   from 0 to 100 inclusive, and `KeyError` for a sku with no price. The discount is
+   `prices` as `{sku: cents}`. It raises `ValueError` unless `discount_pct` is an `int`
+   (not a `bool`) from 0 to 100 inclusive, and `KeyError` for a sku with no price. The discount is
    `subtotal * discount_pct / 100` **rounded half up to a whole cent**; the result is the
    subtotal minus that discount.
 
@@ -52,8 +52,9 @@ clauses below are the whole contract. Quantities are whole units; money is integ
 
 9. `apply_batch(ops)` applies `(name, args)` pairs in order, where `name` is one of
    `add_stock`, `remove_stock`, `reserve`, `release`, `fulfil`. It is **atomic**: if any
-   operation raises, the exception propagates and the inventory is left **exactly** as it
-   was before the call — on hand, every order's reservations, and history alike.
+   operation raises an `Exception`, that exception propagates and the inventory is left
+   **exactly** as it was before the call — on hand, every order's reservations, and
+   history alike.
 
 ## Merging
 

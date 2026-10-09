@@ -400,25 +400,39 @@ q10 (integer) How many DISTINCT req ids appear among ERROR entries from service 
 # --------------------------------------------------------------------------- T3
 T3_BRIEF = """\
 Review ledger.py against SPEC.md, both in this directory. SPEC.md is the contract: where
-the code's behaviour contradicts a numbered clause, that is a defect.
+the code's behaviour contradicts it, that is a defect.
 
-Report every defect you can demonstrate. For each one give the line number in ledger.py
-where the faulty code is, a one-sentence description, and the number of the SPEC clause
-it violates.
+Report every defect you can demonstrate. For each one give:
 
-Report only behaviour that contradicts a numbered clause — not style, naming, performance
-or features the spec does not ask for. A report padded with speculation is worse than a
-short one. You may run Python to confirm a suspicion. Do not modify ledger.py or SPEC.md;
-copy the file if you want to experiment.
+- line        the line number in ledger.py where the faulty code is
+- clause      the number of the SPEC clause it violates (0 if it rests on the Terms section)
+- description one sentence saying what is wrong
+- repro       a few lines of Python that FAIL because of the defect — normally a failed
+              assert — and that would run without error on an implementation that
+              follows SPEC.md. `Inventory` and `InsufficientStock` are already in scope;
+              do not import anything from ledger.
+
+A repro has this shape (this one shows the form only; it is not a defect):
+
+    inv = Inventory()
+    inv.add_stock("a", 2)
+    assert inv.on_hand("a") == 2
+
+Each finding is graded by running its repro. It must fail on this ledger.py and pass on
+a correct implementation; the description is not graded. A finding whose repro does not
+do both counts against you, so a report padded with speculation scores worse than a
+short one. Report each defect once — do not repeat one defect under several clauses.
+
+Report only behaviour that contradicts SPEC.md — not style, naming, performance or
+features the spec does not ask for. You may run Python to try your repros against
+ledger.py. Do not modify ledger.py or SPEC.md; copy the file if you want to experiment.
 """
 
 
 def build_t3():
     ref = open(os.path.join(SRC, "ledger_ok.py")).read()
     tests = load("ledger_tests", os.path.join(SRC, "ledger_tests.py"))
-    mutmod = load("ledger_mutations", os.path.join(SRC, "ledger_mutations.py"))
-    muts, keywords, also = mutmod.MUTATIONS, mutmod.KEYWORDS, mutmod.ALSO
-    assert set(keywords) == set(m[0] for m in muts), "every seeded defect needs a keyword list"
+    muts = load("ledger_mutations", os.path.join(SRC, "ledger_mutations.py")).MUTATIONS
 
     def failures(src):
         m = load("ledger", src=src)
@@ -451,11 +465,11 @@ def build_t3():
         start = public.index(new)
         line = public.count("\n", 0, start) + 1 + delta
         assert changed.strip() in public.split("\n")[line - 1], bid + ": could not locate the mutated line"
-        extra = also.get(bid, {})
-        bugs.append({"id": bid, "difficulty": diff, "clause": clause, "line": line, "desc": desc,
-                     "clauses": sorted(set([clause] + extra.get("clauses", []))),
-                     "also_functions": extra.get("functions", []),
-                     "keywords": keywords[bid]})
+        bugs.append({"id": bid, "difficulty": diff, "clause": clause, "line": line, "desc": desc})
+        # The variant a repro has to fail on to be credited with this defect: the
+        # reference with this one mutation and no other.
+        write(os.path.join(KEYS, "t3_variants", bid + ".py"), ref.replace(old, new))
+    write(os.path.join(KEYS, "t3_variants", "reference.py"), ref)
     write(os.path.join(FIX, "t3", "ledger.py"), public)
     shutil.copy(os.path.join(SRC, "ledger_SPEC.md"), os.path.join(FIX, "t3", "SPEC.md"))
     write(os.path.join(KEYS, "t3_bugs.json"), json.dumps({"_": CANARY, "bugs": bugs}, indent=1) + "\n")

@@ -28,14 +28,12 @@ TASK_AGENT = {
     "t3": "intelligent-delegate:inspector",  # read-only review
     "t4": "intelligent-delegate:worker",     # writes a file
 }
-ARMS = [("haiku", "low"), ("haiku", "medium"), ("haiku", "high"),
-        ("sonnet", "low"), ("sonnet", "medium"), ("sonnet", "high"),
-        ("opus", "medium"), ("opus", "high")]
-# The status quo for `mechanical` before 0.4.0: no effort declared, so it ran at the
-# session's. Measured on the mechanical-shaped task only.
-EXTRA = {"t1": [("haiku", "xhigh")]}
-PILOT = [("t1", "haiku", "low"), ("t2", "haiku", "low"),
-         ("t3", "opus", "medium"), ("t4", "sonnet", "low")]
+# Every effort the shipped tiers use, on every model family a tier can resolve to. `max`
+# is left out: no tier pins it, and it is reachable only through a waiver.
+ARMS = [(m, e) for m in ("haiku", "sonnet", "opus") for e in ("low", "medium", "high", "xhigh")]
+# A smoke test of the review task across the three families, run before the sweep.
+PILOT = [("t3", "haiku", "low"), ("t3", "sonnet", "medium"), ("t3", "opus", "medium")]
+REPS = 5
 
 
 def main(argv):
@@ -44,7 +42,7 @@ def main(argv):
         return 2
     root = os.path.abspath(argv[1])
     pilot = "--pilot" in argv
-    reps = int(argv[argv.index("--reps") + 1]) if "--reps" in argv else 3
+    reps = int(argv[argv.index("--reps") + 1]) if "--reps" in argv else REPS
     if os.path.commonpath([root, os.path.dirname(os.path.dirname(HERE))]) == os.path.dirname(os.path.dirname(HERE)):
         sys.exit("refusing: <root> is inside the repository — see the docstring")
     runs = []
@@ -53,7 +51,7 @@ def main(argv):
             runs.append((task, model, effort, 1))
     else:
         for task in ("t1", "t2", "t3", "t4"):
-            for model, effort in ARMS + EXTRA.get(task, []):
+            for model, effort in ARMS:
                 for rep in range(1, reps + 1):
                     runs.append((task, model, effort, rep))
         random.Random(20261009).shuffle(runs)

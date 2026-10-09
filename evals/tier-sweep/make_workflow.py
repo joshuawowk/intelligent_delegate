@@ -17,9 +17,9 @@ TEMPLATE = r'''export const meta = {
   phases: [
     { title: 't1 transform', detail: '40 records specified by example' },
     { title: 't2 extract', detail: 'ten questions over a 2,400-line log' },
-    { title: 't3 review', detail: 'eight seeded defects against a numbered spec' },
+    { title: 't3 review', detail: 'seeded defects against a numbered spec, each finding graded by its repro' },
     { title: 't4 implement', detail: 'three functions against hidden tests' },
-    { title: 'Fixture review', detail: 'pilot only: hunt for ambiguity before the sweep spends agents on it' },
+    { title: 'Fixture review', detail: 'on request: hunt for ambiguity before the sweep spends agents on it' },
   ],
 }
 
@@ -37,14 +37,11 @@ const TASK_AGENT = {
   t3: 'intelligent-delegate:inspector',
   t4: 'intelligent-delegate:worker',
 }
-const ARMS = [
-  ['haiku', 'low'], ['haiku', 'medium'], ['haiku', 'high'],
-  ['sonnet', 'low'], ['sonnet', 'medium'], ['sonnet', 'high'],
-  ['opus', 'medium'], ['opus', 'high'],
-]
-// What `mechanical` actually ran at before 0.4.0 in an xhigh session: no effort declared.
-const EXTRA = { t1: [['haiku', 'xhigh']] }
-const PILOT = [['t1', 'haiku', 'low'], ['t2', 'haiku', 'low'], ['t3', 'opus', 'medium'], ['t4', 'sonnet', 'low']]
+// Every effort the shipped tiers use, on every model family a tier can resolve to. `max`
+// is left out: no tier pins it, and it is reachable only through a waiver.
+const ARMS = []
+for (const m of ['haiku', 'sonnet', 'opus']) for (const e of ['low', 'medium', 'high', 'xhigh']) ARMS.push([m, e])
+const PILOT = [['t3', 'haiku', 'low'], ['t3', 'sonnet', 'medium'], ['t3', 'opus', 'medium']]
 
 const RUN_ID = { type: 'string' }
 const SCHEMA = {
@@ -80,8 +77,9 @@ const SCHEMA = {
             line: { type: 'integer' },
             clause: { type: 'integer' },
             description: { type: 'string' },
+            repro: { type: 'string' },
           },
-          required: ['line', 'clause', 'description'],
+          required: ['line', 'clause', 'description', 'repro'],
         },
       },
     },
@@ -122,7 +120,7 @@ const REVIEW = {
 
 const cfg = args || {}
 if (!cfg.root) throw new Error('args.root is required: the directory make_runs.py laid the runs out under')
-const reps = cfg.reps || 3
+const reps = cfg.reps || 5
 
 function buildRuns() {
   const runs = []
@@ -130,7 +128,7 @@ function buildRuns() {
     for (const p of PILOT) runs.push({ task: p[0], model: p[1], effort: p[2], rep: 1 })
   } else {
     for (const task of TASKS) {
-      for (const arm of ARMS.concat(EXTRA[task] || [])) {
+      for (const arm of ARMS) {
         for (let rep = 1; rep <= reps; rep++) runs.push({ task: task, model: arm[0], effort: arm[1], rep: rep })
       }
     }
@@ -166,7 +164,7 @@ function prompt(r) {
 }
 
 const runs = buildRuns()
-log((cfg.pilot ? 'PILOT: ' : 'SWEEP: ') + runs.length + ' runs under ' + cfg.root + (cfg.pilot ? '' : ' — ' + reps + ' reps x ' + ARMS.length + ' arms x ' + TASKS.length + ' tasks, plus haiku/xhigh on t1. Well above the default 10-agent guideline, deliberately: the tier defaults this sets govern every later fan-out.'))
+log((cfg.pilot ? 'PILOT: ' : 'SWEEP: ') + runs.length + ' runs under ' + cfg.root + (cfg.pilot ? '' : ' — ' + reps + ' reps x ' + ARMS.length + ' arms x ' + TASKS.length + ' tasks. Well above the default 10-agent guideline, deliberately: the tier defaults this sets govern every later fan-out, and runs take seconds.'))
 
 const sweep = pipeline(
   runs,
@@ -181,7 +179,7 @@ const sweep = pipeline(
 )
 
 let review = null
-if (cfg.pilot) {
+if (cfg.review) {
   review = agent([
     'You are checking measurement fixtures before about a hundred agent runs are spent on them.',
     'A flaw here silently corrupts every result built on it, so be adversarial.',

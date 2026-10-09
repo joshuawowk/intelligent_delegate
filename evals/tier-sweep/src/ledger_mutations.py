@@ -1,41 +1,21 @@
 # CANARY-7f3e9a1c-tier-sweep-key
-"""The eight seeded defects for the review task.
+"""The seeded defects for the review task.
 
 Each is (id, difficulty, SPEC clause, old snippet, new snippet, description). The old
-snippet must occur exactly once in the reference; build_fixtures.py checks that, and
-checks that each mutation ALONE makes at least one behavioural test fail.
+snippet must occur exactly once in the reference; build_fixtures.py checks that, checks
+that each mutation ALONE makes at least one behavioural test fail, and writes one
+single-mutation variant of the ledger per defect into keys/t3_variants/.
 
-KEYWORDS says what a finding has to mention to count as having found that defect, as
-opposed to having pointed at the right function. Without it a report listing one guess
-per spec clause scores the same as one that understood all eight. The lists are generous
-on purpose and are audited after every sweep: analyze.py prints each finding that named
-the right clause and function but matched no keyword, so a correct description phrased
-unexpectedly is seen by a person rather than silently lost.
+Those variants are how a finding is graded. A finding carries a repro; the repro is run
+against the reference and against every variant, and it is credited with exactly the
+defects whose variant it fails on. Nothing reads the finding's prose.
+
+An earlier version matched prose against a keyword list per defect. An adversarial
+review broke it in both directions at once: negating each spec clause ("apply_batch may
+not be atomic") scored full marks without reading the code, while 59 natural phrasings
+of real findings matched nothing — and every keyword added to fix the second widened the
+first. Prose cannot be graded by substring. Behaviour can be graded by running it.
 """
-
-KEYWORDS = {
-    "B1": [">=", "exactly", "equal", "all available", "all of the available", "entire",
-           "off-by-one", "off by one", "full available", "the full"],
-    "B2": ["<=", "equal", "strictly", "inclusive", "at the threshold", "at threshold"],
-    "B3": ["on_hand", "on hand", "on-hand", "already reserved", "already-reserved",
-           "existing reservation", "double", "over-reserv", "overbook", "over-book",
-           "ignores reserv", "instead of available", "rather than available", "not available"],
-    "B4": ["keyerror", "unknown order", "never seen", "never-seen", "holds nothing",
-           "no reservation", "default", "returns 0", "return 0", "returning 0", "instead of 0",
-           "raises", "raise"],
-    "B5": ["round", "truncat", "floor", "half"],
-    "B6": ["shallow", "deep", "atomic", "snapshot", "rollback", "roll back", "rolled back",
-           "restor", "leak", "alias", "nested", "inner dict", "same dict"],
-    "B7": ["limit=0", "limit 0", "limit of 0", "zero", "falsy", "is not none", "truthi",
-           "limit == 0", "0 returns"],
-    "B8": ["pop", "still", "remain", "not removed", "never removed", "not cleared",
-           "never cleared", "keeps", "left in place", "does not remove", "doesn't remove",
-           "not delete", "not drop", "double-count", "double count", "counted twice", "stay"],
-    "B9": ["bool", "true"],
-    "B10": ["available", "on-hand", "on hand", "on_hand", "minus reserved", "subtract",
-            "understat", "net of"],
-    "B11": ["cop", "reference", "alias", "mutat", "same dict", "same object", "live", "internal"],
-}
 
 MUTATIONS = [
     ("B1", "easy", 2,
@@ -70,7 +50,7 @@ MUTATIONS = [
      "        lines = self._reservations.pop(order_id)\n        for sku, qty in lines.items():\n            self._on_hand[sku] -= qty\n",
      "        lines = self._reservations[order_id]\n        for sku, qty in lines.items():\n            self._on_hand[sku] -= qty\n",
      "fulfil leaves the reservation in place, so fulfilled units are still counted as reserved"),
-    # The three below were added after the pilot, where Opus found all of B1-B8 in fifteen
+    # The three below were added after the pilot, where Opus found every earlier one in fifteen
     # seconds: a review task every arm saturates cannot rank anything. Each is a different
     # kind of hard — an omission rather than a wrong token, a wrong choice that reads as
     # reasonable, and an aliasing leak with no visible symptom at the call site.
@@ -87,10 +67,3 @@ MUTATIONS = [
      "        return events\n",
      "history returns the internal event dicts rather than copies, so a caller can mutate recorded history"),
 ]
-
-# Where else a correct finding about a defect may point, beyond the function and clause
-# the mutation itself sits in. B9 lives in a helper, but it is observable through — and
-# reasonably reported against — each method that validates a quantity.
-ALSO = {
-    "B9": {"clauses": [1, 2, 3], "functions": ["_positive_int", "add_stock", "remove_stock", "reserve"]},
-}
