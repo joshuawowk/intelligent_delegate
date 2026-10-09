@@ -283,7 +283,9 @@ sys.__stdout__.write("\n" + json.dumps(out) + "\n")
 def run_repros(repros, variants):
     """{variant: ['pass' | 'fail:<Exception>', ...]} — one verdict per repro."""
     with tempfile.TemporaryDirectory() as tmp:
-        p = subprocess.run([sys.executable, "-I", "-c", REPRO_RUNNER],
+        # -B: importing fixtures/t3/ledger.py must not leave a __pycache__ beside it, or
+        # make_runs.py copies it into every run directory.
+        p = subprocess.run([sys.executable, "-I", "-B", "-c", REPRO_RUNNER],
                            input=json.dumps({"variants": variants, "repros": repros}),
                            capture_output=True, text=True, timeout=180, cwd=tmp)
     return json.loads(p.stdout.strip().split("\n")[-1])
@@ -386,7 +388,7 @@ def grade_t4(run, result, keys):
         "print(json.dumps({'results':ht.score(s)}))\n"
     )
     try:
-        p = subprocess.run([sys.executable, "-I", "-c", runner, os.path.join(HERE, "src", "hidden_tests.py"), sol],
+        p = subprocess.run([sys.executable, "-I", "-B", "-c", runner, os.path.join(HERE, "src", "hidden_tests.py"), sol],
                            capture_output=True, text=True, timeout=30, cwd=run["dir"])
         data = json.loads(p.stdout.strip().split("\n")[-1])
     except Exception as e:

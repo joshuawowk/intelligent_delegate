@@ -65,7 +65,8 @@ def main(argv):
         if os.path.isdir(os.path.join(root, rid)):
             shutil.rmtree(os.path.join(root, rid))
         d = os.path.join(root, rid, "work")
-        shutil.copytree(os.path.join(HERE, "fixtures", task), d)
+        shutil.copytree(os.path.join(HERE, "fixtures", task), d,
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         out.append({"id": rid, "task": task, "model": model, "effort": effort, "rep": rep,
                     "dir": d, "agentType": TASK_AGENT[task]})
     with open(os.path.join(HERE, "briefs.json")) as fh:

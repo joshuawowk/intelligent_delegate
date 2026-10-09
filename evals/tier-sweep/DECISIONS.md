@@ -83,6 +83,23 @@ same. That index described Sonnet 5 and Opus 5 and is retired. The twelve arms r
 the arithmetic with a measurement: seconds, dollars and score for every cell. It is
 published as measured. No tier default is derived from a cell that D1-D5 do not name.
 
+## Saturation — noted from the smoke test, before the sweep
+
+A three-run smoke test of t3 (one run each of `haiku/low`, `sonnet/medium`,
+`opus/medium`), made to check that the repro mechanics worked, scored the Sonnet and Opus
+runs at 1.0. If the sweep shows the same for two arms a rule compares, the task is
+**saturated** for that pair. It then shows that the cheaper cell is sufficient for work of
+this difficulty, and it shows nothing about harder work.
+
+A rule met on a saturated task may still move a default. t3 is deliberately the shape of
+`inspector`'s own mandate — a bounded check of an artifact against its source — and review
+that is harder than that is `reviewer`'s job, which D5 leaves alone. But the result is
+then reported as saturated, in that word, everywhere it is cited, and the tier's
+escalation predicates are not loosened on the strength of it.
+
+The fixture was not made harder in response. It was hardened once already, before any
+rule was written; doing it again after seeing three scores would be choosing the result.
+
 ## What would void a result
 
 - An arm with fewer than 3 surviving reps on a task is reported as incomplete and decides
