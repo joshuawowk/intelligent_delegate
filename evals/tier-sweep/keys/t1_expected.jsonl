@@ -1,0 +1,41 @@
+# CANARY-7f3e9a1c-tier-sweep-key
+{"id": "ORD-10017", "first": "Vera", "middle": null, "last": "Greaves", "qty": 8, "unit_price": "47.56", "total": "380.48", "date": "2025-06-03", "status": "on_hold", "refund": false}
+{"id": "ORD-10024", "first": "Omar", "middle": null, "last": "Haddad", "qty": 2, "unit_price": "153.20", "total": "306.40", "date": "2026-11-26", "status": "cancelled", "refund": false}
+{"id": "ORD-10031", "first": "Keiko", "middle": "R", "last": "Jaramillo", "qty": 9, "unit_price": "128.00", "total": "1152.00", "date": "2025-07-16", "status": "on_hold", "refund": false}
+{"id": "ORD-10038", "first": "Omar", "middle": null, "last": "Marchetti", "qty": 4, "unit_price": "149.66", "total": "598.64", "date": "2026-07-07", "status": "shipped", "refund": false}
+{"id": "ORD-10045", "first": "Ulises", "middle": null, "last": "Kowalczyk", "qty": 9, "unit_price": "153.60", "total": "1382.40", "date": "2025-06-11", "status": "returned", "refund": false}
+{"id": "ORD-10052", "first": "Nadia", "middle": null, "last": "Castellanos", "qty": -12, "unit_price": "71.00", "total": "-852.00", "date": "2026-08-18", "status": "returned", "refund": true}
+{"id": "ORD-10059", "first": "Rosa", "middle": null, "last": "Marchetti-Dvorak", "qty": 7, "unit_price": "41.91", "total": "293.37", "date": "2025-02-14", "status": "returned", "refund": false}
+{"id": "ORD-10066", "first": "Nadia", "middle": "Ann", "last": "Quigley", "qty": 11, "unit_price": "166.40", "total": "1830.40", "date": "2026-04-01", "status": "on_hold", "refund": false}
+{"id": "ORD-10073", "first": "Soren", "middle": null, "last": "Lindqvist", "qty": 2, "unit_price": "94.00", "total": "188.00", "date": "2025-12-22", "status": "cancelled", "refund": false}
+{"id": "ORD-10080", "first": "Rosa", "middle": null, "last": "Abara", "qty": 1, "unit_price": "125.60", "total": "125.60", "date": "2025-06-17", "status": "pending", "refund": false}
+{"id": "ORD-10087", "first": "Goran", "middle": null, "last": "Jaramillo", "qty": 10, "unit_price": "172.80", "total": "1728.00", "date": "2025-02-04", "status": "on_hold", "refund": false}
+{"id": "ORD-10094", "first": "Mirela", "middle": "J P", "last": "Haddad", "qty": 6, "unit_price": "14.00", "total": "84.00", "date": "2026-02-25", "status": "cancelled", "refund": false}
+{"id": "ORD-10101", "first": "Jonas", "middle": null, "last": "Haddad", "qty": 6, "unit_price": "69.24", "total": "415.44", "date": "2026-04-11", "status": "unknown", "refund": false}
+{"id": "ORD-10108", "first": "Vera", "middle": null, "last": "Rasmussen", "qty": 9, "unit_price": "75.60", "total": "680.40", "date": "2025-08-13", "status": "pending", "refund": false}
+{"id": "ORD-10115", "first": "Bao", "middle": null, "last": "Lindqvist", "qty": -10, "unit_price": "161.00", "total": "-1610.00", "date": "2026-03-27", "status": "on_hold", "refund": true}
+{"id": "ORD-10122", "first": "Wendell", "middle": null, "last": "Brandt", "qty": 3, "unit_price": "214.17", "total": "642.51", "date": "2025-10-26", "status": "cancelled", "refund": false}
+{"id": "ORD-10129", "first": "Tamsin", "middle": null, "last": "Okonkwo", "qty": 10, "unit_price": "147.40", "total": "1474.00", "date": "2026-04-17", "status": "on_hold", "refund": false}
+{"id": "ORD-10136", "first": "Dmitri", "middle": null, "last": "Abara", "qty": 0, "unit_price": "197.00", "total": "0.00", "date": "2025-02-10", "status": "pending", "refund": false}
+{"id": "ORD-10143", "first": "Priya", "middle": null, "last": "Marchetti", "qty": 8, "unit_price": "202.85", "total": "1622.80", "date": "2026-08-01", "status": "returned", "refund": false}
+{"id": "ORD-10150", "first": "Bao", "middle": "T", "last": "Okonkwo", "qty": 12, "unit_price": "244.10", "total": "2929.20", "date": "2025-08-08", "status": "shipped", "refund": false}
+{"id": "ORD-10157", "first": "Priya", "middle": null, "last": "Petrov", "qty": 10, "unit_price": "185.00", "total": "1850.00", "date": "2026-02-15", "status": "pending", "refund": false}
+{"id": "ORD-10164", "first": "Keiko", "middle": null, "last": "Quigley-Faulkner", "qty": 12, "unit_price": "47.40", "total": "568.80", "date": "2026-04-18", "status": "on_hold", "refund": false}
+{"id": "ORD-10171", "first": "Omar", "middle": null, "last": "Ivanova", "qty": 6, "unit_price": "222.70", "total": "1336.20", "date": "2025-09-06", "status": "shipped", "refund": false}
+{"id": "ORD-10178", "first": "Elena", "middle": "Lee Q", "last": "Lindqvist", "qty": 6, "unit_price": "199.00", "total": "1194.00", "date": "2026-11-22", "status": "returned", "refund": false}
+{"id": "ORD-10185", "first": "Farah", "middle": null, "last": "Brandt", "qty": 12, "unit_price": "149.27", "total": "1791.24", "date": "2026-03-26", "status": "on_hold", "refund": false}
+{"id": "ORD-10192", "first": "Mirela", "middle": null, "last": "Jaramillo", "qty": 5, "unit_price": "75.90", "total": "379.50", "date": "2025-01-08", "status": "pending", "refund": false}
+{"id": "ORD-10199", "first": "Avery", "middle": null, "last": "Castellanos", "qty": 8, "unit_price": "223.00", "total": "1784.00", "date": "2025-09-28", "status": "on_hold", "refund": false}
+{"id": "ORD-10206", "first": "Yusuf", "middle": null, "last": "Haddad", "qty": -12, "unit_price": "207.86", "total": "-2494.32", "date": "2026-04-04", "status": "pending", "refund": true}
+{"id": "ORD-10213", "first": "Imani", "middle": null, "last": "Okonkwo", "qty": 5, "unit_price": "184.30", "total": "921.50", "date": "2026-07-04", "status": "shipped", "refund": false}
+{"id": "ORD-10220", "first": "Quentin", "middle": null, "last": "Greaves", "qty": 9, "unit_price": "49.00", "total": "441.00", "date": "2026-04-10", "status": "unknown", "refund": false}
+{"id": "ORD-10227", "first": "Hana", "middle": null, "last": "Eriksen", "qty": 12, "unit_price": "154.76", "total": "1857.12", "date": "2025-02-20", "status": "pending", "refund": false}
+{"id": "ORD-10234", "first": "Goran", "middle": "M", "last": "Thackeray", "qty": 2, "unit_price": "169.30", "total": "338.60", "date": "2026-01-05", "status": "cancelled", "refund": false}
+{"id": "ORD-10241", "first": "Jonas", "middle": null, "last": "Okonkwo", "qty": 9, "unit_price": "56.00", "total": "504.00", "date": "2025-08-20", "status": "returned", "refund": false}
+{"id": "ORD-10248", "first": "Xiomara", "middle": null, "last": "Brandt", "qty": -7, "unit_price": "52.31", "total": "-366.17", "date": "2026-06-14", "status": "pending", "refund": true}
+{"id": "ORD-10255", "first": "Soren", "middle": null, "last": "Sandoval", "qty": 3, "unit_price": "84.00", "total": "252.00", "date": "2026-08-02", "status": "on_hold", "refund": false}
+{"id": "ORD-10262", "first": "Tamsin", "middle": null, "last": "Greaves", "qty": 10, "unit_price": "5.00", "total": "50.00", "date": "2025-05-20", "status": "cancelled", "refund": false}
+{"id": "ORD-10269", "first": "Yusuf", "middle": "de", "last": "Kowalczyk", "qty": 9, "unit_price": "112.91", "total": "1016.19", "date": "2025-10-05", "status": "cancelled", "refund": false}
+{"id": "ORD-10276", "first": "Priya", "middle": null, "last": "Castellanos", "qty": 4, "unit_price": "134.60", "total": "538.40", "date": "2025-09-11", "status": "cancelled", "refund": false}
+{"id": "ORD-10283", "first": "Hana", "middle": null, "last": "Quigley", "qty": 1, "unit_price": "204.00", "total": "204.00", "date": "2026-03-05", "status": "on_hold", "refund": false}
+{"id": "ORD-10290", "first": "Imani", "middle": null, "last": "Petrov", "qty": 12, "unit_price": "87.20", "total": "1046.40", "date": "2026-11-27", "status": "shipped", "refund": false}

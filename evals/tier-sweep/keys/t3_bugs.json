@@ -1,0 +1,61 @@
+{
+ "_": "CANARY-7f3e9a1c-tier-sweep-key",
+ "bugs": [
+  {
+   "id": "B1",
+   "difficulty": "easy",
+   "clause": 2,
+   "line": 49,
+   "desc": "remove_stock rejects removing exactly the available units (>= instead of >)"
+  },
+  {
+   "id": "B2",
+   "difficulty": "easy",
+   "clause": 6,
+   "line": 84,
+   "desc": "low_stock includes skus whose available equals the threshold (<= instead of <)"
+  },
+  {
+   "id": "B3",
+   "difficulty": "medium",
+   "clause": 3,
+   "line": 60,
+   "desc": "reserve checks on-hand instead of available, so already-reserved units can be reserved again"
+  },
+  {
+   "id": "B4",
+   "difficulty": "easy",
+   "clause": 4,
+   "line": 67,
+   "desc": "release raises KeyError for an order that holds nothing instead of returning 0"
+  },
+  {
+   "id": "B5",
+   "difficulty": "medium",
+   "clause": 8,
+   "line": 105,
+   "desc": "price_total truncates the discount instead of rounding half up"
+  },
+  {
+   "id": "B6",
+   "difficulty": "hard",
+   "clause": 9,
+   "line": 112,
+   "desc": "apply_batch snapshots reservations shallowly, so a failed batch leaks changes to an existing order's reservations"
+  },
+  {
+   "id": "B7",
+   "difficulty": "medium",
+   "clause": 7,
+   "line": 89,
+   "desc": "history treats limit=0 as no limit and returns everything"
+  },
+  {
+   "id": "B8",
+   "difficulty": "hard",
+   "clause": 5,
+   "line": 75,
+   "desc": "fulfil leaves the reservation in place, so fulfilled units are still counted as reserved"
+  }
+ ]
+}

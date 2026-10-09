@@ -1,3 +1,6 @@
 .DS_Store
 *.swp
 __pycache__/
+
+# transient run directories and audit scratch
+.work/
