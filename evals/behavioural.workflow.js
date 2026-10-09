@@ -11,7 +11,8 @@ export const meta = {
 // where cases are the id and prompt of each entry in evals/evals.json — and nothing else.
 // The answering agent must never see `expectations`; print the list with:
 //   python3 -c "import json;print(json.dumps([{'id':e['id'],'prompt':e['prompt']} for e in json.load(open('evals/evals.json'))['evals']]))"
-const REPO = (args && args.repo) || '/home/jwowk/Repos/intelligent_delegate'
+const REPO = args && args.repo
+if (!REPO) throw new Error('args.repo is required: the absolute path of this checkout')
 const cases = (args && args.cases) || []
 const reps = (args && args.reps) || 3
 if (!cases.length) throw new Error('args.cases is required: [{id, prompt}]')

@@ -248,8 +248,8 @@ installer re-record, keeps `claude plugin details` honest, and remote installs n
 then `claude plugin marketplace update intelligent-delegate` and
 `claude plugin update intelligent-delegate@intelligent-delegate`.
 
-`evals/measure_triggers.py` prints which copy it is measuring and reports cache drift without
-blocking on it, since the `claude -p` sessions it spawns load the tree by construction.
+`evals/measure_triggers.py` does not rely on any of this: it passes `--plugin-dir` on every
+call and fails any call whose own init event names another copy.
 
 ### Verified install
 

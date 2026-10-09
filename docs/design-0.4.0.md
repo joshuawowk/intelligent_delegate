@@ -6,7 +6,7 @@ and you should say so in your return value.
 
 ## 0. Sources, in order of authority
 
-1. `evals/facts-2026-10-09.md` — model catalog facts and nine runtime probes. Verified.
+1. `evals/facts-2026-10-09.md` — model catalog facts and ten runtime probes. Verified.
 2. `evals/tier-sweep/RESULTS.md` — measured speed, quality and cost per model x effort.
 3. This spec — decisions, canonical wording, and the only derived numbers permitted
    (section 5 from prices, section 6 from the sweep).
@@ -153,7 +153,7 @@ figures describe Haiku at `low` doing this work, not this exact definition.
 
 **`reviewer`**
 
-> ESCALATION inspection tier — inherits the session model at high effort, so in an Opus session this IS an Opus agent: measured at 3x the time and 4x the cost of `inspector` on a bounded review, for the same result. Reach for `inspector` (sonnet/medium, read-only) FIRST for ordinary review, verification and audit work, and raise its effort before changing tier; come here only when an ESCALATION predicate fires: a security/auth/money/migration/concurrency blast radius, a negative or universal claim to prove ("nothing else writes this field"), an invariant not written in the brief, or a verdict the caller will build many turns on without re-checking. Has no Edit or Write tools. Do NOT use to write or fix code (use builder, or drafter/worker if cheaper fits), and do NOT use to pick a winner between competing options (use judge).
+> ESCALATION inspection tier — inherits the session model at high effort, so in an Opus session this IS an Opus agent: measured at 3x the time and 4x the cost of `inspector` on a bounded review, for the same result on a saturated task. Reach for `inspector` (sonnet/medium, read-only) FIRST for ordinary review, verification and audit work, and raise its effort before changing tier; come here only when an ESCALATION predicate fires: a security/auth/money/migration/concurrency blast radius, a negative or universal claim to prove ("nothing else writes this field"), an invariant not written in the brief, or a verdict the caller will build many turns on without re-checking. Has no Edit or Write tools. Do NOT use to write or fix code (use builder, or drafter/worker if cheaper fits), and do NOT use to pick a winner between competing options (use judge).
 
 **`builder`**
 

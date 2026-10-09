@@ -49,11 +49,11 @@
     {
       "id": 5,
       "prompt": "Port this driver across 12 board directories; each one needs the same edit applied.",
-      "expected_output": "Workflow pipeline(). \"The same edit\" admits two readings (an identical literal diff, or the same kind of change adapted per board), and that has to be dealt with before a tier is chosen: resolve it first — ask, or read one board — and tier by the answer (mechanical or worker for a literal diff, drafter when the brief says how each board differs), or, if it cannot be resolved, builder on the two-readings escalation predicate. What is wrong is fanning a cheap tier out over the ambiguity. No worktree: the twelve directories are disjoint paths, which do not conflict.",
+      "expected_output": "Workflow pipeline(). \"The same edit\" admits two readings (an identical literal diff, or the same kind of change adapted per board). Resolve that first — ask, or read one board — and tier by the answer: mechanical or worker for a literal diff, drafter when each board differs, builder only if it cannot be resolved (the two-readings escalation predicate then fires on every item, which is the exception to not fanning an inherit tier out). What is wrong is choosing any tier over the unresolved ambiguity. No worktree: the twelve directories are disjoint paths, which do not conflict.",
       "expectations": [
         "It routes to a Workflow rather than a single Agent call",
         "It uses pipeline() rather than parallel(), or justifies any barrier by a genuine cross-item dependency",
-        "It does not fan a cheap tier out over the unresolved ambiguity: it names the two readings of \"the same edit\", and either resolves them first (asking, or reading one board) and then tiers by the answer, or routes the port stage to builder on the two-readings escalation predicate",
+        "It names the two readings of \"the same edit\" and says to resolve them BEFORE fanning out — by asking, or by reading one board — rather than choosing a tier over the ambiguity. It then tiers by the answer: a literal identical diff to mechanical or worker; a change adapted per board to drafter, never to a Haiku tier; and builder only if the ambiguity cannot be resolved. An answer that goes straight to builder for all twelve with no attempt to resolve, or that sends per-board adaptation to mechanical, fails this",
         "It does NOT require worktree isolation, or explicitly notes that disjoint paths do not conflict; isolation would only be needed if a stage ran git operations or two stages wrote the same path"
       ]
     },
@@ -142,7 +142,7 @@
         "It states that a definition with no effort runs at the session's effort (xhigh here), not at a default and not at a low effort because the model is Haiku",
         "It says that an effort passed on the call overrides the definition's, or gives the full precedence (call-site, then definition, then session)",
         "It tells the user to pin an effort in the definition or pass one on the call, or to use the mechanical tier, which pins low",
-        "If it quantifies the cost of leaving it unset, the figure is one the skill gives — for example xhigh taking 2.9x as long as medium on Haiku, or 2.5x slower than low on the transform task — and not an invented one",
+        "If it quantifies the cost of leaving it unset, the figure is one of these and no other: xhigh took 2.9x as long as medium on Haiku; Haiku at xhigh was 2.5x slower than at low on the transform task (31.8 s against 12.9 s); or haiku/xhigh took 3.5x the time and 2.8x the cost of haiku/low across the four tasks. An answer that gives no figure passes",
         "It does not say the catalog's default effort applies to a subagent that names none"
       ]
     },

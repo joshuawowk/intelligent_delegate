@@ -51,7 +51,8 @@ if args.runs < 1:
     sys.exit('--runs must be >= 1')
 if args.runs % 2 == 0:
     print(f"WARNING: --runs {args.runs} is even; a {args.runs//2}-of-{args.runs} split counts "
-          f"as firing. Prefer an odd n.", file=sys.stderr)
+          f"as NOT firing, since a query must fire in more than half its runs. Prefer an odd n.",
+          file=sys.stderr)
 
 QUERIES = json.load(open(REPO + '/evals/trigger-evals.json'))
 seen = {}
@@ -239,7 +240,8 @@ if not args.out and len(errored) < len(out):
                'totals': {'TP': tp, 'FN': fn, 'FP': fp, 'TN': tn, 'ERROR': len(errored)},
                'results': out}
     json.dump(payload, open(canon, 'w'), indent=1)
-    print(f"archived to {canon} (no errored cases, so the data is valid)")
+    print(f"archived to {canon}" + (f" — {len(errored)} errored case(s) are in it as state ERROR, "
+          f"outside the totals" if errored else " (no errored cases)"))
 elif errored:
     print(f"NOT archived: every case errored, so this run measured nothing. Raw output "
           f"kept at {dest}", file=sys.stderr)

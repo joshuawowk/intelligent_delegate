@@ -69,8 +69,8 @@ ran entirely on Opus partly for want of a "sonnet, but think harder"; see
 ### `builder` — inherit / high, with Edit + Write (`maxTurns` raised 30 → 50: it reads,
 resolves ambiguity, edits, then runs tests/build/linter, and a truncated writer leaves a
 partially modified tree with no report of what changed)
-- **Use when:** the work must change files AND needs the session model's judgment — an
-  ambiguous spec, per-target adaptation, or a blast radius that makes a downgrade unsafe.
+- **Use when:** the work must change files AND needs the session model's judgment — a spec
+  still ambiguous after you tried to settle it, or a blast radius that makes a downgrade unsafe.
   This is where an escalation predicate sends you when the job still writes code — after
   `drafter` has been ruled out, not instead of considering it.
 - **Do NOT use when:** the task is fully specified — `worker` does it for less whenever the
@@ -218,7 +218,7 @@ Full tool access, multi-step, open-ended.
 | **Write docs/a runbook from an evidence file** | `drafter` | Generation from supplied source: sonnet/high with write tools |
 | **Draft N artifacts in a fan-out** | `drafter` | The default build stage; `builder` here is the most expensive habit in this plugin |
 | Write the fix a reviewer found | `worker` | Findings make it fully specified — cheapest tier that still writes with comprehension |
-| Ambiguous spec that still ships code | `builder` | An escalation predicate fires (two readings survive) and the job writes |
+| Ambiguous spec that still ships code | resolve it first; `builder` if you cannot | Kill one reading — ask, or read one target — and tier by the answer. If two readings still survive, the escalation predicate fires and the job writes |
 | **Check an artifact against its source** | `inspector` | Bounded verification; read-only, sonnet/medium |
 | **Refute one claimed finding (xN)** | `inspector` | Narrow per-item read — never fan `reviewer` out across items |
 | Review a diff for defects | `inspector` first | `effort: 'high'` if it needs more; `reviewer` only on an escalation predicate |

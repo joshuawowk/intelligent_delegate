@@ -121,7 +121,7 @@ R  the report — counted TWICE (its output, then your input), three times if re
 Measured prefixes and the paired A/B behind that claim are in
 `references/model-selection.md` → "The tool surface is the biggest lever". The two numbers
 you need to route *here*: budget `S + C` at **about 7-9k** for a scoped definition and
-**about 38-42k** for an all-tools agent (measured 2026-10-09 on a one-line echo: 6,824-8,869
+**about 38k** for an all-tools agent (measured 2026-10-09 on a one-line echo: 6,824-8,869
 subagent tokens for the scoped tiers against 38,112 and 38,131 for `general-purpose`,
 4.3-5.6x). **If D is not clearly larger than that cold start, do it inline.**
 
@@ -235,9 +235,9 @@ set it from a call — which is the reason to leave nothing to it. The two you c
    `effort` on any call that does not go through a pinned tier, and raise or lower a
    tier's effort at the call site instead of changing tier.
 
-`max` is accepted on every route — probed once, `{agentType, effort: 'max'}` ran at `max` —
-but was not in the sweep, so its time and cost are unmeasured. Writing "think hard" in the
-prompt sets nothing — you get whatever those three gave and believe you tuned it.
+`max` is in every route's schema; one was run — a Workflow `{agentType, effort: 'max'}` ran
+at `max` — and it was not in the sweep, so its time and cost are unmeasured. "Think hard"
+in a prompt sets nothing — you get whatever those three gave and believe you tuned it.
 `SKILL.md` frontmatter is **not** a fourth place: `effort:` there sets **the invoking
 turn's** effort, never a subagent's, and it fails the `skill-creator` validator besides.
 
@@ -289,8 +289,8 @@ The levers, in the order they paid — check them in this order when a fan-out i
    1.4x, 1.5x and 1.9x. `low` was only 17%, 8% and 9% faster — stop at `medium`.
 2. **Tier.** Sonnet is the fast model. Haiku is the cheap model, not the fast one: at
    `medium` it took 1.6x as long as Sonnet, because it writes about three times the output
-   tokens. Opus at `medium` also took 1.6x as long and cost 2.4x as much, for the same score. An untiered call gets
-   both levers wrong at once.
+   tokens. Opus at `medium` also took 1.6x as long and cost 2.4x as much, for the same
+   score. An untiered call gets both levers wrong at once.
 3. **Shape.** Judged, not measured by the sweep: a fan-out hides per-agent latency, which
    is where the Haiku tiers belong, and `pipeline()` has no barrier to wait behind.
 
@@ -353,9 +353,9 @@ review work; read as an escalation trigger it routes every inspection stage to `
 Nothing else earns it. Not "this one matters", not the verb, not wanting more
 thoroughness on a bounded check — that is `effort: 'high'` on the call — and not a long
 input: a large read is a reason to *delegate*, and on the extraction task Sonnet and Opus
-each got 200 of 200 answers. One further shape earns it: **a single cross-cutting pass
-that must reason over every item at once** — *one* agent, not one per item, which is what
-makes it affordable. Fanning an inherit tier across items is anti-pattern 14.
+each got 200 of 200 answers. One more shape earns it: **one cross-cutting pass over every
+item at once** — one agent, not one per item. Fanning an inherit tier across items *with no
+predicate firing on them* is anti-pattern 14; an ambiguity you could not kill is exempt.
 
 **The Haiku gate is detectability.** A failed Haiku attempt is nearly free in dollars.
 What it costs is the wall-clock of the failed attempt and the risk nobody notices. So the
@@ -511,7 +511,7 @@ Before concluding a tier "cannot do MCP", read the error — a bare
    The cascade forfeits cache reuse across its models.
 9. **Not relaying the report.** The user never sees it. An unrelayed result did not happen.
 10. **Spawning an all-tools agent for a narrow job.** `general-purpose` re-sends every
-    tool schema on every request — about 38-42k of cold-start prefix against about 7-9k for
+    tool schema on every request — about 38k of cold-start prefix against about 7-9k for
     a scoped definition. Reaching for it repeatedly? Ship a definition with a narrow `tools:`.
 11. **Editing files an agent you spawned is reading.** Commit first and pin the SHA in the
     brief, or give it a worktree. Read-only does not mean collision-free.

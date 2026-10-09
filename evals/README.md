@@ -50,20 +50,40 @@ arm, so it says whether the skill routes correctly, not whether it beats having 
 Every graded check, with its quoted evidence, is in `behavioural-runs-2026-10-09.json`
 (answers kept for run 3). No answer in any run opened anything but the skill: every answering agent's tool calls
 were checked for `evals/`, `docs/`, `README.md` and `CHANGELOG.md`, and none read the
-reference files either — the skill body was enough for all fifteen.
+reference files either — the skill body was enough for all fifteen. That check was run by
+the author against transcripts that are not in this repository; it is a claim here, not
+something you can re-derive.
 
-**What changed between run 1 and run 3, and why it was not just loosening the test.** Five
-cases each had one expectation fail in all three runs. Read against the answers:
+**What changed between run 1 and the later runs — said in full, because loosening a test
+until it passes looks exactly like this.** In run 1 five cases passed in no run. Seven
+expectation lines were rewritten because of it, in those five cases:
 
-- **Four were the rubric asking for a recital.** Case 2's answers all sent the changelog
-  read to `inspector` and turned `scout` down because a missed entry is silent — right —
-  and failed for not also saying when `scout` *would* do. Cases 4, 13 and 14 failed for
-  not listing all five things a tier brings, not spelling the precedence out as a
-  three-step chain, and not saying *why* Haiku is slower. Those lines now grade the route.
-- **One was the skill.** Case 5 expected `builder` for twelve boards needing "the same
-  edit", because two readings survive. The skill also says never to fan an inherit tier
-  across items. All three answers did something better than either rule — settle which
-  reading is meant first, then tier by the answer — and the skill now says that.
+| case, line | run 1 | what it demanded | what it grades now |
+|---|:--:|---|---|
+| 2, routing | 0 / 3 | also say when `scout` *would* do | the route: `inspector`, with `scout` rejected or conditioned |
+| 4, what a tier brings | 0 / 3 | name all five things | name at least one |
+| 14, why Haiku is slower | 0 / 3 | give the reason | the reason is right if one is given |
+| 13, precedence | 1 / 3 | the three-step chain spelled out | call-site overrides the definition |
+| 13, quantifying | 1 / 3 | one specific figure, with its task | any of three listed figures, or none |
+| 14, when Haiku is allowed | 1 / 3 | "parallelism hides the latency" | a cost choice, where a miss is detectable |
+| 5, the tier | 0 / 3 | `builder` | resolve the ambiguity first, then a stated tier per reading |
+
+The first six are the rubric asking for a recital where the route was right: case 2's
+answers all sent the changelog read to `inspector` and turned `scout` down because a
+missed entry is silent, and failed for not also saying when `scout` would do. **Three of
+those six had failed in only two runs of three**, not all three, and were loosened all the
+same — the weakest part of this account, and the reason each rewritten line was then
+checked for whether it still fails a wrong answer. A reviewer-tier pass built a plausible
+wrong answer for each: cases 2, 4 and 14 still caught theirs. Case 5's did not, and one of
+case 13's could not be checked by a grader that reads only the rubric; both were tightened
+again (case 5 now names the tier each reading must get and fails a straight-to-`builder`
+answer; case 13 lists the only figures it accepts).
+
+The seventh was the skill. Case 5 expected `builder` for twelve boards needing "the same
+edit", because two readings survive. The skill also says not to fan an inherit tier across
+items. All three answers did something better than either rule — settle which reading is
+meant, then tier by the answer — and the skill now says that, with the case where the
+ambiguity cannot be settled named as the exception.
 
 **Reading run 3.** None of its seven failed checks is a wrong route. Each is an answer of
 about 350 words leaving out a supporting point: a cost ratio given without saying it was
@@ -158,7 +178,7 @@ recall is a worse artifact than a narrow one.
 Run with `evals/measure_triggers.py`, which drives the plugin itself rather than a stub —
 loaded from this checkout with `--plugin-dir`, and confirmed from each session's own init
 event. **It defaults to n=3 per query** — see the warning below for why n=1 is not a
-measurement. A query counts as firing if it fires in at least half its runs.
+measurement. A query counts as firing if it fires in more than half its runs.
 
 | description | recall (should fire) | false positives (should not) | n |
 |---|--:|--:|:--:|
@@ -175,11 +195,11 @@ speed-framed positives added in this release and the speed-framed negative ("My 
 build is too slow…") that has to stay silent now that the description mentions speed. It
 is one run: the rows above it show what a single run on this suite has been worth before.
 
-The 2026-10-01 row is a single real run of all 18 cases at n=3 against the installed plugin,
-archived in `last-trigger-run.json`. `TP=10 FN=0 FP=0 TN=7 ERROR=1`. It measures a
-description since rewritten, and predates the three queries added after it and the three
-added for 0.4.0. **None of those, and nothing about the 0.4.0 description, is measured;
-re-run before quoting a current figure.** Reading that run honestly:
+The 2026-10-01 row is a single real run of all 18 cases at n=3 against the plugin as then
+installed: `TP=10 FN=0 FP=0 TN=7 ERROR=1`. It was the content of `last-trigger-run.json`
+until `0ca95cf` replaced it with the 0.4.0 run; read it with
+`git show 286f34c:evals/last-trigger-run.json`. It measured a description since rewritten,
+on a suite six queries smaller than today's. Reading that run honestly:
 
 - **Nine of the ten non-control positives were fully measured and all fired** — eight at 3/3,
   one at 2/3. The tenth ("this is burning way too many tokens…") **errored on a 300s
@@ -219,12 +239,14 @@ description change. A confident explanation sat on a number that did not survive
 re-measurement, twice on this suite. **Re-measure before explaining.** Over-triggering remains
 the more expensive failure, so the clean false-positive column is the one to protect.
 
-**Provenance of `last-trigger-run.json`.** A real n=3 run of the then-current description
-(2026-10-01, before the 2.1.295 catalog check) against the installed plugin, with its own
-`generated_utc`, `runs_per_query`, `head`, `installed_sha`, `skill_id` and totals.
-Regenerating costs billed `claude -p` calls — one per query per run — so re-run it when the
-description changes, not routinely. It has changed. A run is archived unless *every* case
-errored; errored cases stay visible as `state: "ERROR"` and are excluded from the totals.
+**Provenance of `last-trigger-run.json`.** The 2026-10-09 run of the 0.4.0 description: 24
+queries at n=3, with its own `generated_utc`, `runs_per_query`, `head`, `dirty`,
+`loaded_from`, `calls_confirmed`, `calls_unconfirmed`, `skill_id` and totals. There is no
+`installed_sha` any more: the harness stopped asking the install what it is and asks each
+session what it loaded. Regenerating costs billed `claude -p` calls — one per query per run
+— so re-run it when the description changes, not routinely. A run is archived unless
+*every* case errored; errored cases stay visible as `state: "ERROR"` and are excluded from
+the totals.
 
 **Timeouts are the main source of noise, and they are not misses.** At 150s with 6-way
 concurrency, 7 of 18 calls timed out; at 300s with 4-way, 1 of 18 did. The defaults are now

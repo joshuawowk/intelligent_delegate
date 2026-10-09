@@ -11,7 +11,7 @@ re-sets the tiers from the measurement. Purpose is restated: **speed, result qua
 cost together** — 0.3.0 argued almost entirely from price.
 
 **Verified** (`evals/facts-2026-10-09.md`), against the Claude Code 2.1.295 catalog and by
-nine runtime probes:
+ten runtime probes:
 
 - `sonnet`, `haiku` and `opus` now resolve to the 5.5 models. No pin needed changing.
 - Haiku 5.5 has a 1M window and takes an effort setting. "Haiku takes no effort" and "the
@@ -75,8 +75,8 @@ loaded:
 - `evals/behavioural.workflow.js` — 15 routing cases, three runs each, answered from
   `SKILL.md` alone: 185 of 192 expectation checks passed and 39 of 45 runs passed every
   one. No failure was a wrong route. The first run found one real tension in the skill
-  (case 5), fixed, and four over-specified rubric lines, rewritten; `evals/README.md` has
-  all three runs.
+  (case 5), fixed, and six over-specified rubric lines in four cases, rewritten — three of
+  which had failed in only two runs of three. `evals/README.md` lists every line changed.
 
 **Not verified, and said so where it matters**: anything about quality on work with a
 blast radius, an unstated invariant or an absence to prove; `max` effort's cost; fast
