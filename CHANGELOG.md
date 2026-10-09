@@ -63,6 +63,25 @@ task shapes, none void, with decision rules committed before the data.
 - Behavioural eval cases 2, 4 and 8 rested on reversed facts and are rewritten; cases are
   added for effort inheritance and speed.
 
+**Verified**, each against this checkout in fresh sessions that prove which copy they
+loaded:
+
+- `evals/probe_tiers.py` — 8 of 8 tiers ran the model and effort they declare, under a
+  parent at `max` so that inheritance could not hide.
+- `evals/probe_hook.py` — the hook refused an untiered workflow, stayed silent on a tiered
+  one and surfaced both notes, in real sessions rather than on stdin.
+- `evals/measure_triggers.py` — the rewritten description fired on 16 of 16 positives and
+  0 of 8 negatives at n=3, with all 72 calls confirmed.
+- `evals/behavioural.workflow.js` — 15 routing cases, three runs each, answered from
+  `SKILL.md` alone: 185 of 192 expectation checks passed and 39 of 45 runs passed every
+  one. No failure was a wrong route. The first run found one real tension in the skill
+  (case 5), fixed, and four over-specified rubric lines, rewritten; `evals/README.md` has
+  all three runs.
+
+**Not verified, and said so where it matters**: anything about quality on work with a
+blast radius, an unstated invariant or an absence to prove; `max` effort's cost; fast
+mode; what an advisor consult costs; `judge` on adjudication.
+
 **Method worth keeping**: two adversarial reviews of the sweep's graders ran before the
 sweep did, and both found them broken — the second in both directions at once. Review
 findings are now graded by running a repro against a correct ledger and a single-defect

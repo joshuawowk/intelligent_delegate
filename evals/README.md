@@ -33,6 +33,48 @@ python3 eval-viewer/generate_review.py <workspace>/iteration-N \
   --skill-name delegate --benchmark <workspace>/iteration-N/benchmark.json
 ```
 
+### The 0.4.0 run, and a second route
+
+`evals/behavioural.workflow.js` runs the cases through the Workflow tool instead: an agent
+on the session model reads `skills/delegate/SKILL.md` cold and answers the prompt as the
+main loop would, and a second grades the answer against that case's `expectations`, one
+pass/fail with quoted evidence per line. Three runs per case. It has no no-skill baseline
+arm, so it says whether the skill routes correctly, not whether it beats having none.
+
+| run, 2026-10-09 | skill at | cases passing in all 3 runs | runs passing every expectation | expectation checks |
+|---|---|:--:|:--:|:--:|
+| 1 — all 15 | `286f34c` | 10 / 15 | 30 / 45 | 173 / 192 |
+| 2 — the five revised cases | between the two | 4 / 5 | 14 / 15 | 74 / 75 |
+| **3 — all 15, final text** | `0ca95cf` | **11 / 15** | **39 / 45** | **185 / 192** |
+
+No answer in any run opened anything but the skill: every answering agent's tool calls
+were checked for `evals/`, `docs/`, `README.md` and `CHANGELOG.md`, and none read the
+reference files either — the skill body was enough for all fifteen.
+
+**What changed between run 1 and run 3, and why it was not just loosening the test.** Five
+cases each had one expectation fail in all three runs. Read against the answers:
+
+- **Four were the rubric asking for a recital.** Case 2's answers all sent the changelog
+  read to `inspector` and turned `scout` down because a missed entry is silent — right —
+  and failed for not also saying when `scout` *would* do. Cases 4, 13 and 14 failed for
+  not listing all five things a tier brings, not spelling the precedence out as a
+  three-step chain, and not saying *why* Haiku is slower. Those lines now grade the route.
+- **One was the skill.** Case 5 expected `builder` for twelve boards needing "the same
+  edit", because two readings survive. The skill also says never to fan an inherit tier
+  across items. All three answers did something better than either rule — settle which
+  reading is meant first, then tier by the answer — and the skill now says that.
+
+**Reading run 3.** None of its seven failed checks is a wrong route. Each is an answer of
+about 350 words leaving out a supporting point: a cost ratio given without saying it was
+the measured one, the waiver offered without its condition. And one is a warning about
+the method: case 11 passed 3/3 in run 1 and 1/3 in run 3 with no change to the text it
+draws on. At n=3 one borderline rubric line moves a case two places. Treat a single case's
+score as noise and the totals as the signal, and do not tune the skill to a line.
+
+**Limits.** The grader is a model — the one place in this release where a model's judgment
+is the measurement; the harness caps answers near 350 words, which is what several misses
+were; and the stand-in reads the skill in a subagent, where a real main loop has it loaded.
+
 The `expectations` here are deliberately adversarial about *reasoning*, not just the
 verdict — case 2 wants the volume-vs-tool-call distinction stated and the tier routed by
 whether the answer will be checked, case 3 the negative-claim predicate, case 4 call-site
@@ -122,7 +164,15 @@ measurement. A query counts as firing if it fires in at least half its runs.
 | v1 — capability phrasing | 2/10 | 0/6 | 1 |
 | v2 — explicit short-form phrasings + "do not answer from memory" | 7–8/10 | 0/6 | 1 |
 | 2026-10-01 — same, with the advisor claim made conditional | **9/9 measured** | **0/6** | **3** |
-| 0.4.0 description — speed phrasings, effort and Haiku corrections | not measured | not measured | — |
+| **0.4.0** (2026-10-09) — speed phrasings, effort and Haiku corrections, quoted YAML | **16/16** | **0/8** | **3** |
+
+The **0.4.0** row is one real run on 2026-10-09 at `286f34c`, archived in
+`last-trigger-run.json`: 24 queries at n=3, `TP=16 FN=0 FP=0 TN=8 ERROR=0`. Every positive
+fired 3/3 and every negative 0/3, both controls included, and all 72 calls were confirmed
+by their own init event to have loaded the plugin from this checkout. It covers the two
+speed-framed positives added in this release and the speed-framed negative ("My webpack
+build is too slow…") that has to stay silent now that the description mentions speed. It
+is one run: the rows above it show what a single run on this suite has been worth before.
 
 The 2026-10-01 row is a single real run of all 18 cases at n=3 against the installed plugin,
 archived in `last-trigger-run.json`. `TP=10 FN=0 FP=0 TN=7 ERROR=1`. It measures a
