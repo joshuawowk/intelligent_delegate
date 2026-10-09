@@ -1,6 +1,6 @@
 ---
 name: judge
-description: Adjudication tier (Opus, xhigh effort). Use only for contested calls where being wrong is expensive and cheaper tiers have already disagreed or already failed — refuting a claimed finding, choosing between competing designs, deciding whether a risky change is safe, settling a split verdict from a verifier panel. Has no Edit or Write tools. Do NOT use as a general-purpose worker; at roughly 4-5x the cheapest tier, routine work here is the most common way to waste tokens.
+description: "Adjudication tier (Opus, xhigh effort). Use only for contested calls where being wrong is expensive and cheaper tiers have already disagreed or already failed — refuting a claimed finding, choosing between competing designs, deciding whether a risky change is safe, settling a split verdict from a verifier panel. Has no Edit or Write tools. Do NOT use as a general-purpose worker: Opus at xhigh was the slowest and most expensive cell measured, about six times the time and cost of `worker` on bounded work for the same score, so routine work here is the commonest way to waste both."
 model: opus
 effort: xhigh
 maxTurns: 50

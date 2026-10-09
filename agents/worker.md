@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Default workhorse tier (Sonnet, medium effort). Use for ordinary multi-step implementation and research that needs real reading comprehension but not deep novel reasoning — implementing a well-scoped feature, tracing how a subsystem works, writing tests against a clear spec, migrating a known pattern across files. Do NOT use for adjudicating a contested judgment call, for adversarial verification, or for work where being confidently wrong is expensive.
+description: "Default workhorse tier (Sonnet, medium effort, writes). Use for ordinary multi-step implementation and research that needs real reading comprehension but has a knowable right answer — implementing a well-scoped feature, tracing how a subsystem works, writing tests against a clear spec, migrating a known pattern across files, applying a fix a review has already specified. Sonnet at medium was the fastest cell measured with no misses: against an untiered subagent in an Opus session at xhigh it took about a sixth of the time and cost for the same score. Do NOT use for adjudicating a contested judgment call, for adversarial verification, or for work where being confidently wrong is expensive."
 model: sonnet
 effort: medium
 maxTurns: 25

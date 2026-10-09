@@ -1,6 +1,6 @@
 ---
 name: builder
-description: ESCALATION implementation tier — inherits the session model at high effort WITH Edit and Write, so in an Opus session this IS an Opus agent at 4-5x. Reach for `drafter` (sonnet/high, writes) FIRST for ordinary generation and well-scoped implementation; come here only when an ESCALATION predicate fires: two readings of the brief genuinely survive, correctness rests on an invariant the brief does not state, the blast radius is security/auth/money/deletion/migrations/concurrency, or a failure would be silent to the caller. Use when an escalation predicate disqualifies drafter and worker but the job still writes code.
+description: "ESCALATION implementation tier — inherits the session model at high effort WITH Edit and Write, so in an Opus session this IS an Opus agent: measured at 2.4x the time and 3.4x the cost of `drafter` on a spec-driven implementation, for the same result. Reach for `drafter` (sonnet/high, writes) FIRST for ordinary generation and well-scoped implementation; come here only when an ESCALATION predicate fires: two readings of the brief genuinely survive, correctness rests on an invariant the brief does not state, the blast radius is security/auth/money/deletion/migrations/concurrency, or a failure would be silent to the caller. Use when an escalation predicate disqualifies drafter and worker but the job still writes code."
 model: inherit
 effort: high
 maxTurns: 50

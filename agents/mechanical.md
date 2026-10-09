@@ -1,7 +1,8 @@
 ---
 name: mechanical
-description: Cheapest execution tier (Haiku). Use for deterministic, fully specified work whose result is verifiable without judgment — mechanical refactors, renames applied across known files, format/lint fixes, boilerplate generation, extracting known fields from a known structure. Do NOT use when the task needs design judgment, when the correct answer is not knowable from the prompt alone, or when the input will not fit in a 200K context.
+description: "Cheapest writing tier (Haiku, low effort). Use for deterministic, fully specified work whose result is verifiable without judgment — mechanical refactors, renames applied across known files, format/lint fixes, boilerplate generation, converting records by rule and example. Cheap, not fast: on a 40-record transform it measured a tenth of `worker`'s cost and 1.4x its time, with every record right. Reach for it in a fan-out, where parallelism hides the latency; for one latency-sensitive call use `worker`. Do NOT use when the task needs design judgment, when the correct answer is not knowable from the prompt alone, or when you could not tell quickly and cheaply that the result is wrong."
 model: haiku
+effort: low
 maxTurns: 12
 omitClaudeMd: true
 tools:

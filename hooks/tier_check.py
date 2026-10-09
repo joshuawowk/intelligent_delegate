@@ -55,11 +55,15 @@ _REGEX_OK_WORDS = {
 
 STAGE_DEFAULTS = """\
   generate / draft prose or code .....  intelligent-delegate:drafter    (sonnet, high, writes)
-  review / verify / audit ............  intelligent-delegate:inspector  (sonnet, high, read-only)
+  review / verify / audit ............  intelligent-delegate:inspector  (sonnet, medium, read-only)
   fully-specified fix from findings ..  intelligent-delegate:worker     (sonnet, medium, writes)
-  mechanical transcription ...........  intelligent-delegate:mechanical (haiku, no effort)
+  convert or edit by rule and example   intelligent-delegate:mechanical (haiku, low, writes)
+  pull known facts you will check ....  intelligent-delegate:scout      (haiku, low, read-only)
   the one call that gates the result .  intelligent-delegate:reviewer   (session model, high)
-  contested tie-break ................  intelligent-delegate:judge      (opus, xhigh)"""
+  contested tie-break ................  intelligent-delegate:judge      (opus, xhigh)
+
+  One stage needs more than its tier gives? Raise effort on the call before changing
+  tier: {agentType: 'intelligent-delegate:inspector', effort: 'high'}."""
 
 
 class Scan(object):
@@ -529,9 +533,11 @@ def main():
             "intelligent-delegate: %d of %d agent() calls in this workflow have no "
             "agentType.\n\n"
             "An agent() with no agentType is not a cheap tier — it is no tier. It "
-            "inherits the session model and loses the definition's maxTurns, tool "
-            "allowlist, omitClaudeMd, operating rules and return-value contract. The "
-            "harness logs it as agentType=\"workflow-subagent\".\n\n"
+            "inherits the session's model AND its effort, and loses the definition's "
+            "maxTurns, tool allowlist, omitClaudeMd, operating rules and return-value "
+            "contract. The harness logs it as agentType=\"workflow-subagent\". Measured "
+            "2026-10-09 in an Opus session at xhigh: 6.2x the time and 6.6x the cost of "
+            "sonnet/medium, for the same score.\n\n"
             "This is measured, not theoretical: three fan-outs ran 100%% on the session "
             "model (2026-09-30 x2, 2026-10-08). Two got there this way, with no "
             "agentType; the third passed agentType correctly and still ran Opus, "
@@ -562,10 +568,11 @@ def main():
         notes.append(
             "%d of %d agent() calls use reviewer/builder, which are `model: inherit` — "
             "in a session above Sonnet they run the session model, so they are an "
-            "escalation, not a saving. For ordinary review or generation, "
-            "inspector/drafter (sonnet, high) are the cheaper default; in a Sonnet "
-            "session the two cost the same, and in a Haiku session the pinned tiers "
-            "cost more." % (inherit, len(calls))
+            "escalation in time and cost, to be spent where an escalation predicate "
+            "fires. For ordinary review or generation, inspector (sonnet, medium) and "
+            "drafter (sonnet, high) are the default: on bounded work an Opus inherit "
+            "tier measured about 3x the time of inspector for the same result. In a "
+            "Sonnet session the pinned and inherit tiers run the same model." % (inherit, len(calls))
         )
     if unknown:
         notes.append(
