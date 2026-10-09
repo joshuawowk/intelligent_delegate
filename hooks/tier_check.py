@@ -376,6 +376,42 @@ def tier_of(sc, open_paren, end):
     return ("untiered", None)
 
 
+def effort_state(sc, open_paren, end):
+    """'set' | 'unset' | 'unknown' — whether this call's options name an `effort`.
+
+    Only asked of a call that has no agentType, where the answer matters: with no tier
+    and no effort the agent runs at the SESSION's effort. Probed 2026-10-09 on Claude
+    Code 2.1.295: `{model: 'sonnet'}` alone ran claude-sonnet-5-5 at xhigh in an xhigh
+    session, and a Haiku tier that declared no effort ran at xhigh too. So a bare
+    `{model: 'haiku'}` is the cheapest model at the session's thoroughness, which is
+    rarely what was meant.
+
+    'unknown' — options in a variable, or a spread that may carry it — says nothing,
+    for the same reason tier_of allows what it cannot read.
+    """
+    args = top_level_args(sc, open_paren, end)
+    obj = None
+    for a, b in args:
+        if sc.code_only(a, b).strip().startswith("{"):
+            obj = (a, b)
+    if obj is None:
+        present = [(a, b) for a, b in args if sc.src[a:b].strip()]
+        if len(present) <= 1 and not any("..." in sc.code_only(a, b) for a, b in present):
+            return "unset"
+        return "unknown"
+    code = sc.code_only(*obj)
+    if "..." in code:
+        return "unknown"
+    k = code.find("effort")
+    while k != -1:
+        before = code[k - 1] if k > 0 else " "
+        after = code[k + 6] if k + 6 < len(code) else " "
+        if not (before.isalnum() or before in "_$.") and not (after.isalnum() or after in "_$"):
+            return "set"
+        k = code.find("effort", k + 1)
+    return "unset"
+
+
 def waived(sc, start, end, comments, other_starts):
     """True if a real `// untiered: <reason>` comment waives THIS call.
 
@@ -466,7 +502,7 @@ def main():
     comments = sc.comments()
     starts = [c[0] for c in calls]
 
-    untiered, waived_n, inherit, unknown = [], 0, 0, 0
+    untiered, waived_n, inherit, unknown, no_effort = [], 0, 0, 0, 0
     for s, op, end in calls:
         if end is None:
             unknown += 1          # unbalanced: cannot tell, so allow
@@ -482,6 +518,8 @@ def main():
         others = [o for o in starts if o != s]
         if waived(sc, s, end, comments, others):
             waived_n += 1
+            if effort_state(sc, op, end) == "unset":
+                no_effort += 1
             continue
         untiered.append((src.count("\n", 0, s) + 1, label_of(sc, s, end)))
 
@@ -537,6 +575,13 @@ def main():
         )
     if waived_n:
         notes.append("%d call(s) waived via `// untiered:`." % waived_n)
+    if no_effort:
+        notes.append(
+            "%d of those set no `effort`. A call with no tier and no effort runs at the "
+            "session's effort, not at a default — measured as xhigh on Haiku in an xhigh "
+            "session — so it is as slow and as thorough as the session however cheap "
+            "its model. Name an effort on each." % no_effort
+        )
     if notes:
         print(json.dumps({"systemMessage": "intelligent-delegate: " + " ".join(notes)}))
     return 0
