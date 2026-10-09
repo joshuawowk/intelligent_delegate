@@ -3,7 +3,7 @@
 
     python3 make_runs.py <root> [--pilot] [--reps N]  > args.json
 
-Each run gets a private copy of its task's fixture directory under <root>/<run_id>/, so
+Each run gets a private copy of its task's fixture directory at <root>/<run_id>/work, so
 runs that write files cannot collide. <root> must be OUTSIDE this repository: workflow
 subagents start with the repo as their working directory, and a run directory beneath
 it would put the answer keys one `ls ..` away.
@@ -61,9 +61,12 @@ def main(argv):
     out = []
     for task, model, effort, rep in runs:
         rid = "%s-%s-%s-%d" % (task, model, effort, rep)
-        d = os.path.join(root, rid)
-        if os.path.isdir(d):
-            shutil.rmtree(d)
+        # <root>/<run_id>/work — nested so that a run's parent directory holds nothing but
+        # its own work dir. Flat siblings would put another arm's finished output.jsonl or
+        # solution.py one `ls ..` away.
+        if os.path.isdir(os.path.join(root, rid)):
+            shutil.rmtree(os.path.join(root, rid))
+        d = os.path.join(root, rid, "work")
         shutil.copytree(os.path.join(HERE, "fixtures", task), d)
         out.append({"id": rid, "task": task, "model": model, "effort": effort, "rep": rep,
                     "dir": d, "agentType": TASK_AGENT[task]})

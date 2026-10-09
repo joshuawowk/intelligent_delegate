@@ -6,56 +6,254 @@
    "difficulty": "easy",
    "clause": 2,
    "line": 49,
-   "desc": "remove_stock rejects removing exactly the available units (>= instead of >)"
+   "desc": "remove_stock rejects removing exactly the available units (>= instead of >)",
+   "clauses": [
+    2
+   ],
+   "also_functions": [],
+   "keywords": [
+    ">=",
+    "exactly",
+    "equal",
+    "all available",
+    "all of the available",
+    "entire",
+    "off-by-one",
+    "off by one",
+    "full available",
+    "the full"
+   ]
   },
   {
    "id": "B2",
    "difficulty": "easy",
    "clause": 6,
    "line": 84,
-   "desc": "low_stock includes skus whose available equals the threshold (<= instead of <)"
+   "desc": "low_stock includes skus whose available equals the threshold (<= instead of <)",
+   "clauses": [
+    6
+   ],
+   "also_functions": [],
+   "keywords": [
+    "<=",
+    "equal",
+    "strictly",
+    "inclusive",
+    "at the threshold",
+    "at threshold"
+   ]
   },
   {
    "id": "B3",
    "difficulty": "medium",
    "clause": 3,
    "line": 60,
-   "desc": "reserve checks on-hand instead of available, so already-reserved units can be reserved again"
+   "desc": "reserve checks on-hand instead of available, so already-reserved units can be reserved again",
+   "clauses": [
+    3
+   ],
+   "also_functions": [],
+   "keywords": [
+    "on_hand",
+    "on hand",
+    "on-hand",
+    "already reserved",
+    "already-reserved",
+    "existing reservation",
+    "double",
+    "over-reserv",
+    "overbook",
+    "over-book",
+    "ignores reserv",
+    "instead of available",
+    "rather than available",
+    "not available"
+   ]
   },
   {
    "id": "B4",
    "difficulty": "easy",
    "clause": 4,
    "line": 67,
-   "desc": "release raises KeyError for an order that holds nothing instead of returning 0"
+   "desc": "release raises KeyError for an order that holds nothing instead of returning 0",
+   "clauses": [
+    4
+   ],
+   "also_functions": [],
+   "keywords": [
+    "keyerror",
+    "unknown order",
+    "never seen",
+    "never-seen",
+    "holds nothing",
+    "no reservation",
+    "default",
+    "returns 0",
+    "return 0",
+    "returning 0",
+    "instead of 0",
+    "raises",
+    "raise"
+   ]
   },
   {
    "id": "B5",
    "difficulty": "medium",
    "clause": 8,
    "line": 105,
-   "desc": "price_total truncates the discount instead of rounding half up"
+   "desc": "price_total truncates the discount instead of rounding half up",
+   "clauses": [
+    8
+   ],
+   "also_functions": [],
+   "keywords": [
+    "round",
+    "truncat",
+    "floor",
+    "half"
+   ]
   },
   {
    "id": "B6",
    "difficulty": "hard",
    "clause": 9,
    "line": 112,
-   "desc": "apply_batch snapshots reservations shallowly, so a failed batch leaks changes to an existing order's reservations"
+   "desc": "apply_batch snapshots reservations shallowly, so a failed batch leaks changes to an existing order's reservations",
+   "clauses": [
+    9
+   ],
+   "also_functions": [],
+   "keywords": [
+    "shallow",
+    "deep",
+    "atomic",
+    "snapshot",
+    "rollback",
+    "roll back",
+    "rolled back",
+    "restor",
+    "leak",
+    "alias",
+    "nested",
+    "inner dict",
+    "same dict"
+   ]
   },
   {
    "id": "B7",
    "difficulty": "medium",
    "clause": 7,
    "line": 89,
-   "desc": "history treats limit=0 as no limit and returns everything"
+   "desc": "history treats limit=0 as no limit and returns everything",
+   "clauses": [
+    7
+   ],
+   "also_functions": [],
+   "keywords": [
+    "limit=0",
+    "limit 0",
+    "limit of 0",
+    "zero",
+    "falsy",
+    "is not none",
+    "truthi",
+    "limit == 0",
+    "0 returns"
+   ]
   },
   {
    "id": "B8",
    "difficulty": "hard",
    "clause": 5,
    "line": 75,
-   "desc": "fulfil leaves the reservation in place, so fulfilled units are still counted as reserved"
+   "desc": "fulfil leaves the reservation in place, so fulfilled units are still counted as reserved",
+   "clauses": [
+    5
+   ],
+   "also_functions": [],
+   "keywords": [
+    "pop",
+    "still",
+    "remain",
+    "not removed",
+    "never removed",
+    "not cleared",
+    "never cleared",
+    "keeps",
+    "left in place",
+    "does not remove",
+    "doesn't remove",
+    "not delete",
+    "not drop",
+    "double-count",
+    "double count",
+    "counted twice",
+    "stay"
+   ]
+  },
+  {
+   "id": "B9",
+   "difficulty": "hard",
+   "clause": 1,
+   "line": 10,
+   "desc": "bool values are accepted as quantities (True counts as 1), though the spec says bool does not count as a positive integer",
+   "clauses": [
+    1,
+    2,
+    3
+   ],
+   "also_functions": [
+    "_positive_int",
+    "add_stock",
+    "remove_stock",
+    "reserve"
+   ],
+   "keywords": [
+    "bool",
+    "true"
+   ]
+  },
+  {
+   "id": "B10",
+   "difficulty": "hard",
+   "clause": 10,
+   "line": 134,
+   "desc": "merge adds other's available units instead of its on-hand units, understating stock that other has reserved",
+   "clauses": [
+    10
+   ],
+   "also_functions": [],
+   "keywords": [
+    "available",
+    "on-hand",
+    "on hand",
+    "on_hand",
+    "minus reserved",
+    "subtract",
+    "understat",
+    "net of"
+   ]
+  },
+  {
+   "id": "B11",
+   "difficulty": "hard",
+   "clause": 7,
+   "line": 91,
+   "desc": "history returns the internal event dicts rather than copies, so a caller can mutate recorded history",
+   "clauses": [
+    7
+   ],
+   "also_functions": [],
+   "keywords": [
+    "cop",
+    "reference",
+    "alias",
+    "mutat",
+    "same dict",
+    "same object",
+    "live",
+    "internal"
+   ]
   }
  ]
 }

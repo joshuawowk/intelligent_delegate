@@ -145,7 +145,7 @@ function buildRuns() {
   }
   for (const r of runs) {
     r.id = r.task + '-' + r.model + '-' + r.effort + '-' + r.rep
-    r.dir = cfg.root + '/' + r.id
+    r.dir = cfg.root + '/' + r.id + '/work'
   }
   return runs
 }

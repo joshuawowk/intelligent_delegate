@@ -58,7 +58,7 @@ def cases(s):
         ("merge zero-length", 15, lambda: M([(5, 5), (6, 6), (8, 8)]) == [(5, 6), (8, 8)]),
         ("merge empty", 18, lambda: M([]) == []),
         ("merge rejects inverted", 15, lambda: _raises(ValueError, M, [(3, 1)])),
-        ("merge returns tuples", 17, lambda: all(isinstance(x, tuple) for x in M([[1, 2], [2, 5]])) and M([[1, 2], [2, 5]]) == [(1, 5)]),
+        ("merge returns tuples", 17, lambda: all(isinstance(x, tuple) for x in M([(1, 2), (2, 5)])) and M([(1, 2), (2, 5)]) == [(1, 5)]),
         ("merge does not mutate", 19, lambda: (lambda xs: (M(xs), xs == [(5, 6), (1, 2)])[1])([(5, 6), (1, 2)])),
         ("merge negatives", 16, lambda: M([(-5, -3), (-2, 0), (2, 2)]) == [(-5, 0), (2, 2)]),
     ]

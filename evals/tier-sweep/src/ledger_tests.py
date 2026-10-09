@@ -118,4 +118,26 @@ def t_merge(m):
     assert b.on_hand("x") == 3 and b.available("y") == 0
 
 
+def t_bool_is_not_a_quantity(m):
+    inv = m.Inventory(); inv.add_stock("a", 5)
+    assert _raises(ValueError, inv.add_stock, "a", True)
+    assert _raises(ValueError, inv.remove_stock, "a", True)
+    assert _raises(ValueError, inv.reserve, "a", True, "o1")
+    assert inv.on_hand("a") == 5
+
+
+def t_history_returns_copies(m):
+    inv = m.Inventory(); inv.add_stock("a", 5)
+    got = inv.history("a")
+    got[0]["qty"] = 999
+    assert inv.history("a")[0]["qty"] == 5, "a caller could rewrite history through the returned event"
+
+
+def t_merge_adds_on_hand_not_available(m):
+    a = m.Inventory()
+    b = m.Inventory(); b.add_stock("x", 3); b.reserve("x", 1, "o1")
+    a.merge(b)
+    assert a.on_hand("x") == 3
+
+
 ALL = [v for k, v in sorted(globals().items()) if k.startswith("t_")]

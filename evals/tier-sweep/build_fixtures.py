@@ -416,7 +416,9 @@ copy the file if you want to experiment.
 def build_t3():
     ref = open(os.path.join(SRC, "ledger_ok.py")).read()
     tests = load("ledger_tests", os.path.join(SRC, "ledger_tests.py"))
-    muts = load("ledger_mutations", os.path.join(SRC, "ledger_mutations.py")).MUTATIONS
+    mutmod = load("ledger_mutations", os.path.join(SRC, "ledger_mutations.py"))
+    muts, keywords, also = mutmod.MUTATIONS, mutmod.KEYWORDS, mutmod.ALSO
+    assert set(keywords) == set(m[0] for m in muts), "every seeded defect needs a keyword list"
 
     def failures(src):
         m = load("ledger", src=src)
@@ -449,7 +451,11 @@ def build_t3():
         start = public.index(new)
         line = public.count("\n", 0, start) + 1 + delta
         assert changed.strip() in public.split("\n")[line - 1], bid + ": could not locate the mutated line"
-        bugs.append({"id": bid, "difficulty": diff, "clause": clause, "line": line, "desc": desc})
+        extra = also.get(bid, {})
+        bugs.append({"id": bid, "difficulty": diff, "clause": clause, "line": line, "desc": desc,
+                     "clauses": sorted(set([clause] + extra.get("clauses", []))),
+                     "also_functions": extra.get("functions", []),
+                     "keywords": keywords[bid]})
     write(os.path.join(FIX, "t3", "ledger.py"), public)
     shutil.copy(os.path.join(SRC, "ledger_SPEC.md"), os.path.join(FIX, "t3", "SPEC.md"))
     write(os.path.join(KEYS, "t3_bugs.json"), json.dumps({"_": CANARY, "bugs": bugs}, indent=1) + "\n")

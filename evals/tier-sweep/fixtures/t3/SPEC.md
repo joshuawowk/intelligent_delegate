@@ -37,8 +37,8 @@ clauses below are the whole contract. Quantities are whole units; money is integ
 6. `low_stock(threshold)` returns, sorted ascending, the skus whose available units are
    **strictly less than** `threshold`. A sku with available equal to `threshold` is not low.
 7. `history(sku, limit=None)` returns that sku's events **newest first**, as copies.
-   `limit=None` returns all of them; any integer `limit` returns at most that many, so
-   `limit=0` returns an empty list.
+   `limit=None` returns all of them; a non-negative integer `limit` returns at most that
+   many, so `limit=0` returns an empty list. A negative `limit` is outside this contract.
 
 ## Pricing
 

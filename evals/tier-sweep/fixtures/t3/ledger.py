@@ -7,7 +7,7 @@ class InsufficientStock(Exception):
 
 
 def _positive_int(qty):
-    return isinstance(qty, int) and not isinstance(qty, bool) and qty > 0
+    return isinstance(qty, int) and qty > 0
 
 
 class Inventory:
@@ -88,7 +88,7 @@ class Inventory:
         events = list(reversed(self._events.get(sku, [])))
         if limit:
             events = events[:limit]
-        return [dict(e) for e in events]
+        return events
 
     # -- pricing ---------------------------------------------------------
     @staticmethod
@@ -131,7 +131,8 @@ class Inventory:
 
     # -- merging ---------------------------------------------------------
     def merge(self, other):
-        for sku, qty in other._on_hand.items():
+        for sku in other._on_hand:
+            qty = other.available(sku)
             if qty > 0:
                 self._on_hand[sku] = self._on_hand.get(sku, 0) + qty
                 self._log(sku, "merge", qty)
