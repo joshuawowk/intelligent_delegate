@@ -161,27 +161,32 @@ false positives from several hundred lines of embedded prompt text.
 
 **Verified end-to-end, 2026-10-09**, because a hook that only works in unit tests is a
 file, not a control, and a tier whose frontmatter says `low` has proved nothing until one
-runs at `low`. Both checks are scripts: each starts fresh `claude -p --plugin-dir <this
-repo>` sessions and reads what the harness recorded, not what a model said.
+runs at `low`. Both checks are scripts. Each starts fresh `claude -p --plugin-dir <this
+repo>` sessions and reads what the harness recorded, never what a model said, and each has
+a `--self-test` showing that its comparison can fail.
 
-| `evals/probe_tiers.py` — parent at `haiku`/`max` | declared | ran as |
-|---|---|---|
-| `mechanical`, `scout` | haiku / low | `claude-haiku-5-5` at `low` |
-| `worker`, `inspector` | sonnet / medium | `claude-sonnet-5-5` at `medium` |
-| `drafter` | sonnet / high | `claude-sonnet-5-5` at `high` |
-| `reviewer`, `builder` | inherit / high | `claude-haiku-5-5` (the session's) at `high` |
-| `judge` | opus / xhigh | `claude-opus-5-5` at `xhigh` |
+| `evals/probe_tiers.py` | parent | declared | ran as |
+|---|---|---|---|
+| `mechanical`, `scout` | sonnet / max | haiku / low | `claude-haiku-5-5` at `low` |
+| `worker`, `inspector` | haiku / max | sonnet / medium | `claude-sonnet-5-5` at `medium` |
+| `drafter` | haiku / max | sonnet / high | `claude-sonnet-5-5` at `high` |
+| `reviewer`, `builder` | haiku / max | inherit / high | `claude-haiku-5-5` (the parent's) at `high` |
+| `judge` | haiku / max | opus / xhigh | `claude-opus-5-5` at `xhigh` |
 
-The parent runs at `max`, an effort no tier pins, so a tier that had lost its effort would
-show `max` instead of quietly matching — which is how `mechanical` was caught running at
-the session's `xhigh` before 0.4.0. **8 of 8 ran as declared.**
+**8 of 8 ran as declared.** The parent is chosen so that a lost pin cannot pass by
+inheriting the same value: it runs at `max`, which no tier pins, and on a model the tier
+does not pin. A tier that declares no effort at all is a mismatch outright — that is how
+`mechanical` ran before 0.4.0, at whatever the session was at.
 
-| `evals/probe_hook.py` | result |
-|---|---|
-| untiered `agent()` | **refused.** The deny reason and the stage table reach the session; the script never ran. |
-| correctly tiered `agent()` | **ran.** The hook said nothing. |
-| tiered, on `reviewer` | ran, and the inherit note is surfaced in the hook event stream |
-| waived, with no `effort` named | ran, and the unset-effort warning is surfaced |
+| `evals/probe_hook.py` | what the hook returned | did an agent run |
+|---|---|:--:|
+| untiered `agent()` | **deny**, with the reason and the stage table | no |
+| correctly tiered `agent()` | nothing | yes |
+| tiered, on `reviewer` | the inherit note | yes |
+| waived, with no `effort` named | the unset-effort warning | yes |
+
+**4 of 4 behaved.** The decision is parsed from the hook's own output in the session's
+`hook_response` event, and "ran" means a subagent transcript exists for that session.
 
 Each session's init event names the path it loaded the plugin from, and both scripts fail
 a case that loaded any other copy. That matters on a machine where the installed plugin is

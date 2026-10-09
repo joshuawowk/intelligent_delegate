@@ -45,10 +45,11 @@ arm, so it says whether the skill routes correctly, not whether it beats having 
 |---|---|:--:|:--:|:--:|
 | 1 — all 15 | `286f34c` | 10 / 15 | 30 / 45 | 173 / 192 |
 | 2 — the five revised cases | between the two | 4 / 5 | 14 / 15 | 74 / 75 |
-| **3 — all 15, final text** | `0ca95cf` | **11 / 15** | **39 / 45** | **185 / 192** |
+| 3 — all 15 | `0ca95cf` | 11 / 15 | 39 / 45 | 185 / 192 |
+| **4 — all 15, skill and rubric as shipped** | `d0ac041` | **10 / 15** | **39 / 45** | **185 / 192** |
 
 Every graded check, with its quoted evidence, is in `behavioural-runs-2026-10-09.json`
-(answers kept for run 3). No answer in any run opened anything but the skill: every answering agent's tool calls
+(answers kept for run 4). No answer in any run opened anything but the skill: every answering agent's tool calls
 were checked for `evals/`, `docs/`, `README.md` and `CHANGELOG.md`, and none read the
 reference files either — the skill body was enough for all fifteen. That check was run by
 the author against transcripts that are not in this repository; it is a claim here, not
@@ -85,12 +86,19 @@ items. All three answers did something better than either rule — settle which 
 meant, then tier by the answer — and the skill now says that, with the case where the
 ambiguity cannot be settled named as the exception.
 
-**Reading run 3.** None of its seven failed checks is a wrong route. Each is an answer of
-about 350 words leaving out a supporting point: a cost ratio given without saying it was
-the measured one, the waiver offered without its condition. And one is a warning about
-the method: case 11 passed 3/3 in run 1 and 1/3 in run 3 with no change to the text it
-draws on. At n=3 one borderline rubric line moves a case two places. Treat a single case's
-score as noise and the totals as the signal, and do not tune the skill to a line.
+**Reading runs 3 and 4.** Between them the skill changed by a handful of sentences — the
+exception for an ambiguity that cannot be settled, a label on one cost ratio — and the
+rubric for cases 5 and 13 was tightened as described above. Run 4 is the text as shipped
+and is the one to quote.
+
+They have the same totals and different failures. Run 3 missed in cases 4, 11, 12 and 14;
+run 4 in 11, 12, 13, 14 and 15. Case 4 went from 2/3 to 3/3 and case 15 from 3/3 to 2/3 on
+text that says the same thing about each. None of the seven failed checks in either run is
+a wrong route. Each is an answer of about 350 words leaving out a supporting point, or
+ordering two right steps the other way round. So: **at n=3 one borderline rubric line
+moves a case a place or two, the totals do not move at all, and a single case's score is
+noise.** Read the totals. Do not tune the skill to a line — the one time that was done
+here, after run 3, the line's case failed again in run 4 for a different answer.
 
 **Limits.** The grader is a model — the one place in this release where a model's judgment
 is the measurement; the harness caps answers near 350 words, which is what several misses

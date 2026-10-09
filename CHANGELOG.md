@@ -66,15 +66,17 @@ task shapes, none void, with decision rules committed before the data.
 **Verified**, each against this checkout in fresh sessions that prove which copy they
 loaded:
 
-- `evals/probe_tiers.py` — 8 of 8 tiers ran the model and effort they declare, under a
-  parent at `max` so that inheritance could not hide.
-- `evals/probe_hook.py` — the hook refused an untiered workflow, stayed silent on a tiered
-  one and surfaced both notes, in real sessions rather than on stdin.
+- `evals/probe_tiers.py` — 8 of 8 tiers ran the model and effort they declare, each under
+  a parent at `max` and on a model that tier does not pin, so a lost pin could not pass by
+  inheriting.
+- `evals/probe_hook.py` — 4 of 4 paths: the hook returned deny for an untiered workflow
+  and no agent ran; it returned nothing for a tiered one, and both notes where due.
 - `evals/measure_triggers.py` — the rewritten description fired on 16 of 16 positives and
   0 of 8 negatives at n=3, with all 72 calls confirmed.
 - `evals/behavioural.workflow.js` — 15 routing cases, three runs each, answered from
-  `SKILL.md` alone: 185 of 192 expectation checks passed and 39 of 45 runs passed every
-  one. No failure was a wrong route. The first run found one real tension in the skill
+  `SKILL.md` alone, on the text as shipped: 185 of 192 expectation checks passed and 39 of
+  45 runs passed every one. No failure was a wrong route, and the run before it had the
+  same totals with different cases missing — which is what noise looks like. The first run found one real tension in the skill
   (case 5), fixed, and six over-specified rubric lines in four cases, rewritten — three of
   which had failed in only two runs of three. `evals/README.md` lists every line changed.
 
