@@ -1,5 +1,5 @@
 {
-  "description": "Blocks a Workflow whose agent() calls carry no agentType — the defect that made three measured fan-outs run 100% on the session model, at the session's effort. Fails open on any error; waived per call with a `// untiered: <reason>` comment, and notes a waived call that names no effort.",
+  "description": "Blocks a Workflow whose agent() calls carry no agentType — the defect behind two of the three measured fan-outs that ran 100% on the session model, at the session's effort. Fails open on any error; waived per call with a `// untiered: <reason>` comment, and notes a waived call that names no effort.",
   "hooks": {
     "PreToolUse": [
       {

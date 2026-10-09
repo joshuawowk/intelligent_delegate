@@ -46,7 +46,8 @@ ALIAS = {"haiku": "claude-haiku-5-5", "sonnet": "claude-sonnet-5-5", "opus": "cl
 # bare name is not enough — "analyze.py" is what a model naturally calls a script it
 # writes to study a log, and an earlier version voided exactly that innocent run.
 PRIVATE_PATHS = ["tier-sweep/keys", "tier-sweep/src", "tier-sweep/build_fixtures",
-                 "tier-sweep/analyze", "tier-sweep/test_graders", "intelligent_delegate/.work",
+                 "tier-sweep/analyze", "tier-sweep/test_graders", "tier-sweep/RESULTS",
+                 "tier-sweep/results", "intelligent_delegate/.work",
                  ".work/audit", ".work/pilot", ".work/design", ".work/sweep"]
 # A private file's NAME with no path: a warning to read, never a void.
 PRIVATE_NAMES = ["t1_expected", "t2_answers", "t3_bugs", "t3_variants", "hidden_tests",
@@ -89,7 +90,7 @@ def read_transcript(path, run, others=(), vault=None):
                 pass
     stamps = [ts(r["timestamp"]) for r in recs if r.get("timestamp")]
     models, efforts, advisor_models = set(), set(), set()
-    usage = {}          # requestId -> usage; the last record for a request wins
+    usage = {}          # requestId -> the largest usage snapshot recorded for it
     tools = {}
     advisor_calls = 0
     void, warn = [], []
@@ -115,7 +116,14 @@ def read_transcript(path, run, others=(), vault=None):
             advisor_models.add(r["advisorModel"])
         rid = r.get("requestId") or msg.get("id")
         if msg.get("usage") and rid:
-            usage[rid] = (msg["usage"], r.get("requestedModel") or msg.get("model"))
+            # One API request is written as several records, one per content block, each
+            # carrying a usage snapshot. Keep the largest: output_tokens only grows, and
+            # the first snapshot undercounts it by an order of magnitude. On the 2026-10-09
+            # sweep the last record was the largest for all 892 requests, but that is an
+            # observation about ordering, not a guarantee.
+            prev = usage.get(rid)
+            if prev is None or (msg["usage"].get("output_tokens") or 0) >= (prev[0].get("output_tokens") or 0):
+                usage[rid] = (msg["usage"], r.get("requestedModel") or msg.get("model"))
         for c in msg.get("content") or []:
             t = c.get("type")
             if t == "tool_use":

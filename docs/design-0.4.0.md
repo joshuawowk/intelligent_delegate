@@ -59,9 +59,10 @@ Read the facts file for the evidence; these are the five that drive every edit.
    session.** Both probed. Precedence: call-site > definition > session. Nothing falls
    back to the catalog's `default_effort`.
 4. **The `Agent` tool takes `effort`**, and it overrides the definition's.
-5. **No current-generation model publishes an effort-cost index.** The effort x model
-   arithmetic in 0.3.0 priced Sonnet 5 and Opus 5. It is retired, and replaced by
-   measurement (source 2), not by new arithmetic.
+5. **No 5.5 model publishes an effort-cost index** — not Sonnet 5.5, Opus 5.5 or Haiku
+   5.5. (Fable 5.1 does; it is not a tier.) The effort x model arithmetic in 0.3.0 priced
+   Sonnet 5 and Opus 5. It is retired, and replaced by measurement (source 2), not by new
+   arithmetic.
 
 ## 2. What changes in the plugin
 
@@ -176,8 +177,9 @@ tree came to contradict itself.
   output tokens."
 - **Haiku's window.** "Haiku 5.5 has a 1M window. Above 100K prompt tokens it bills 5x its
   base rate, which is still a quarter of Sonnet's."
-- **Cheap, not fast.** "Haiku is the cheap model, not the fast one: it measured 1.6x
-  slower than Sonnet at the same effort."
+- **Cheap, not fast.** "Haiku is the cheap model, not the fast one: at `medium` it took
+  1.6x as long as Sonnet." (1.6x is the `medium` row. The gap was smaller at every other
+  effort, so do not write "at the same effort".)
 - **The default effort.** "`medium` is the default for bounded work on every model. `low`
   saved 8-17% and is where every Sonnet and Opus miss happened; `high` took 1.4-1.9x as
   long and `xhigh` 2.9-3.9x, and neither improved a score."
@@ -291,6 +293,12 @@ longer or cost more.
 | `opus/xhigh` vs `sonnet/medium` | t4 | 175.3 s vs 18.5 s | **9.5x** | $0.5126 vs $0.0537 | **9.5x** | 1.000 vs 1.000 |
 | `haiku/low` vs `sonnet/medium` | t4 | 24.2 s vs 18.5 s | **1.3x** | $0.0050 vs $0.0537 | **0.1x** | 1.000 vs 1.000 |
 
+Haiku's cost rows above round to "0.1x". Read the other way, so that the words in section
+3's descriptions can be traced: on the transform task `sonnet/medium` cost **9.9x**
+`haiku/low` ("a tenth"); on the extraction task `sonnet/medium` cost **13.2x** `haiku/low`
+("a thirteenth") and `sonnet/low` **11.9x**; across all four tasks `sonnet/medium` cost
+**9.5x** `haiku/medium` and **10.6x** `haiku/low`.
+
 Ranges you may quote, each read off the grid:
 
 - `xhigh` against `medium` on the same model: **2.9x** (Haiku), **3.7x** (Sonnet),
@@ -311,7 +319,18 @@ Ranges you may quote, each read off the grid:
 What was **not** measured, and must not be claimed: tokens per second for any model; fast
 mode; `max` effort; the advisor's latency or cost when consulted (it was attached to all
 240 runs and called by none); any task with a blast radius, an unstated invariant or an
-absence to prove; anything about `judge`.
+absence to prove; `judge` as a tier, on adjudication. (Its model-and-effort cell,
+`opus/xhigh`, was measured on the four bounded tasks, and may be quoted as that cell.)
+
+Fixture facts you may state: the transform task has 40 records; the extraction task asks
+ten questions of a 2,400-line log; the implementation task has 42 hidden tests. Do not
+state how many defects the review task seeds, or describe any of them: the sweep is meant
+to be re-run, and those are its answers.
+
+A 0.3.0 rule of thumb is retired and must not be carried over: "sample 5-10 tasks; below
+roughly 70% first-pass acceptance, promote". Neither number has a source, and with a 20x
+price gap the threshold is wrong — section 5's retry table is what now says how much
+failure a cheap tier can carry. Keep the advice to sample your own work; drop the numbers.
 
 ## 7. Per-file instructions
 
@@ -427,8 +446,10 @@ describe earlier descriptions and stay as dated history.
 ## 8. Things that are still true and must not be "corrected"
 
 - `reviewer` and `builder` are `model: inherit`; in an Opus session they run Opus. Probed.
-- `inspector` and `drafter` pin Sonnet at `high`; `worker` pins Sonnet at `medium`;
-  `judge` pins Opus at `xhigh`. Probed.
+- The pinned tiers pin, and a pin is honoured: `drafter` Sonnet at `high`, `worker` and
+  `inspector` Sonnet at `medium`, `judge` Opus at `xhigh`. (`inspector` pinned `high` in
+  0.3.0, which is the definition probe row 3 ran; that row proves frontmatter effort is
+  honoured, not that `inspector` is `high` today.)
 - An `agent()` call with no `agentType` inherits the session model, and loses `maxTurns`,
   the tool allowlist, `omitClaudeMd`, the operating rules and the return-value contract.
 - The tool surface is the biggest input lever. Re-measured on 2.1.295: all-tools

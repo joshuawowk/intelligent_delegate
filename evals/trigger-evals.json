@@ -86,5 +86,20 @@
   {
     "query": "Is reviewer cheaper than running my agents on Opus?",
     "should_trigger": true
+  },
+  {
+    "query": "These review agents take forever — how can I make this fan-out faster?",
+    "should_trigger": true,
+    "note": "speed-framed positive, agent-specific wording."
+  },
+  {
+    "query": "Would moving my worker agents to Haiku make this pipeline faster?",
+    "should_trigger": true,
+    "note": "speed-framed positive: the model-choice question where the honest answer is cheaper, not faster."
+  },
+  {
+    "query": "My webpack build is too slow, how do I speed it up?",
+    "should_trigger": false,
+    "note": "speed-framed negative: slowness with no agents in it. A bare 'too slow' must not fire the skill."
   }
 ]

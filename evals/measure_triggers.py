@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Measure whether the INSTALLED skill actually fires, on real `claude -p` sessions.
+"""Measure whether the skill in THIS CHECKOUT actually fires, on real `claude -p` sessions.
 
 Unlike skill-creator's run_eval.py — which tests a throwaway stub command and
-scored 0/32 here while the real skill was firing — this drives the plugin as
-installed and records which Skill tool call (if any) each query produced.
+scored 0/32 here while the real skill was firing — this drives the plugin itself
+and records which Skill tool call (if any) each query produced.
 
-What it measures is the INSTALLED plugin, not the working tree. Those differ
-whenever the plugin cache is stale, so this prints both and refuses to run on a
-mismatch unless you pass --allow-stale. See evals/README.md.
+Which copy it measures is not left to the install. Every call passes
+`--plugin-dir <this repo>`, and every session's own init event is read back to
+confirm the path it loaded `intelligent-delegate` from. A call that loaded any
+other copy is an ERROR, not a hit or a miss.
+
+That check replaced a sentence. Earlier versions printed "measuring the WORKING
+TREE", on the strength of a 2026-10-01 probe of a local-path install. On a machine
+where the plugin is a synced copy that sentence was false, nothing tested it, and
+the run would have reported a clean measurement of the previous release.
 
 Usage:  env -u CLAUDECODE python3 evals/measure_triggers.py
         env -u CLAUDECODE python3 evals/measure_triggers.py --runs 3 --out /tmp/run.json
@@ -27,7 +33,8 @@ ap.add_argument('--runs', type=int, default=int(os.environ.get('RUNS_PER_QUERY',
 ap.add_argument('--out', default=None, help='where to write results (default: a temp file, '
                 'copied over evals/last-trigger-run.json only on a clean run)')
 ap.add_argument('--allow-stale', action='store_true',
-                help='run even if the installed plugin differs from the working tree')
+                help='accepted for compatibility and ignored: the working tree is loaded '
+                     'explicitly, so there is no stale install to allow')
 ap.add_argument('--timeout', type=int, default=300,
                 help='per-call timeout. Measured: 150s with 6-way concurrency timed out 7 of '
                      '18 calls — and a timeout counted as a miss is exactly how a slow API '
@@ -57,101 +64,48 @@ if not any(q.get('control') for q in QUERIES):
           "must-not-fire control, a broken harness and a real regression look identical.",
           file=sys.stderr)
 
-# --- what are we actually measuring? installed plugin vs working tree -------------
-def installed_state():
-    try:
-        reg = json.load(open(os.path.expanduser('~/.claude/plugins/installed_plugins.json')))
-    except Exception as e:
-        return None, None, f'could not read installed_plugins.json: {e}'
-    def walk(o):
-        if isinstance(o, dict):
-            if 'installPath' in o:
-                yield o
-            for v in o.values():
-                yield from walk(v)
-        elif isinstance(o, list):
-            for v in o:
-                yield from walk(v)
-    for e in walk(reg):
-        if 'intelligent-delegate' in str(e.get('installPath', '')):
-            return e.get('installPath'), e.get('gitCommitSha'), None
-    return None, None, 'intelligent-delegate not found in installed_plugins.json'
-
+# --- what are we actually measuring? ------------------------------------------------
+PLUGIN = 'intelligent-delegate'
+HERE_REAL = os.path.realpath(REPO)
 head = subprocess.run(['git', '-C', REPO, 'rev-parse', 'HEAD'],
                       capture_output=True, text=True).stdout.strip()
-ipath, isha, ierr = installed_state()
+dirty = subprocess.run(['git', '-C', REPO, 'status', '--porcelain', '--', 'skills', 'agents',
+                        '.claude-plugin'], capture_output=True, text=True).stdout.strip()
 
-# Compare CONTENT, not bookkeeping. The recorded gitCommitSha only moves when plugin.json's
-# version moves, so it is stale after any ordinary commit and makes a SHA check unusable.
-# What actually decides whether this run measures your edits is whether the installed
-# SKILL.md and agent definitions are byte-identical to the tree's.
-WATCH = ['skills/delegate/SKILL.md'] + sorted(
-    'agents/' + f for f in os.listdir(os.path.join(REPO, 'agents')) if f.endswith('.md'))
-
-def content_drift(installed_root):
-    drift, unreadable = [], []
-    for rel in WATCH:
-        a_, b_ = os.path.join(REPO, rel), os.path.join(installed_root, rel)
-        try:
-            if open(a_, 'rb').read() != open(b_, 'rb').read():
-                drift.append(rel)
-        except OSError:
-            unreadable.append(rel)
-    return drift, unreadable
-
-# Is this a local-path install? Verified 2026-10-01: when the marketplace points at this
-# checkout, a FRESH `claude -p` session loads the definitions in place from the repo — a probe
-# session reported reviewer's tools including a ToolSearch entry that exists only in the tree,
-# not in the cache copy. So for a local-path install the cache dir and its recorded
-# gitCommitSha are bookkeeping, and every `claude -p` this script spawns measures the working
-# tree by construction. Drift there is worth reporting, not worth blocking on.
-local_marketplace = os.path.realpath(REPO) == os.path.realpath(
-    subprocess.run(['git', '-C', REPO, 'rev-parse', '--show-toplevel'],
-                   capture_output=True, text=True).stdout.strip() or REPO)
-
-print(f"working tree HEAD   : {head}")
-print(f"installed plugin    : {isha or '?'}  ({ipath or ierr})")
-drift, unreadable = content_drift(ipath) if (ipath and os.path.isdir(ipath)) else ([], WATCH)
-if drift:
-    print(f"cache copy          : {len(drift)} of {len(WATCH)} watched files differ from the "
-          f"tree ({', '.join(drift[:3])}{'…' if len(drift) > 3 else ''})")
-    print("                      For a local-path marketplace this is expected and harmless: "
-          "a fresh `claude -p`")
-    print("                      loads in place from the checkout, so this run measures the "
-          "tree. The cache")
-    print("                      dir and its recorded SHA only move when plugin.json's "
-          "version moves.")
-elif not unreadable:
-    print(f"cache copy          : identical to the tree for {len(WATCH)} watched files")
-
-print("measuring           : the WORKING TREE (fresh `claude -p` loads in place). A session "
-      "already running")
-print("                      holds what it loaded at start — restart it or /reload-plugins "
-      "to pick up edits.")
-if args.allow_stale:
-    print("NOTE: --allow-stale has no effect now that drift is reported rather than blocking.",
-          file=sys.stderr)
+print(f"working tree HEAD   : {head}{'  (+ uncommitted changes to skills/, agents/ or the manifest)' if dirty else ''}")
+print(f"loading             : --plugin-dir {REPO} on every call")
+print("verifying           : each session's init event names the path it loaded the plugin "
+      "from;")
+print("                      a call that loaded any other copy is reported as an ERROR")
 
 env = {k: v for k, v in os.environ.items() if k != 'CLAUDECODE'}
 
 def run(job):
     item, _ = job
     try:
-        p = subprocess.run(['claude', '-p', item['query'], '--output-format', 'stream-json',
-                            '--verbose'],
+        p = subprocess.run(['claude', '-p', item['query'], '--plugin-dir', REPO,
+                            '--output-format', 'stream-json', '--verbose'],
                            capture_output=True, timeout=args.timeout, env=env, cwd=REPO)
     except subprocess.TimeoutExpired:
-        return {**item, 'fired': None, 'error': f'timeout after {args.timeout}s', 'skills': []}
+        return {**item, 'fired': None, 'error': f'timeout after {args.timeout}s', 'skills': [],
+                'loaded': None}
     if p.returncode != 0:
         tail = p.stderr.decode('utf-8', 'replace').strip().splitlines()[-3:]
-        return {**item, 'fired': None,
+        return {**item, 'fired': None, 'loaded': None,
                 'error': f'claude exited {p.returncode}: ' + ' | '.join(tail), 'skills': []}
     skills = []
+    loaded = None          # path this session loaded the plugin from; None = not reported
     for line in p.stdout.decode('utf-8', 'replace').splitlines():
         try:
             r = json.loads(line)
         except Exception:
             continue
+        if isinstance(r, dict) and r.get('type') == 'system' and r.get('subtype') == 'init':
+            for pl in r.get('plugins') or []:
+                if isinstance(pl, dict) and pl.get('name') == PLUGIN:
+                    loaded = pl.get('path') or '?'
+            if loaded is None and 'plugins' in r:
+                loaded = '(not loaded)'
         def walk(o):
             if isinstance(o, dict):
                 if o.get('type') == 'tool_use' and o.get('name') == 'Skill':
@@ -163,8 +117,15 @@ def run(job):
                     walk(v)
         walk(r)
     if not skills and not p.stdout.strip():
-        return {**item, 'fired': None, 'error': 'claude produced no output', 'skills': []}
-    return {**item, 'fired': SKILL_ID in skills, 'error': None, 'skills': skills}
+        return {**item, 'fired': None, 'error': 'claude produced no output', 'skills': [],
+                'loaded': loaded}
+    # The session says where it loaded the plugin from. Anything but this checkout means
+    # the call measured some other copy, and its hit or miss is about that copy.
+    if loaded is not None and os.path.realpath(loaded) != HERE_REAL:
+        return {**item, 'fired': None, 'skills': skills, 'loaded': loaded,
+                'error': f'session loaded {PLUGIN} from {loaded}, not from this checkout'}
+    return {**item, 'fired': SKILL_ID in skills, 'error': None, 'skills': skills,
+            'loaded': loaded}
 
 jobs = [(q, i) for q in QUERIES for i in range(args.runs)]
 total = len(jobs)
@@ -212,7 +173,8 @@ for q in QUERIES:
                 'rate': f"{hits}/{len(ok)}" if ok else '0/0',
                 'skills_observed': sorted({s for r in ok for s in r['skills']}),
                 'errors': errs,
-                'harness': {'runs': args.runs, 'head': head, 'installed_sha': isha,
+                'loaded_from': sorted({str(r.get('loaded')) for r in rs}),
+                'harness': {'runs': args.runs, 'head': head, 'dirty': bool(dirty),
                             'skill_id': SKILL_ID}})
 
 dest = args.out or os.path.join(tempfile.mkdtemp(prefix='trigger-run-'), 'run.json')
@@ -227,6 +189,13 @@ tp = sum(1 for r in out if r['should_trigger'] and r['fired'] and r['state'] != 
 fn = sum(1 for r in out if r['should_trigger'] and not r['fired'] and r['state'] != 'ERROR')
 fp = sum(1 for r in out if not r['should_trigger'] and r['fired'] and r['state'] != 'ERROR')
 tn = sum(1 for r in out if not r['should_trigger'] and not r['fired'] and r['state'] != 'ERROR')
+unconfirmed = sum(1 for r in raw if r['error'] is None and r.get('loaded') is None)
+confirmed = sum(1 for r in raw if r['error'] is None and r.get('loaded') is not None)
+print(f"loaded from this checkout, confirmed by the session: {confirmed} of {len(raw)} calls")
+if unconfirmed:
+    print(f"WARNING: {unconfirmed} call(s) reported no plugin list in their init event, so which "
+          f"copy they loaded is UNCONFIRMED. The CLI's stream-json shape may have changed.",
+          file=sys.stderr)
 print(f"TP={tp} FN={fn} FP={fp} TN={tn} ERROR={len(errored)}")
 print(f"(n={args.runs} per query; a query counts as firing above 50% of non-errored runs)")
 for r in out:
@@ -264,8 +233,9 @@ if not args.out and len(errored) < len(out):
                            'See evals/README.md for how to read it.'),
                'generated_utc': __import__('datetime').datetime.now(
                    __import__('datetime').timezone.utc).isoformat(timespec='seconds'),
-               'runs_per_query': args.runs, 'head': head, 'installed_sha': isha,
-               'skill_id': SKILL_ID,
+               'runs_per_query': args.runs, 'head': head, 'dirty': bool(dirty),
+               'loaded_from': HERE_REAL, 'calls_confirmed': confirmed,
+               'calls_unconfirmed': unconfirmed, 'skill_id': SKILL_ID,
                'totals': {'TP': tp, 'FN': fn, 'FP': fp, 'TN': tn, 'ERROR': len(errored)},
                'results': out}
     json.dump(payload, open(canon, 'w'), indent=1)

@@ -4,8 +4,8 @@ Two suites. They look similar and answer different questions.
 
 | File | Schema | Question | Size |
 |---|---|---|---|
-| `evals.json` | skill-creator behavioural grading — `skill_name`, `evals[]` of `id` / `prompt` / `expected_output` / `expectations` | Once the skill is loaded, does it **route correctly**? | 8 cases, 24 expectations |
-| `trigger-evals.json` | flat list of `{query, should_trigger}` | Does the skill **fire at all**? | 16 queries — 10 positive, 6 adversarial negatives |
+| `evals.json` | skill-creator behavioural grading — `skill_name`, `evals[]` of `id` / `prompt` / `expected_output` / `expectations` | Once the skill is loaded, does it **route correctly**? | 15 cases |
+| `trigger-evals.json` | flat list of `{query, should_trigger}` | Does the skill **fire at all**? | 24 queries — positives, adversarial negatives and controls |
 
 **A skill can pass one and fail the other, in both directions.** A sharp description
 with a muddled body triggers reliably and then gives the wrong answer — full marks on
@@ -34,9 +34,12 @@ python3 eval-viewer/generate_review.py <workspace>/iteration-N \
 ```
 
 The `expectations` here are deliberately adversarial about *reasoning*, not just the
-verdict — case 2 wants the volume-vs-tool-call distinction stated, case 3 wants the
-negative-claim predicate named, case 8 wants Haiku's 200K window cited as a wall rather
-than as a cost. A case that lands the right answer for the wrong reason should fail.
+verdict — case 2 wants the volume-vs-tool-call distinction stated and the tier routed by
+whether the answer will be checked, case 3 the negative-claim predicate, case 4 call-site
+`effort` confirmed *and* why a tier still beats a bare call, case 8 ambiguity and fan-out
+as the reasons, not a context wall. Cases 13-15: effort inheritance, "Haiku to go faster"
+(cheaper, not faster), a slow fan-out (effort, then tier, then shape). A case that lands
+the right answer for the wrong reason should fail.
 
 ## Running `trigger-evals.json`
 
@@ -48,11 +51,10 @@ python3 -m scripts.run_eval \
   --runs-per-query 2 --verbose
 ```
 
-`--model` defaults to your configured session model; pass it explicitly if you want the
-trigger rate to match a specific one. `scripts.run_loop` wraps the same
-`--eval-set` / `--skill-path` / `--model` (required there, not optional) in a
-description-rewriting loop — add `--max-iterations`; it holds out 40% and selects on the
-held-out score.
+`--model` defaults to your configured session model; pass it to match a specific one.
+`scripts.run_loop` wraps the same `--eval-set` / `--skill-path` / `--model` (required
+there) in a description-rewriting loop — add `--max-iterations`; it holds out 40% and
+selects on the held-out score.
 
 > **`run_eval.py` does not test the installed skill.** It parses `description:` out of
 > `SKILL.md` and writes a throwaway slash-command into `<project_root>/.claude/commands/`
@@ -90,21 +92,23 @@ two-suites-in-one thing this directory currently does by hand.
 ## Why the negatives are adversarial
 
 The `delegate` description talks about model tiers, cheaper models, and reasoning effort
-levels. In that vocabulary "haiku" is a model name, so **"write me a haiku about autumn
-leaves"** is a live false-trigger risk on a lexical collision alone. The other five
-negatives target the description's broad cost vocabulary — it invites any turn where
-something feels slow or expensive — which is subjective enough to match almost any
-ordinary task. (The v1 clause they were originally written against, *"when work feels
-too expensive, too slow, or too token-hungry"*, was rewritten in v2; the negatives still
-probe the same risk.) A CSS fix, a rename, a regex, a `git rebase` explanation, a new CLI flag: all
-plausible work, none of them wanting a routing decision.
+levels. In that vocabulary "haiku" is a model name (`haiku` still resolves to a model), so
+**"write me a haiku about autumn leaves"** is a live false-trigger risk on a lexical
+collision alone. The next five negatives target the description's broad cost vocabulary —
+it invites any turn where something feels slow or expensive — which is subjective enough
+to match almost any ordinary task. (The v1 clause they were originally written against,
+*"when work feels too expensive, too slow, or too token-hungry"*, was rewritten in v2; the
+negatives still probe the same risk.) A CSS fix, a rename, a regex, a `git rebase`
+explanation, a new CLI flag: all plausible work, none of them wanting a routing decision.
+The last, **"my webpack build is too slow"**, is the speed-framed negative: the description
+names speed only in agent-specific words, because a bare "too slow" would fire on any slow
+build. The speed positives pair with it, so matching "slow" alone cannot pass.
 
-Over-triggering is a real cost, not a tidiness complaint. The plugin is ~1,016 tokens
-always-on, but the `delegate` skill costs ~5.1k more every time it fires. A skill that
-loads on CSS padding taxes every unrelated turn for the length of the session, and the
-tax is invisible — nobody attributes a slow, expensive turn to a skill that had nothing
-to do with it. A description tuned only for recall is a worse artifact than a narrow
-one.
+Over-triggering is a real cost, not a tidiness complaint. The `delegate` skill body loads in
+full every time it fires, so a skill that loads on CSS padding taxes every unrelated turn
+for the length of the session, and the tax is invisible — nobody attributes a slow,
+expensive turn to a skill that had nothing to do with it. A description tuned only for
+recall is a worse artifact than a narrow one.
 
 ## Measured results
 
@@ -116,11 +120,14 @@ measurement. A query counts as firing if it fires in at least half its runs.
 |---|--:|--:|:--:|
 | v1 — capability phrasing | 2/10 | 0/6 | 1 |
 | v2 — explicit short-form phrasings + "do not answer from memory" | 7–8/10 | 0/6 | 1 |
-| **current** — same, with the advisor claim made conditional | **9/9 measured** | **0/6** | **3** |
+| 2026-10-01 — same, with the advisor claim made conditional | **9/9 measured** | **0/6** | **3** |
+| 0.4.0 description — speed phrasings, effort and Haiku corrections | not measured | not measured | — |
 
-The `current` row is a single real run of all 18 cases at n=3 against the installed plugin,
-archived in `last-trigger-run.json` with its timestamp, HEAD, installed SHA and skill id.
-`TP=10 FN=0 FP=0 TN=7 ERROR=1`. Reading it honestly:
+The 2026-10-01 row is a single real run of all 18 cases at n=3 against the installed plugin,
+archived in `last-trigger-run.json`. `TP=10 FN=0 FP=0 TN=7 ERROR=1`. It measures a
+description since rewritten, and predates the three queries added after it and the three
+added for 0.4.0. **None of those, and nothing about the 0.4.0 description, is measured;
+re-run before quoting a current figure.** Reading that run honestly:
 
 - **Nine of the ten non-control positives were fully measured and all fired** — eight at 3/3,
   one at 2/3. The tenth ("this is burning way too many tokens…") **errored on a 300s
@@ -132,12 +139,12 @@ archived in `last-trigger-run.json` with its timestamp, HEAD, installed SHA and 
   That is what makes the rest of the numbers worth reading at all.
 - The only skill id observed anywhere in the run was `intelligent-delegate:delegate`.
 
-The v1 and v2 rows remain n=1 and are kept only to show the direction of travel. Do not
-compare them to the n=3 row as if they were measured the same way.
+The v1 and v2 rows remain n=1, kept only to show the direction of travel; they are not
+comparable to the n=3 row.
 
 **Single-run numbers on this harness are noise-dominated. Do not quote them.** Two
-consecutive n=1 runs of the current description scored 8/10 and 7/10, which looked like a
-regression caused by rewording. It was not. Re-running the three apparent misses at n=3:
+consecutive n=1 runs of the then-current description scored 8/10 and 7/10, which looked
+like a regression caused by rewording. It was not. Re-running the three apparent misses at n=3:
 
 | query | n=1 | n=3 |
 |---|---|---|
@@ -146,47 +153,40 @@ regression caused by rewording. It was not. Re-running the three apparent misses
 | "Is it worth spinning up agents for this, or is the overhead not worth it?" | missed | **0/3 — genuine** |
 | *control:* "Which model should I use for these worker agents?" | fired | 3/3 ✓ |
 
-Two of the three "misses" fire reliably or usually; only one is a stable miss. The
-apparent 8→7 regression was a coin flip, and acting on it would have meant tuning a
+The apparent 8→7 regression was a coin flip; acting on it would have meant tuning a
 description against sampling noise. Always include a known-firing control so a systemic
 failure — auth, a broken install, a harness bug — is distinguishable from a real miss.
 `trigger-evals.json` ships two, flagged `"control": true`: a must-fire query and a
-must-not-fire query. Both passed in the archived run (3/3 and 0/3). The harness warns when no control is present and prints
-`CONTROL CASE FAILED` when one breaks, because a failed control invalidates every other
-number in that run.
+must-not-fire query, both passed in the archived run (3/3 and 0/3). The harness prints
+`CONTROL CASE FAILED` when one breaks, because that invalidates every other number in the run.
 
-**The "one stable miss" is no longer a miss.** Earlier notes called
-*"is it worth spinning up agents for this, or is the overhead not worth it?"* a stable 0/3
-failure and reasoned at length about why — that it read as asking for a judgement rather
-than for reference material. At n=3 against the current description it fires **3/3**. The
-earlier 0/3 was either noise or was fixed by a description change nobody attributed. This is
-the second time on this suite that a confident explanation was built on top of a number that
-did not survive re-measurement; the first was the 8→7 "regression" below. **Re-measure before
-explaining.**
+**The "one stable miss" is no longer a miss.** *"Is it worth spinning up agents for this, or
+is the overhead not worth it?"* was explained at length as a stable 0/3 failure. At n=3
+against the 2026-10-01 description it fires **3/3**; the earlier 0/3 was noise or an unattributed
+description change. A confident explanation sat on a number that did not survive
+re-measurement, twice on this suite. **Re-measure before explaining.** Over-triggering remains
+the more expensive failure, so the clean false-positive column is the one to protect.
 
-Over-triggering remains the more expensive failure — a skill that loads on unrelated turns
-taxes every one of them — so the clean false-positive column is the one to protect.
-
-**Provenance of `last-trigger-run.json`.** It is now a real n=3 run of the current
-description against the installed plugin, carrying its own `generated_utc`, `runs_per_query`,
-`head`, `installed_sha`, `skill_id` and totals. Regenerating it costs billed `claude -p`
-calls — 18 queries × n at the configured concurrency — so re-run it when the description
-changes, not routinely. A run is archived unless *every* case errored; errored cases stay
-visible in the file as `state: "ERROR"` and are excluded from the totals.
+**Provenance of `last-trigger-run.json`.** A real n=3 run of the then-current description
+(2026-10-01, before the 2.1.295 catalog check) against the installed plugin, with its own
+`generated_utc`, `runs_per_query`, `head`, `installed_sha`, `skill_id` and totals.
+Regenerating costs billed `claude -p` calls — one per query per run — so re-run it when the
+description changes, not routinely. It has changed. A run is archived unless *every* case
+errored; errored cases stay visible as `state: "ERROR"` and are excluded from the totals.
 
 **Timeouts are the main source of noise, and they are not misses.** At 150s with 6-way
-concurrency, 7 of 18 calls timed out; at 300s with 4-way, 1 of 18 did. Those are slow calls,
-not description failures — the defaults are now 300s and concurrency 4, and `--timeout` /
-`--concurrency` are tunable. A timed-out case is reported as `ERROR` and left out of the
-denominator, because counting it as a miss is exactly how a slow API gets misread as a
-regression.
+concurrency, 7 of 18 calls timed out; at 300s with 4-way, 1 of 18 did. The defaults are now
+300s and concurrency 4 (`--timeout` / `--concurrency` are tunable). A timed-out case is an
+`ERROR`, left out of the denominator: counting it as a miss misreads a slow API as a regression.
 
 **What the harness now refuses to do.** Earlier versions never read `claude`'s exit status,
 so a broken install — expired auth, a missing binary, a `stream-json` shape change — scored
-`TP=0 FN=10 FP=0 TN=6` and exited **0**, reproducing the clean false-positive column above
-while measuring nothing. It now distinguishes an `ERROR` case from a miss, exits non-zero on
-any error or mismatch, and refuses to run at all when the installed plugin is not the
-working tree (`--allow-stale` overrides). That last guard matters because **this harness
-measures the installed copy, not your edits**: the plugin cache is keyed on the `version` in
-`plugin.json`, so editing files without bumping it leaves the install stale and your change
-unmeasured.
+`TP=0 FN=10 FP=0 TN=6` and exited **0**, reproducing a clean false-positive column while
+measuring nothing. It now distinguishes an `ERROR` case from a miss, exits non-zero on any
+error or mismatch, and refuses to run when the installed plugin is not the working tree
+(`--allow-stale` overrides). That guard matters because **this harness measures the
+installed copy, not your edits**: the plugin cache is keyed on the `version` in
+`plugin.json`, so editing without bumping it leaves your change unmeasured. An install can
+also be a synced copy (`claude plugin list` shows `@synced`), which does not pick up
+working-tree edits; verify a changed description or definition in a session that loads the
+checkout explicitly, `claude -p --plugin-dir <repo>`.

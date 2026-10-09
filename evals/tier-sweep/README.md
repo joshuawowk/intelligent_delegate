@@ -56,7 +56,8 @@ python3 analyze.py <workflow-transcript-dir> args.json --vault <vault> --json re
 **Seal before you run.** Workflow subagents start with this repository as their working
 directory. A recursive search issued without a path walks `keys/` and `src/` and returns
 lines from the reference implementations. `analyze.py` detects that and voids the run,
-but a voided run is a lost data point; `seal.py` removes the route. `git status` is clean
+but a voided run is a lost data point; `seal.py` removes the route. It moves `RESULTS.md`
+and `results/` too: a previous run's results name defects the review task seeds. `git status` is clean
 again after `restore`, which is the check that it worked.
 
 `make_runs.py` refuses a `<root>` inside the repository, and nests each run at
@@ -77,6 +78,5 @@ It bills 240 agent runs. A full sweep took about half an hour at six-way concurr
   shows nothing about harder work. `RESULTS.md` says so wherever it applies.
 - **Latency is this session's.** Seconds include queueing behind five other agents and
   whatever the API was doing that half hour. Read ratios between arms, not absolutes.
-- **Your workload is not this one.** The protocol in `SKILL.md` still applies: sample
-  five to ten of your own tasks at the tier you are considering and count first-pass
-  acceptance.
+- **Your workload is not this one.** Sample your own tasks at the tier you are considering
+  and count first-pass acceptance before trusting a default set on someone else's four.

@@ -136,7 +136,7 @@ case("the word reviewer in a prompt does not inflate the inherit count", wf(
 
 # --- the escape hatch ------------------------------------------------------
 case("waiver on the line above passes", wf("""
-// untiered: needs effort 'max', which frontmatter cannot express
+// untiered: needs a tool surface no shipped definition has
 const a = await agent('x', {label:'a', effort:'max'})
 """), "allow+note")
 

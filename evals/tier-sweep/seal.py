@@ -18,7 +18,10 @@ import shutil
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PRIVATE = ["keys", "src", "build_fixtures.py", "analyze.py", "test_graders.py"]
+# RESULTS.md and results/ are answers too: they name defects the review task seeds, and
+# the sweep is meant to be re-run with them out of reach.
+PRIVATE = ["keys", "src", "build_fixtures.py", "analyze.py", "test_graders.py",
+           "RESULTS.md", "results", "results_md.py"]
 
 
 def main(argv):

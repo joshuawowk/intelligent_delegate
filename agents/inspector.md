@@ -14,29 +14,29 @@ tools:
 
 # Inspector tier
 
-Sonnet at **high** effort, read-only. You are the **default** tier for inspection work;
+Sonnet at **medium** effort, read-only. You are the **default** tier for inspection work;
 `reviewer` is the escalation above you, not the normal choice.
 
 ## Why this tier exists
 
-The plugin's own guidance says, in two places, *lower effort before lowering model* and
-prefer *same model, different effort* over model-hopping so the cache stays warm. It then
-shipped a ladder with no `sonnet`/high rung: `worker` was sonnet/medium and the next step
-up was `reviewer`, which is `model: inherit`. In an Opus session that is not a step, it is
-a 2× → 4–5× jump, and it is the reason three measured fan-outs ran entirely on Opus — two
-of them while passing `agentType` correctly.
+The plugin's own guidance says *lower effort before lowering model*, and prefers *same model, different effort* so the cache stays warm (caches are model-scoped), yet its ladder had no Sonnet rung for review: `worker` was sonnet/medium and the next step up was `reviewer`, which
+is `model: inherit`. In an Opus session that is a change of model, and the reason three
+measured fan-outs ran entirely on Opus — one while passing `agentType` correctly on every
+call, another on 5 of its 13.
 
-Verification is a good candidate for this trade. Finding whether a concrete artifact
-matches a concrete source is a bounded reading task: the surface is wide but the judgment
-per item is usually shallow, so the **same** effort level on a cheaper model is a
-defensible swap. Routing it here rather than to `reviewer` costs whenever the session model is above Sonnet — about 40% of an inherit tier's cost in an Opus 5 session and 50% in an Opus 5.5 one. In a **Sonnet** session the two are identical, and in a **Haiku** session the pinned tier costs *more*.
+The effort is measured. On a seeded-defect review `sonnet/medium` found every defect in
+every run in 16.6 s for $0.0502, against 27.5 s and $0.0712 at `high` — 39% faster, same
+result. Measured on a saturated task: it shows the cheaper cell is enough for work of this
+difficulty and nothing about harder work. Each model at `low` missed one hard defect once,
+so `medium` is the floor. When a bounded review needs more thoroughness, pass
+`effort: 'high'` on the call (call-site effort beats the definition's, which beats the
+session's) before reaching for another tier. Routing here rather than to `reviewer` also
+changes the model: `opus/high` took 52.4 s and $0.1987 on that review. In a **Sonnet**
+session the two differ only in effort; in a **Haiku** session the pinned tier costs *more*.
 
-Two honest caveats. Nobody has measured sonnet/high review *quality* against the Opus
-tiers on this workload — the cost half is arithmetic from the published effort-cost index,
-the quality half is a judgement. And "effort repays more than tier here" is the same kind
-of judgement. If a verdict matters enough that being wrong is expensive, that is what the
-escalation predicates below are for; do not treat this paragraph as evidence that it never
-happens.
+Quality at `medium` against `high` was measured (equal, saturated), and against the Opus
+tiers on bounded work only (equal, saturated). It is still **unmeasured** on escalation-shaped
+work — a blast radius, an unstated invariant, an absence to prove — which the predicates below cover.
 
 **Where you are the wrong tier** — hand these to `reviewer` or `judge` instead, and say so
 if you were routed one by mistake. (These are the *escalation* predicates from

@@ -3,13 +3,16 @@
 
 Why this exists as a hook and not as a paragraph
 ------------------------------------------------
-The same defect has been measured three times (2026-09-30 twice, 2026-10-08 across
-four scripts): agent() calls in a fan-out running on the session model, because an
-agent() with no `agentType` silently inherits it. The guidance against this was
-already written — in SKILL.md and in references/workflow-patterns.md — and was
-correct both times it was ignored. Prose that has failed three times does not need
-a fourth printing; it needs an exit code. A PreToolUse `deny` is the one delivery
-path the orchestrator cannot skim past.
+A fan-out running entirely on the session model has been measured three times
+(2026-09-30 twice, 2026-10-08 across four scripts). Two of the three got there the
+way this hook catches: an agent() with no `agentType` silently inherits the
+session's model — and, probed since, its effort. The third passed agentType on
+every call and inherited anyway, through tiers that are `model: inherit`; the hook
+notes that case and does not block it. The guidance against the first was already
+written, in SKILL.md and in references/workflow-patterns.md, and was correct each
+time it was ignored. Prose that has failed that often does not need another
+printing; it needs an exit code. A PreToolUse `deny` is the one delivery path the
+orchestrator cannot skim past.
 
 The governing asymmetry
 -----------------------
@@ -58,9 +61,11 @@ STAGE_DEFAULTS = """\
   review / verify / audit ............  intelligent-delegate:inspector  (sonnet, medium, read-only)
   fully-specified fix from findings ..  intelligent-delegate:worker     (sonnet, medium, writes)
   convert or edit by rule and example   intelligent-delegate:mechanical (haiku, low, writes)
-  pull known facts you will check ....  intelligent-delegate:scout      (haiku, low, read-only)
   the one call that gates the result .  intelligent-delegate:reviewer   (session model, high)
   contested tie-break ................  intelligent-delegate:judge      (opus, xhigh)
+
+  Not a default, one narrow shape — pull named facts from a large input, where you can
+  check the answer:                     intelligent-delegate:scout      (haiku, low, read-only)
 
   One stage needs more than its tier gives? Raise effort on the call before changing
   tier: {agentType: 'intelligent-delegate:inspector', effort: 'high'}."""
@@ -548,10 +553,11 @@ def main():
             "Generation and verification are different jobs and should not share a "
             "tier. See intelligent-delegate's references/workflow-patterns.md, "
             "\"Per-stage tiering\".\n\n"
-            "Deliberately untiered — you need effort:'max', or bare {model, effort} "
-            "that no definition expresses? Put a\n"
+            "Deliberately untiered — no shipped definition has the tool surface or "
+            "mandate this stage needs? Put a\n"
             "  // untiered: <reason>\n"
-            "comment on or just above the call and this check passes it."
+            "comment on or just above the call and this check passes it. Then name an "
+            "effort on it: unset, it inherits the session's."
             % (len(untiered), len(calls), rows, STAGE_DEFAULTS)
         )
         print(json.dumps({
@@ -571,7 +577,8 @@ def main():
             "escalation in time and cost, to be spent where an escalation predicate "
             "fires. For ordinary review or generation, inspector (sonnet, medium) and "
             "drafter (sonnet, high) are the default: on bounded work an Opus inherit "
-            "tier measured about 3x the time of inspector for the same result. In a "
+            "tier measured about 3x the time of inspector for the same result (a "
+            "saturated task, so it says nothing about harder work). In a "
             "Sonnet session the pinned and inherit tiers run the same model." % (inherit, len(calls))
         )
     if unknown:
