@@ -14,11 +14,13 @@
     {
       "id": 2,
       "prompt": "Digest this 60,000-line vendor changelog and tell me which entries affect our USB stack. It's only two tool calls to read it.",
-      "expected_output": "Routes to a subagent despite the low tool-call count, because rule 1 is a volume test.",
+      "expected_output": "Routes to a subagent despite the low tool-call count, because rule 1 is a volume test. The tier is inspector: \"which entries affect our stack\" is a read the user will act on, and a missed entry looks the same as a complete list. scout would fit only if the caller could check the quoted lines.",
       "expectations": [
         "The answer is to delegate, not to do it inline",
         "It explicitly distinguishes volume of discarded reading from number of tool calls",
-        "It does not route this to the mechanical tier (the input risks Haiku's 200K context wall)"
+        "It routes this read to inspector, because the user will act on the answer and a missed entry would be silent; if it considers scout at all, it rejects it or makes it conditional on the caller checking the quoted evidence",
+        "It does not route this to the mechanical tier, which writes and converts by rule and is the wrong tool for reading",
+        "It does not describe Haiku's context window as a limit this input would hit"
       ]
     },
     {
@@ -26,7 +28,7 @@
       "prompt": "Confirm nothing else in the repo writes to the `session_token` field before I change its type.",
       "expected_output": "A negative/universal claim — must not be downgraded to a cheap tier, and Explore is the wrong type.",
       "expectations": [
-        "It declines to route this to the mechanical/haiku tier",
+        "It declines to route this to the mechanical or scout (Haiku) tier",
         "It cites the negative-or-universal-claim predicate, or absence proofs requiring exhaustive reading",
         "It does not recommend Explore, or it explicitly warns Explore reads excerpts and cannot establish absence"
       ]
@@ -34,21 +36,24 @@
     {
       "id": 4,
       "prompt": "I want to run twelve independent per-file lint fixes at low reasoning effort to save tokens. I'll just pass effort: 'low' to the Agent tool.",
-      "expected_output": "Corrects the premise: the Agent tool has no effort parameter.",
+      "expected_output": "Confirms the premise is valid: the Agent tool takes effort and it overrides the definition's. But a tier also brings the tool allowlist, maxTurns, omitClaudeMd and the operating rules, and mechanical already pins low, so the better route is the tier, not a bare call.",
       "expectations": [
-        "It states the Agent tool has no effort parameter",
-        "It offers a working alternative: the mechanical subagent_type, or a Workflow agent() call",
-        "It does not suggest putting effort instructions in the prompt text"
+        "It states the Agent tool does take an effort parameter and that the call-site value overrides the definition's",
+        "It names at least one thing a tier brings that a bare call with effort does not — the tool allowlist or smaller cold start, maxTurns, omitClaudeMd, the operating rules, or the return-value contract",
+        "It routes the lint fixes to the mechanical tier through agentType or subagent_type, noting that mechanical already pins low effort",
+        "If it quantifies what low effort saves, it says the saving over medium is small and that low is where the misses happened",
+        "It does not suggest putting effort instructions in the prompt text",
+        "It does not claim effort is unreachable from a bare call"
       ]
     },
     {
       "id": 5,
       "prompt": "Port this driver across 12 board directories; each one needs the same edit applied.",
-      "expected_output": "Workflow pipeline(). Tier is builder or the inherited model, NOT mechanical/worker — \"the same edit\" admits two readings (identical literal diff vs same kind of change adapted per board), so the no-downgrade predicate fires. No worktree: the twelve directories are disjoint paths, which do not conflict.",
+      "expected_output": "Workflow pipeline(). \"The same edit\" admits two readings (an identical literal diff, or the same kind of change adapted per board). Resolve that first — ask, or read one board — and tier by the answer: mechanical or worker for a literal diff, drafter when each board differs, builder only if it cannot be resolved (the two-readings escalation predicate then fires on every item, which is the exception to not fanning an inherit tier out). What is wrong is choosing any tier over the unresolved ambiguity. No worktree: the twelve directories are disjoint paths, which do not conflict.",
       "expectations": [
         "It routes to a Workflow rather than a single Agent call",
         "It uses pipeline() rather than parallel(), or justifies any barrier by a genuine cross-item dependency",
-        "It does NOT downgrade to mechanical or worker, citing that \"the same edit\" admits two readings and the ambiguity predicate disqualifies a cheap tier",
+        "It names the two readings of \"the same edit\" and says to resolve them BEFORE fanning out — by asking, or by reading one board — rather than choosing a tier over the ambiguity. It then tiers by the answer: a literal identical diff to mechanical or worker; a change adapted per board to drafter, never to a Haiku tier; and builder only if the ambiguity cannot be resolved. An answer that goes straight to builder for all twelve with no attempt to resolve, or that sends per-board adaptation to mechanical, fails this",
         "It does NOT require worktree isolation, or explicitly notes that disjoint paths do not conflict; isolation would only be needed if a stage ran git operations or two stages wrote the same path"
       ]
     },
@@ -74,11 +79,13 @@
     {
       "id": 8,
       "prompt": "Should I use the mechanical tier to refactor every call site across this 400-file monorepo?",
-      "expected_output": "No — the read volume risks Haiku's 200K context wall.",
+      "expected_output": "No, not as stated. \"Refactor every call site\" is not fully specified, and 400 files is a fan-out of many agents, not one mechanical agent. Mechanical fits only once the change is a rule plus an example with a cheap check.",
       "expectations": [
-        "It declines the mechanical tier for this task",
-        "It cites Haiku's 200K context limit as a hard wall rather than a cost concern",
-        "It notes that cold-start overhead is spent inside that same window"
+        "It declines the mechanical tier for this task as stated",
+        "It gives ambiguity as a reason: the refactor is not specified fully enough to apply by rule, and if call sites differ or two readings survive the work belongs on drafter or builder, not on a Haiku tier",
+        "It treats 400 files as a fan-out of per-file or per-directory units, not one agent reading the whole monorepo",
+        "It does not cite a context wall; if it mentions Haiku's window or the cost of large inputs, it says the window is 1M and the cost effect is the 100K-prompt-token price cliff",
+        "It says what would make mechanical acceptable: a fully specified rule or example, and a result the caller can check quickly"
       ]
     },
     {
@@ -86,7 +93,7 @@
       "prompt": "I'm writing a Workflow to build 18 documentation skills from a verified facts file, then review each one, then fix what review finds. I'm on Opus. Here's my stage: agent(brief, {label: `build:${s.name}`, phase: 'Build'}).",
       "expected_output": "Catches the missing agentType AND routes the build stage to drafter, not builder. This is the 2026-10-08 failure verbatim.",
       "expectations": [
-        "It flags that the agent() call has no agentType and therefore inherits the session model (Opus)",
+        "It flags that the agent() call has no agentType and therefore inherits the session model (Opus) and the session's effort",
         "It names the lost guarantees beyond price: maxTurns, the tool allowlist, operating rules, or the return-value contract",
         "It routes the build/generation stage to drafter (sonnet/high), not to builder or an untiered call",
         "It gives review and fix different tiers from build rather than one tier for the whole pipeline",
@@ -96,34 +103,71 @@
     {
       "id": 10,
       "prompt": "My Workflow passes agentType: 'intelligent-delegate:reviewer' on every single call, so the tiers are engaged and I'm getting the discount. I'm on an Opus session.",
-      "expected_output": "Corrects the premise: reviewer is model: inherit, so this is an all-Opus fan-out at full price.",
+      "expected_output": "Corrects the premise: reviewer is model: inherit, so in an Opus session this is an all-Opus fan-out with no discount on model price.",
       "expectations": [
         "It states that reviewer is model: inherit and therefore runs Opus in an Opus session",
-        "It says this is not a discount or saving",
-        "It names inspector (or a pinned-sonnet tier) as the actual cheaper route for ordinary review",
+        "It says this is not a discount or saving on model price",
+        "It names inspector (or a pinned-sonnet tier) as the route for ordinary review, which measured faster as well as cheaper on bounded work",
         "It does not congratulate the user on correct tier usage without correcting the cost premise"
       ]
     },
     {
       "id": 11,
       "prompt": "I have 40 claimed findings and I want one adversarial refuter per finding to try to knock each one down. Which tier for the refuters?",
-      "expected_output": "inspector, not reviewer and not judge. Refuting one named claim is narrow bounded work; fanning an inherit tier across 40 items is the over-escalation this plugin exists to prevent.",
+      "expected_output": "inspector, not reviewer and not judge. Refuting one named claim is narrow bounded work, which fits inspector on speed and cost as well as on fit; fanning an inherit tier across 40 items buys escalation the work does not need.",
       "expectations": [
-        "It routes the per-finding refuters to inspector (sonnet/high) rather than reviewer",
+        "It routes the per-finding refuters to inspector (sonnet/medium) rather than reviewer",
         "It does not fan judge out across the 40 items",
         "It reserves an escalated tier for a tie-break or a split verdict, if it mentions one at all",
+        "If it wants more thoroughness from the refuters, it passes effort: 'high' on the call before changing tier",
         "The reasoning distinguishes a narrow per-item read from a broad or cross-cutting one"
       ]
     },
     {
       "id": 12,
       "prompt": "Why did my Workflow get blocked with something about agentType? I just want to run it.",
-      "expected_output": "Explains the shipped PreToolUse hook, the real cost reason behind it, and the legitimate escape hatch -- without suggesting the user disable the hook as the fix.",
+      "expected_output": "Explains the shipped PreToolUse hook, the real reason behind it, and the legitimate escape hatch -- without suggesting the user disable the hook as the fix.",
       "expectations": [
-        "It explains that an agent() call with no agentType inherits the session model rather than being a cheap tier",
+        "It explains that an agent() call with no agentType inherits the session model and effort rather than being a tier",
         "It tells the user to add agentType per stage, and suggests tiers by stage kind",
-        "It mentions the // untiered: <reason> waiver only as the deliberate-bare-opts case, such as effort: 'max'",
+        "It mentions the // untiered: <reason> waiver only as the deliberate-bare-opts case — no shipped definition fits, or the stage needs more turns than the tier budgets — and says to name an effort on a waived call",
         "It does not recommend removing, disabling or bypassing the hook as the primary fix"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I wrote my own subagent definition for a data-cleanup job: model: haiku and no effort line. I work from an xhigh session. It's Haiku, so it will run cheap and fast, right?",
+      "expected_output": "No. An omitted effort runs at the session's effort, not at a default, so this is Haiku at xhigh. Pin effort in the definition or pass it on the call; call-site beats definition beats session.",
+      "expectations": [
+        "It states that a definition with no effort runs at the session's effort (xhigh here), not at a default and not at a low effort because the model is Haiku",
+        "It says that an effort passed on the call overrides the definition's, or gives the full precedence (call-site, then definition, then session)",
+        "It tells the user to pin an effort in the definition or pass one on the call, or to use the mechanical tier, which pins low",
+        "If it quantifies the cost of leaving it unset, the figure is one of these and no other: xhigh took 2.9x as long as medium on Haiku; Haiku at xhigh was 2.5x slower than at low on the transform task (31.8 s against 12.9 s); or haiku/xhigh took 3.5x the time and 2.8x the cost of haiku/low across the four tasks. An answer that gives no figure passes",
+        "It does not say the catalog's default effort applies to a subagent that names none"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "My fan-out of 30 per-file jobs takes too long, so I'll move every agent to Haiku to make it faster.",
+      "expected_output": "Corrects the premise: Haiku is cheaper, not faster. At `medium` it took 1.6x as long as Sonnet, because it writes about three times the output tokens.",
+      "expectations": [
+        "It says Haiku is the cheap model, not the fast one, and that it measured slower than Sonnet at the same effort (1.6x at medium)",
+        "Any Haiku-versus-Sonnet cost ratio it gives says which it is: 20x on price, or about 10x measured",
+        "If it explains why Haiku is slower, the reason it gives is output volume — Haiku writes about three times the output tokens",
+        "It points to what does shorten the run: pinning or lowering effort, and Sonnet at medium as the fast cell measured",
+        "It allows Haiku as a cost choice, and only where a wrong result would be quickly detectable"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "My Workflow fan-out is slow and I don't know where to start. What should I change?",
+      "expected_output": "Effort first, then tier, then shape. Effort was the largest speed lever measured; an untiered call inherits the session's model and effort; only after those does the pipeline's shape matter.",
+      "expectations": [
+        "It looks at effort first: agents inheriting the session's effort, especially xhigh, and pinning or lowering it to medium, since xhigh took 2.9-3.9x the time of medium on the same model with no meaningful gain in score (Sonnet and Opus scored 1.000 at both)",
+        "It looks at tier second: any agent() call with no agentType inherits the session's model and effort, and a pinned Sonnet tier is the fast one measured",
+        "It looks at shape last: pipeline() instead of a parallel() barrier, and the size and number of items",
+        "It does not propose raising effort on bounded work, and does not propose Haiku as the speed fix",
+        "It makes no claim about tokens per second or fast mode, which were not measured"
       ]
     }
   ]

@@ -3,13 +3,16 @@
 
 Why this exists as a hook and not as a paragraph
 ------------------------------------------------
-The same defect has been measured three times (2026-09-30 twice, 2026-10-08 across
-four scripts): agent() calls in a fan-out running on the session model, because an
-agent() with no `agentType` silently inherits it. The guidance against this was
-already written — in SKILL.md and in references/workflow-patterns.md — and was
-correct both times it was ignored. Prose that has failed three times does not need
-a fourth printing; it needs an exit code. A PreToolUse `deny` is the one delivery
-path the orchestrator cannot skim past.
+A fan-out running entirely on the session model has been measured three times
+(2026-09-30 twice, 2026-10-08 across four scripts). Two of the three got there the
+way this hook catches: an agent() with no `agentType` silently inherits the
+session's model — and, probed since, its effort. The third passed agentType on
+every call and inherited anyway, through tiers that are `model: inherit`; the hook
+notes that case and does not block it. The guidance against the first was already
+written, in SKILL.md and in references/workflow-patterns.md, and was correct each
+time it was ignored. Prose that has failed that often does not need another
+printing; it needs an exit code. A PreToolUse `deny` is the one delivery path the
+orchestrator cannot skim past.
 
 The governing asymmetry
 -----------------------
@@ -55,11 +58,17 @@ _REGEX_OK_WORDS = {
 
 STAGE_DEFAULTS = """\
   generate / draft prose or code .....  intelligent-delegate:drafter    (sonnet, high, writes)
-  review / verify / audit ............  intelligent-delegate:inspector  (sonnet, high, read-only)
+  review / verify / audit ............  intelligent-delegate:inspector  (sonnet, medium, read-only)
   fully-specified fix from findings ..  intelligent-delegate:worker     (sonnet, medium, writes)
-  mechanical transcription ...........  intelligent-delegate:mechanical (haiku, no effort)
+  convert or edit by rule and example   intelligent-delegate:mechanical (haiku, low, writes)
   the one call that gates the result .  intelligent-delegate:reviewer   (session model, high)
-  contested tie-break ................  intelligent-delegate:judge      (opus, xhigh)"""
+  contested tie-break ................  intelligent-delegate:judge      (opus, xhigh)
+
+  Not a default, one narrow shape — pull named facts from a large input, where you can
+  check the answer:                     intelligent-delegate:scout      (haiku, low, read-only)
+
+  One stage needs more than its tier gives? Raise effort on the call before changing
+  tier: {agentType: 'intelligent-delegate:inspector', effort: 'high'}."""
 
 
 class Scan(object):
@@ -376,6 +385,42 @@ def tier_of(sc, open_paren, end):
     return ("untiered", None)
 
 
+def effort_state(sc, open_paren, end):
+    """'set' | 'unset' | 'unknown' — whether this call's options name an `effort`.
+
+    Only asked of a call that has no agentType, where the answer matters: with no tier
+    and no effort the agent runs at the SESSION's effort. Probed 2026-10-09 on Claude
+    Code 2.1.295: `{model: 'sonnet'}` alone ran claude-sonnet-5-5 at xhigh in an xhigh
+    session, and a Haiku tier that declared no effort ran at xhigh too. So a bare
+    `{model: 'haiku'}` is the cheapest model at the session's thoroughness, which is
+    rarely what was meant.
+
+    'unknown' — options in a variable, or a spread that may carry it — says nothing,
+    for the same reason tier_of allows what it cannot read.
+    """
+    args = top_level_args(sc, open_paren, end)
+    obj = None
+    for a, b in args:
+        if sc.code_only(a, b).strip().startswith("{"):
+            obj = (a, b)
+    if obj is None:
+        present = [(a, b) for a, b in args if sc.src[a:b].strip()]
+        if len(present) <= 1 and not any("..." in sc.code_only(a, b) for a, b in present):
+            return "unset"
+        return "unknown"
+    code = sc.code_only(*obj)
+    if "..." in code:
+        return "unknown"
+    k = code.find("effort")
+    while k != -1:
+        before = code[k - 1] if k > 0 else " "
+        after = code[k + 6] if k + 6 < len(code) else " "
+        if not (before.isalnum() or before in "_$.") and not (after.isalnum() or after in "_$"):
+            return "set"
+        k = code.find("effort", k + 1)
+    return "unset"
+
+
 def waived(sc, start, end, comments, other_starts):
     """True if a real `// untiered: <reason>` comment waives THIS call.
 
@@ -466,7 +511,7 @@ def main():
     comments = sc.comments()
     starts = [c[0] for c in calls]
 
-    untiered, waived_n, inherit, unknown = [], 0, 0, 0
+    untiered, waived_n, inherit, unknown, no_effort = [], 0, 0, 0, 0
     for s, op, end in calls:
         if end is None:
             unknown += 1          # unbalanced: cannot tell, so allow
@@ -482,6 +527,8 @@ def main():
         others = [o for o in starts if o != s]
         if waived(sc, s, end, comments, others):
             waived_n += 1
+            if effort_state(sc, op, end) == "unset":
+                no_effort += 1
             continue
         untiered.append((src.count("\n", 0, s) + 1, label_of(sc, s, end)))
 
@@ -491,9 +538,11 @@ def main():
             "intelligent-delegate: %d of %d agent() calls in this workflow have no "
             "agentType.\n\n"
             "An agent() with no agentType is not a cheap tier — it is no tier. It "
-            "inherits the session model and loses the definition's maxTurns, tool "
-            "allowlist, omitClaudeMd, operating rules and return-value contract. The "
-            "harness logs it as agentType=\"workflow-subagent\".\n\n"
+            "inherits the session's model AND its effort, and loses the definition's "
+            "maxTurns, tool allowlist, omitClaudeMd, operating rules and return-value "
+            "contract. The harness logs it as agentType=\"workflow-subagent\". Measured "
+            "2026-10-09 in an Opus session at xhigh: 6.2x the time and 6.6x the cost of "
+            "sonnet/medium, for the same score.\n\n"
             "This is measured, not theoretical: three fan-outs ran 100%% on the session "
             "model (2026-09-30 x2, 2026-10-08). Two got there this way, with no "
             "agentType; the third passed agentType correctly and still ran Opus, "
@@ -504,10 +553,11 @@ def main():
             "Generation and verification are different jobs and should not share a "
             "tier. See intelligent-delegate's references/workflow-patterns.md, "
             "\"Per-stage tiering\".\n\n"
-            "Deliberately untiered — you need effort:'max', or bare {model, effort} "
-            "that no definition expresses? Put a\n"
+            "Deliberately untiered — no shipped definition has the tool surface or "
+            "mandate this stage needs? Put a\n"
             "  // untiered: <reason>\n"
-            "comment on or just above the call and this check passes it."
+            "comment on or just above the call and this check passes it. Then name an "
+            "effort on it: unset, it inherits the session's."
             % (len(untiered), len(calls), rows, STAGE_DEFAULTS)
         )
         print(json.dumps({
@@ -524,10 +574,12 @@ def main():
         notes.append(
             "%d of %d agent() calls use reviewer/builder, which are `model: inherit` — "
             "in a session above Sonnet they run the session model, so they are an "
-            "escalation, not a saving. For ordinary review or generation, "
-            "inspector/drafter (sonnet, high) are the cheaper default; in a Sonnet "
-            "session the two cost the same, and in a Haiku session the pinned tiers "
-            "cost more." % (inherit, len(calls))
+            "escalation in time and cost, to be spent where an escalation predicate "
+            "fires. For ordinary review or generation, inspector (sonnet, medium) and "
+            "drafter (sonnet, high) are the default: on bounded work an Opus inherit "
+            "tier measured about 3x the time of inspector for the same result (a "
+            "saturated task, so it says nothing about harder work). In a "
+            "Sonnet session the pinned and inherit tiers run the same model." % (inherit, len(calls))
         )
     if unknown:
         notes.append(
@@ -537,6 +589,13 @@ def main():
         )
     if waived_n:
         notes.append("%d call(s) waived via `// untiered:`." % waived_n)
+    if no_effort:
+        notes.append(
+            "%d of those set no `effort`. A call with no tier and no effort runs at the "
+            "session's effort, not at a default — measured as xhigh on Haiku in an xhigh "
+            "session — so it is as slow and as thorough as the session however cheap "
+            "its model. Name an effort on each." % no_effort
+        )
     if notes:
         print(json.dumps({"systemMessage": "intelligent-delegate: " + " ".join(notes)}))
     return 0

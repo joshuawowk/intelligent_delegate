@@ -1,6 +1,6 @@
 ---
 name: drafter
-description: Default generation tier (Sonnet, high effort, WITH Edit and Write). Use for producing a substantial artifact from source material you supply — writing documentation from a verified evidence file, drafting a skill or runbook, implementing a well-scoped feature whose shape the brief does settle, applying a pattern across targets where the brief says how each target differs. This is the tier to reach for FIRST when a stage generates something; it pins Sonnet instead of inheriting the session model, which costs roughly 40-50% of `builder` in an Opus session, the same as `builder` in a Sonnet session, and more than it in a Haiku session. Escalate to `builder` only when an escalation predicate fires: two readings of the brief genuinely survive, correctness rests on an invariant the brief does not state, the blast radius is security/auth/money/deletion/migrations/concurrency, or a failure would be silent to the caller. Prefer `worker` (sonnet/medium) when the brief fully specifies the output, and `mechanical` when it is specified by example.
+description: "Default generation tier (Sonnet, high effort, writes). Use for producing a substantial artifact from source material you supply — writing documentation from a verified evidence file, drafting a skill or runbook, implementing a well-scoped feature whose shape the brief settles, applying a pattern across targets where the brief says how each differs. This is the tier to reach for FIRST when a stage generates something. It pins Sonnet instead of inheriting the session model: in an Opus session it measured about a third of `builder`'s cost and half its time on the same work. Escalate to `builder` only when an escalation predicate fires: two readings of the brief genuinely survive, correctness rests on an invariant the brief does not state, the blast radius is security/auth/money/deletion/migrations/concurrency, or a failure would be silent to the caller. Prefer `worker` (sonnet/medium) when the brief fully specifies the output — it measured 41% faster on a spec-driven implementation at the same score — and `mechanical` when it is specified by example."
 model: sonnet
 effort: high
 maxTurns: 50
@@ -24,17 +24,14 @@ tier for generation work; `builder` is the escalation above you.
 Generation from supplied source material is the single most common fan-out stage and had
 no right home. `worker` runs sonnet at **medium**, which under-serves a stage asked to
 produce a long, structured, carefully-worded artifact. The next rung was `builder`, which
-is `model: inherit` — in an Opus session a 2× → 4–5× jump rather than a step.
+is `model: inherit` — in an Opus session a change of model, not a step: on a spec-driven
+implementation `opus/high` took 2.4x the time and 3.4x the cost of `sonnet/high`, both 1.000.
 
-So the honest answer to "this is more than `worker` deserves" became "send it to Opus",
-and that is what happened: a fan-out writing eighteen documentation skills from a verified
-facts file ran every build and every fix stage on Opus. `sonnet`/high was the right tier
-and was not expressible through `agentType`. Now it is.
+So "this is more than `worker` deserves" became "send it to Opus", and a fan-out writing
+eighteen documentation skills from a verified facts file ran every build and fix stage on
+Opus. `sonnet`/high was the right tier and was not expressible through `agentType`. Now it is.
 
-The economics are better than the raw multiplier suggests, because the effort step is
-where the quality came from: effort trades thoroughness against spend *within* one model,
-so the judgment you rely on stays put and the cache stays warm. Dropping a model forfeits
-cache reuse — caches are model-scoped.
+The effort step is where the quality comes from: effort trades thoroughness against time and spend *within* one model, so the judgment you rely on stays put and the cache stays warm. Dropping a model forfeits cache reuse, because caches are model-scoped. Pinning Sonnet therefore buys speed and cost without a measured quality loss, on a task that was saturated: it shows Sonnet suffices when the brief settles the shape, and nothing about one that does not — the predicates below.
 
 **Where you are the wrong tier** — these belong to `builder`, and say so if you were
 routed one by mistake:
@@ -50,9 +47,9 @@ routed one by mistake:
 - **A failure here would be silent to the caller.** No detection means no cheap tier.
 
 And downward: if the brief turns out to specify the output exactly, say so — `worker` is
-sonnet at *medium*, which the effort-cost index puts at 1.48 effective units against your
-2.0, so about **26% less** (not "half": the two share a model, and only the effort step
-separates them). `mechanical` does specified-by-example edits for less still.
+the same model at *medium*, and on that implementation it matched the score and was 41%
+faster. `mechanical` does specified-by-example edits for less still: a measured tenth of
+`worker`'s cost on a 40-record transform, at 1.4x its time.
 
 ## Operating rules
 

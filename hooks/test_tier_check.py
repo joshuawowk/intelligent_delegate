@@ -38,6 +38,15 @@ def wf(script):
     return {"tool_name": "Workflow", "tool_input": {"script": script}}
 
 
+def note(payload):
+    """The non-blocking systemMessage text, or '' when the hook said nothing."""
+    d = run(payload)
+    return (d or {}).get("systemMessage", "")
+
+
+LEAK = "set no `effort`"
+
+
 CASES = []
 
 
@@ -127,7 +136,7 @@ case("the word reviewer in a prompt does not inflate the inherit count", wf(
 
 # --- the escape hatch ------------------------------------------------------
 case("waiver on the line above passes", wf("""
-// untiered: needs effort 'max', which frontmatter cannot express
+// untiered: needs a tool surface no shipped definition has
 const a = await agent('x', {label:'a', effort:'max'})
 """), "allow+note")
 
@@ -246,6 +255,48 @@ case("an unreadable scriptPath is ignored",
      "allow")
 
 
+# --- the effort leak: a waived call that names no effort runs at the session's -------
+# These are note-only. Nothing here may ever turn an allow into a deny.
+NOTE_CASES = [
+    ("a waived call with a model but no effort is flagged", wf("""
+// untiered: needs a tool surface no shipped tier has
+const r = await agent('x', {model: 'haiku', label: 'a'})
+"""), True),
+    ("a waived call that sets effort is not", wf("""
+// untiered: needs max effort, which no shipped tier pins
+const r = await agent('x', {model: 'opus', effort: 'max', label: 'a'})
+"""), False),
+    ("shorthand `{effort}` counts as setting it", wf("""
+const effort = 'low'
+// untiered: effort chosen per item above
+const r = await agent('x', {model: 'haiku', effort, label: 'a'})
+"""), False),
+    ("a waived call with no options at all is flagged", wf("""
+// untiered: deliberately the session model at the session's effort
+const r = await agent('just a prompt')
+"""), True),
+    ("a spread may carry effort, so it is not flagged", wf("""
+// untiered: options assembled per item
+const r = await agent('x', {...base, label: 'a'})
+"""), False),
+    ("options in a variable may carry effort, so it is not flagged", wf("""
+// untiered: options assembled per item
+const r = await agent('x', OPTS)
+"""), False),
+    ("`effortLevel` is a different key and does not count", wf("""
+// untiered: bare opts
+const r = await agent('x', {model: 'haiku', effortLevel: 'low'})
+"""), True),
+    ("the word effort inside the prompt string does not count", wf("""
+// untiered: bare opts
+const r = await agent('use high effort: think hard', {model: 'haiku'})
+"""), True),
+    ("a tiered call is never flagged: its definition pins the effort", wf("""
+const r = await agent('x', {agentType: 'intelligent-delegate:mechanical', label: 'a'})
+"""), False),
+]
+
+
 def main():
     bad = []
     for payload, label in (("not json at all", "malformed stdin"),
@@ -265,7 +316,18 @@ def main():
             bad.append("%s: got %s, want %s" % (name, got, expect))
             print("  FAIL  %s -> %s (want %s)" % (name, got, expect))
 
-    print("\n%d/%d passed" % (passed, len(CASES)))
+    total = len(CASES) + len(NOTE_CASES)
+    for name, payload, expect_leak in NOTE_CASES:
+        text = note(payload)
+        allowed = decision(payload) != "deny"
+        ok = allowed and ((LEAK in text) == expect_leak)
+        passed += ok
+        print("  %s  %s" % ("ok  " if ok else "FAIL", name))
+        if not ok:
+            bad.append("%s: allowed=%s, leak note %s, want %s" % (
+                name, allowed, "present" if LEAK in text else "absent",
+                "present" if expect_leak else "absent"))
+    print("\n%d/%d passed" % (passed, total))
     if bad:
         print("\nfailures:")
         for b in bad:

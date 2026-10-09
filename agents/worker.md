@@ -1,6 +1,6 @@
 ---
 name: worker
-description: Default workhorse tier (Sonnet, medium effort). Use for ordinary multi-step implementation and research that needs real reading comprehension but not deep novel reasoning — implementing a well-scoped feature, tracing how a subsystem works, writing tests against a clear spec, migrating a known pattern across files. Do NOT use for adjudicating a contested judgment call, for adversarial verification, or for work where being confidently wrong is expensive.
+description: "Default workhorse tier (Sonnet, medium effort, writes). Use for ordinary multi-step implementation and research that needs real reading comprehension but has a knowable right answer — implementing a well-scoped feature, tracing how a subsystem works, writing tests against a clear spec, migrating a known pattern across files, applying a fix a review has already specified. Sonnet at medium was the fastest cell measured with no misses: against an untiered subagent in an Opus session at xhigh it took about a sixth of the time and cost for the same score. Do NOT use for adjudicating a contested judgment call, for adversarial verification, or for work where being confidently wrong is expensive."
 model: sonnet
 effort: medium
 maxTurns: 25
@@ -18,9 +18,9 @@ tools:
 
 # Worker tier
 
-You are the default tier — roughly 2x the cheapest tier, and meaningfully cheaper than
-the judgment tier. You were selected because the task needs genuine comprehension but has a knowable right
-answer that does not require adjudicating between defensible alternatives.
+You are the default tier: Sonnet at `medium` was the fastest cell measured with no misses; Opus at `xhigh`,
+`judge`'s pin, took 6.2x the time and 6.6x the cost for the same score. You were selected because the
+task needs comprehension but has a knowable right answer, with no adjudication between defensible alternatives.
 
 **Your budget is `maxTurns: 25`.** Counting against it is on you: see "Return value".
 

@@ -1,0 +1,40 @@
+ORD-10017|Vera Greaves|8|47.56|06/03/2025|H
+ ORD-10024  |  Omar Haddad| 2  |  153.2| 11/26/2026  |  C
+ORD-10031|Keiko R. Jaramillo|9|128|07/16/2025|H
+ORD-10038|Omar Marchetti|4|149.66|07/07/2026|s
+ORD-10045|Ulises Kowalczyk|9|153.6|06/11/2025|R
+ORD-10052|Nadia Castellanos|-12|71|08/18/2026|R
+ORD-10059|Rosa Marchetti-Dvorak|7|41.91|02/14/2025|R
+ORD-10066|Nadia Ann Quigley|11|166.4|04/01/2026|H
+ ORD-10073  |  Soren Lindqvist| 2  |  94| 12/22/2025  |  C
+ORD-10080|Rosa Abara|1|125.60|06/17/2025|p
+ORD-10087|Goran Jaramillo|10|172.8|02/04/2025|H
+ORD-10094|Mirela J. P. Haddad|6|14|02/25/2026|C
+ORD-10101|Jonas Haddad|6|69.24|04/11/2026|X
+ORD-10108|Vera Rasmussen|9|75.6|08/13/2025|P
+ORD-10115|Bao Lindqvist|-10|161|03/27/2026|H
+ORD-10122|Wendell Brandt|3|214.17|10/26/2025|C
+ ORD-10129  |  Tamsin Okonkwo| 10  |  147.4| 04/17/2026  |  H
+ORD-10136|Dmitri Abara|0|197|02/10/2025|P
+ORD-10143|Priya Marchetti|8|202.85|08/01/2026|r
+ORD-10150|Bao T. Okonkwo|12|244.1|08/08/2025|S
+ORD-10157|Priya Petrov|10|185|02/15/2026|P
+ORD-10164|Keiko Quigley-Faulkner|12|47.40|04/18/2026|H
+ ORD-10171  |  Omar Ivanova| 6  |  222.7| 09/06/2025  |  S
+ORD-10178|Elena Lee Q. Lindqvist|6|199|11/22/2026|R
+ORD-10185|Farah Brandt|12|149.27|03/26/2026|H
+ORD-10192|Mirela Jaramillo|5|75.9|01/08/2025|P
+ORD-10199|Avery Castellanos|8|223|09/28/2025|h
+ORD-10206|Yusuf Haddad|-12|207.86|04/04/2026|P
+ORD-10213|Imani Okonkwo|5|184.3|07/04/2026|S
+ORD-10220|Quentin Greaves|9|49|04/10/2026|q
+ ORD-10227  |  Hana Eriksen| 12  |  154.76| 02/20/2025  |  P
+ORD-10234|Goran M. Thackeray|2|169.3|01/05/2026|C
+ORD-10241|Jonas Okonkwo|9|56|08/20/2025|R
+ORD-10248|Xiomara Brandt|-7|52.31|06/14/2026|P
+ORD-10255|Soren Sandoval|3|84.0|08/02/2026|H
+ORD-10262|Tamsin Greaves|10|5|05/20/2025|c
+ORD-10269|Yusuf de Kowalczyk|9|112.91|10/05/2025|C
+ORD-10276|Priya Castellanos|4|134.6|09/11/2025|C
+ ORD-10283  |  Hana Quigley| 1  |  204| 03/05/2026  |  H
+ORD-10290|Imani Petrov|12|87.20|11/27/2026|S

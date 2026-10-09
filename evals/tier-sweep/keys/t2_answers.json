@@ -1,0 +1,43 @@
+{
+ "_": "CANARY-7f3e9a1c-tier-sweep-key",
+ "answers": {
+  "q1": 9,
+  "q2": "gateway",
+  "q3": "1cc1f7",
+  "q4": "4.11.3",
+  "q5": "p99_latency_regression",
+  "q6": "2026-03-15T04:31:46Z",
+  "q7": "inv-3",
+  "q8": 896,
+  "q9": "queue depth high depth=1592",
+  "q10": 8
+ },
+ "detail": {
+  "errors_by_service": {
+   "auth": 21,
+   "payments": 20,
+   "billing": 22,
+   "search": 20,
+   "gateway": 51,
+   "inventory": 14,
+   "notify": 21,
+   "reports": 23
+  },
+  "disk_pressure_top": [
+   [
+    "inv-3",
+    19
+   ],
+   [
+    "rpt-2",
+    4
+   ],
+   [
+    "gw-4",
+    3
+   ]
+  ],
+  "billing_error_total": 22,
+  "anchor_line": 913
+ }
+}
