@@ -47,7 +47,8 @@ arm, so it says whether the skill routes correctly, not whether it beats having 
 | 2 — the five revised cases | between the two | 4 / 5 | 14 / 15 | 74 / 75 |
 | **3 — all 15, final text** | `0ca95cf` | **11 / 15** | **39 / 45** | **185 / 192** |
 
-No answer in any run opened anything but the skill: every answering agent's tool calls
+Every graded check, with its quoted evidence, is in `behavioural-runs-2026-10-09.json`
+(answers kept for run 3). No answer in any run opened anything but the skill: every answering agent's tool calls
 were checked for `evals/`, `docs/`, `README.md` and `CHANGELOG.md`, and none read the
 reference files either — the skill body was enough for all fifteen.
 
