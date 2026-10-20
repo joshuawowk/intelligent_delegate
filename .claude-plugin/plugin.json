@@ -1,10 +1,11 @@
 {
   "name": "intelligent-delegate",
+  "displayName": "Intelligent Delegate",
   "version": "0.4.0",
   "description": "Routes a task to the right execution shape — inline, a single subagent, or a Workflow fan-out — and picks the model tier and reasoning effort to match, for speed, result quality and cost together. Ships eight pre-tiered agent definitions, each pinning a model, an effort, a turn budget and a tool surface, because a subagent that names none inherits the session's; and a PreToolUse hook that blocks a Workflow whose agent() calls carry no agentType. Tier defaults are set from a measured model x effort sweep.",
   "author": {
     "name": "Josh Wowk",
-    "url": "https://github.com/jwowk"
+    "url": "https://github.com/joshuawowk"
   },
   "homepage": "https://github.com/joshuawowk/intelligent_delegate",
   "repository": "https://github.com/joshuawowk/intelligent_delegate",

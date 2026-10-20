@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "owner": {
     "name": "Josh Wowk",
-    "url": "https://github.com/jwowk"
+    "url": "https://github.com/joshuawowk"
   },
   "metadata": {
     "description": "Task-routing plugin: decide whether to delegate, what shape to use, and which model tier and reasoning effort to spend — for speed, result quality and cost together."
@@ -17,7 +17,7 @@
       "version": "0.4.0",
       "author": {
         "name": "Josh Wowk",
-        "url": "https://github.com/jwowk"
+        "url": "https://github.com/joshuawowk"
       },
       "repository": "https://github.com/joshuawowk/intelligent_delegate",
       "license": "MIT",
