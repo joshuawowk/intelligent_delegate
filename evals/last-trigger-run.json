@@ -4,7 +4,7 @@
  "runs_per_query": 3,
  "head": "286f34c532f0fbb7b30daf8eb8b61c35f964863f",
  "dirty": false,
- "loaded_from": "/home/jwowk/Repos/intelligent_delegate",
+ "loaded_from": "/home/<user>/Repos/intelligent_delegate",
  "calls_confirmed": 72,
  "calls_unconfirmed": 0,
  "skill_id": "intelligent-delegate:delegate",
@@ -27,7 +27,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -47,7 +47,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -67,7 +67,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -87,7 +87,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -107,7 +107,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -127,7 +127,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -147,7 +147,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -167,7 +167,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -187,7 +187,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -207,7 +207,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -225,7 +225,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -243,7 +243,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -261,7 +261,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -279,7 +279,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -297,7 +297,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -315,7 +315,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -337,7 +337,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -357,7 +357,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -378,7 +378,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -398,7 +398,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -418,7 +418,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -439,7 +439,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -460,7 +460,7 @@
    ],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,
@@ -479,7 +479,7 @@
    "skills_observed": [],
    "errors": [],
    "loaded_from": [
-    "/home/jwowk/Repos/intelligent_delegate"
+    "/home/<user>/Repos/intelligent_delegate"
    ],
    "harness": {
     "runs": 3,

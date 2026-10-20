@@ -176,7 +176,7 @@ if (cfg.review) {
     'You are checking measurement fixtures before about a hundred agent runs are spent on them.',
     'A flaw here silently corrupts every result built on it, so be adversarial.',
     '',
-    'Directory: /home/jwowk/Repos/intelligent_delegate/evals/tier-sweep  (frozen at commit ' + (cfg.sha || 'HEAD') + '; do not modify anything)',
+    'Directory: /home/<user>/Repos/intelligent_delegate/evals/tier-sweep  (frozen at commit ' + (cfg.sha || 'HEAD') + '; do not modify anything)',
     '  briefs.json       the exact task text each agent is given',
     '  fixtures/t1..t4   the files each agent sees',
     '  keys/             the answer keys',

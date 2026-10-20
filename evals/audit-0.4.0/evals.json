@@ -2,7 +2,7 @@
  "group": "evals",
  "findings": [
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 7,
    "quote": "8 cases, 24 expectations",
    "category": "other",
@@ -14,7 +14,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 8,
    "quote": "16 queries \u2014 10 positive, 6 adversarial negatives",
    "category": "other",
@@ -26,7 +26,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 38,
    "quote": "case 8 wants Haiku's 200K window cited as a wall",
    "category": "haiku-context",
@@ -38,7 +38,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 93,
    "quote": "levels. In that vocabulary \"haiku\" is a model name, so **\"write me a haiku about autumn",
    "category": "haiku-effort",
@@ -50,7 +50,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 102,
    "quote": "The plugin is ~1,016 tokens",
    "category": "other",
@@ -62,7 +62,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 119,
    "quote": "| **current** \u2014 same, with the advisor claim made conditional | **9/9 measured** | **0/6** | **3** |",
    "category": "version-string",
@@ -74,7 +74,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/README.md",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/README.md",
    "line": 121,
    "quote": "The `current` row is a single real run of all 18 cases at n=3 against the installed plugin,",
    "category": "version-string",
@@ -86,7 +86,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 21,
    "quote": "It does not route this to the mechanical tier (the input risks Haiku's 200K context wall)",
    "category": "haiku-context",
@@ -98,7 +98,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 36,
    "quote": "I'll just pass effort: 'low' to the Agent tool.",
    "category": "agent-tool-effort",
@@ -110,7 +110,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 37,
    "quote": "Corrects the premise: the Agent tool has no effort parameter.",
    "category": "agent-tool-effort",
@@ -122,7 +122,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 39,
    "quote": "It states the Agent tool has no effort parameter",
    "category": "agent-tool-effort",
@@ -134,7 +134,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 40,
    "quote": "It offers a working alternative: the mechanical subagent_type, or a Workflow agent() call",
    "category": "agent-tool-effort",
@@ -146,7 +146,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 77,
    "quote": "No \u2014 the read volume risks Haiku's 200K context wall.",
    "category": "haiku-context",
@@ -158,7 +158,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 79,
    "quote": "It declines the mechanical tier for this task",
    "category": "haiku-context",
@@ -170,7 +170,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 80,
    "quote": "It cites Haiku's 200K context limit as a hard wall rather than a cost concern",
    "category": "haiku-context",
@@ -182,7 +182,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 81,
    "quote": "It notes that cold-start overhead is spent inside that same window",
    "category": "haiku-context",
@@ -194,7 +194,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 89,
    "quote": "It flags that the agent() call has no agentType and therefore inherits the session model (Opus)",
    "category": "model-identity",
@@ -206,7 +206,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 93,
    "quote": "It does not claim that adding effort: 'high' to the opts is equivalent to naming a tier",
    "category": "agent-tool-effort",
@@ -218,7 +218,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 99,
    "quote": "Corrects the premise: reviewer is model: inherit, so this is an all-Opus fan-out at full price.",
    "category": "model-identity",
@@ -230,7 +230,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 101,
    "quote": "It states that reviewer is model: inherit and therefore runs Opus in an Opus session",
    "category": "model-identity",
@@ -242,7 +242,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 102,
    "quote": "It says this is not a discount or saving",
    "category": "objective",
@@ -254,7 +254,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/evals.json",
    "line": 112,
    "quote": "It routes the per-finding refuters to inspector (sonnet/high) rather than reviewer",
    "category": "tier-shape",
@@ -266,7 +266,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/trigger-evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/trigger-evals.json",
    "line": 15,
    "quote": "This is burning way too many tokens, can we make it cheaper?",
    "category": "objective",
@@ -278,7 +278,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/trigger-evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/trigger-evals.json",
    "line": 19,
    "quote": "What reasoning effort level should these subagents run at?",
    "category": "effort-runtime",
@@ -290,7 +290,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/trigger-evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/trigger-evals.json",
    "line": 23,
    "quote": "Can I delegate this audit to something cheaper than Opus?",
    "category": "objective",
@@ -302,7 +302,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/trigger-evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/trigger-evals.json",
    "line": 43,
    "quote": "Write me a haiku about autumn leaves",
    "category": "haiku-effort",
@@ -314,7 +314,7 @@
    "disputed": false
   },
   {
-   "file": "/home/jwowk/Repos/intelligent_delegate/evals/trigger-evals.json",
+   "file": "/home/<user>/Repos/intelligent_delegate/evals/trigger-evals.json",
    "line": 87,
    "quote": "Is reviewer cheaper than running my agents on Opus?",
    "category": "objective",
