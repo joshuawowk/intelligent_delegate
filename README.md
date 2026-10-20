@@ -1,5 +1,8 @@
 # intelligent_delegate
 
+[![Release](https://img.shields.io/github/v/release/joshuawowk/intelligent_delegate?include_prereleases&sort=semver)](https://github.com/joshuawowk/intelligent_delegate/releases)
+[![License: MIT](https://img.shields.io/github/license/joshuawowk/intelligent_delegate)](LICENSE)
+
 > Plugin id `intelligent-delegate` · repo/folder `intelligent_delegate`
 
 A Claude Code plugin that answers three questions before work gets handed off, aiming at
@@ -201,6 +204,18 @@ sweep measured for bounded work only, and nothing here measures it for work with
 radius, an unstated invariant or an absence to prove.
 
 ## Install
+
+From an interactive `claude` session (the repo is its own single-plugin marketplace):
+
+```
+/plugin marketplace add joshuawowk/intelligent_delegate
+/plugin install intelligent-delegate@intelligent-delegate
+```
+
+Start a new session afterwards. Requires `python3` on `PATH` for the Workflow-tier hook.
+To install from a local clone instead, see below.
+
+### Install from a local clone
 
 The repo is its own single-plugin marketplace (`.claude-plugin/marketplace.json`
 with `source: "./"`), so it installs in two steps. Clone it:
