@@ -281,12 +281,19 @@ a local-path install:
   bookkeeping for a local-path install, not the live source.** Neither moves until the
   version does; do not read a stale `gitCommitSha` as "my edits are not live".
 - **This does not generalise to a remote marketplace or a synced copy**, where the cached
-  copy *is* what runs. There, bump the version and reinstall.
+  copy *is* what runs.
 
-Bump the `version` in `.claude-plugin/plugin.json` for a real release — it lets the
-installer re-record, keeps `claude plugin details` honest, and remote installs need it —
-then `claude plugin marketplace update intelligent-delegate` and
-`claude plugin update intelligent-delegate@intelligent-delegate`.
+**Releases track `main`: the manifests deliberately carry no `version`.** Claude Code and
+claude.ai detect an update by comparing the plugin's computed version, and a `version` in
+`plugin.json` or the marketplace entry wins — "If you set `"version": "1.0.0"` and push new
+commits without changing it, users don't receive them" (Claude Code docs, *Host a
+marketplace → Release a new version*). With no `version`, the version is the commit SHA,
+so every merge to `main` reaches the synced copy on the next session start (then
+`/reload-plugins`, or a new session). Measured here: while `plugin.json` said `0.4.0`, the
+synced copy stayed at its 2026-10-09 state through later merges. Do not add a `version`
+back; `CHANGELOG.md` headings name releases instead. For a non-synced remote install,
+`claude plugin marketplace update intelligent-delegate` and
+`claude plugin update intelligent-delegate@intelligent-delegate` pull the new commit.
 
 `evals/measure_triggers.py` does not rely on any of this: it passes `--plugin-dir` on every
 call and fails any call whose own init event names another copy.
@@ -303,7 +310,8 @@ intelligent-delegate@intelligent-delegate`.
 `details` output is archived here. Re-run `details` after editing rather than quoting these.
 
 > **Note on names.** The plugin id is `intelligent-delegate` (kebab-case, so
-> `claude plugin validate` passes clean and it can sync to claude.ai); the **repo and
+> `claude plugin validate` passes — with one expected warning, the missing `version` — and
+> it can sync to claude.ai); the **repo and
 > folder** are `intelligent_delegate`. The mismatch is deliberate: the id is what shows up
 > in `/plugin` and in agent namespaces (`intelligent-delegate:worker`).
 

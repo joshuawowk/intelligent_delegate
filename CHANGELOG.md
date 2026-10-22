@@ -3,6 +3,14 @@
 What changed in each release and why. `skills/delegate/SKILL.md` is loaded into context
 every time the skill fires, so the history that used to be narrated there lives here.
 
+## Releases track `main` — 2026-10-22
+
+The manifests no longer carry a `version`. Claude Code and claude.ai detect updates by
+comparing the computed version, `plugin.json` first; with a pinned `0.4.0` the account's
+synced copy stayed at its 2026-10-09 state through every later merge. With no `version`
+the commit SHA is the version, so each merge to `main` ships. Headings here name releases;
+`claude plugin validate --strict` now warns on the missing field by design.
+
 ## 0.5.0 — 2026-10-22
 
 0.4.0 tiered subagents correctly in the first real sessions audited after it shipped, and
