@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """PreToolUse hook: refuse a Workflow script whose agent() calls carry no agentType.
 
+Since 0.5.0 it also (a) notes, never denies, an `Agent` call that names no tier and no
+model — the single-call form of the same defect — and (b) warns once per session when
+CLAUDE_CODE_EFFORT_LEVEL or CLAUDE_CODE_SUBAGENT_MODEL_FORCE is set, because either one
+overrides every tier's pin (Claude Code docs, sub-agents, read 2026-10-22). Notes go out
+as `additionalContext` as well as `systemMessage`: the docs say `systemMessage` is shown
+to the user only, so before 0.5.0 the orchestrator never read them.
+
 Why this exists as a hook and not as a paragraph
 ------------------------------------------------
 A fan-out running entirely on the session model has been measured three times
@@ -40,7 +47,9 @@ single pass that classifies every byte once, and everything else reads its outpu
 """
 
 import json
+import os
 import sys
+import tempfile
 
 HOOK_EVENT = "PreToolUse"
 
@@ -480,16 +489,97 @@ def label_of(sc, s, e):
     return ""
 
 
+# Environment variables that silently void the tier pins (Claude Code docs, sub-agents
+# and model-config, read 2026-10-22). A hook inherits Claude Code's environment, so it
+# can see what the orchestrator cannot.
+def override_notes(session_id):
+    """Notes for env vars that override every tier, once per session."""
+    notes = []
+    effort = os.environ.get("CLAUDE_CODE_EFFORT_LEVEL", "").strip()
+    force = os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL_FORCE", "").strip().lower()
+    forced_model = os.environ.get("CLAUDE_CODE_SUBAGENT_MODEL", "").strip()
+    if effort:
+        notes.append(
+            "CLAUDE_CODE_EFFORT_LEVEL=%s is set: it beats both a definition's `effort:` and "
+            "the call's `effort`, so every tier in this session runs at %s whatever it "
+            "pins." % (effort, effort))
+    if force in ("1", "true", "yes", "on") and forced_model:
+        notes.append(
+            "CLAUDE_CODE_SUBAGENT_MODEL_FORCE is on with CLAUDE_CODE_SUBAGENT_MODEL=%s: "
+            "every subagent and workflow agent runs %s, ignoring each definition's "
+            "`model:` and any `model` passed on the call — the tiers collapse onto one "
+            "model." % (forced_model, forced_model))
+    if not notes:
+        return []
+    # Say it once per session: the same paragraph on every call would only cost context.
+    try:
+        key = "".join(c for c in str(session_id or "nosession") if c.isalnum() or c in "-_")[:80]
+        marker = os.path.join(tempfile.gettempdir(), "intelligent-delegate-override-%s" % key)
+        if os.path.exists(marker):
+            return []
+        with open(marker, "w") as fh:
+            fh.write("1")
+    except Exception:
+        pass
+    return notes
+
+
+def emit_notes(notes):
+    """Allow the call, and deliver the notes to the model as well as to the user.
+
+    `systemMessage` is shown to the user only; `additionalContext` is what reaches
+    Claude (Claude Code docs, hooks). Notes meant to change the next routing decision
+    are useless if only the user sees them.
+    """
+    text = "intelligent-delegate: " + " ".join(notes)
+    print(json.dumps({
+        "systemMessage": text,
+        "hookSpecificOutput": {
+            "hookEventName": HOOK_EVENT,
+            "additionalContext": text,
+        },
+    }))
+
+
+GENERIC_TYPES = ("", "general-purpose")
+
+
+def check_agent_call(ti, session_id):
+    """Note, never deny, an Agent call that names no tier and no model.
+
+    With no `subagent_type` the call runs `general-purpose`: every tool schema
+    (about 38K tokens of prefix, against 7-9K for a scoped definition), the
+    session's model, and the session's effort. A one-off can be right; it should
+    be a choice.
+    """
+    notes = override_notes(session_id)
+    st = ti.get("subagent_type") or ""
+    if st in GENERIC_TYPES and not ti.get("model"):
+        notes.append(
+            "This Agent call names no tier and no model, so it runs general-purpose on "
+            "the session's model at the session's effort, with every tool schema in its "
+            "prefix. Name a tier (inspector to read and judge, worker or drafter to write, "
+            "scout to pull checkable facts from a large input) or pass model and effort.")
+    if notes:
+        emit_notes(notes)
+    return 0
+
+
 def main():
     try:
         data = json.load(sys.stdin)
     except Exception:
         return 0
-    if not isinstance(data, dict) or data.get("tool_name") != "Workflow":
+    if not isinstance(data, dict):
         return 0
-
+    tool = data.get("tool_name")
     ti = data.get("tool_input")
     if not isinstance(ti, dict):
+        return 0
+    session_id = data.get("session_id")
+    if tool in ("Agent", "Task"):
+        return check_agent_call(ti, session_id)
+    if tool != "Workflow":
         return 0
     src = ti.get("script")
     if not src:
@@ -507,6 +597,9 @@ def main():
     sc = Scan(src)
     calls = find_agent_calls(sc)
     if not calls:
+        notes = override_notes(session_id)
+        if notes:
+            emit_notes(notes)
         return 0
     comments = sc.comments()
     starts = [c[0] for c in calls]
@@ -560,6 +653,9 @@ def main():
             "effort on it: unset, it inherits the session's."
             % (len(untiered), len(calls), rows, STAGE_DEFAULTS)
         )
+        extra = override_notes(session_id)
+        if extra:
+            reason += "\n\n" + " ".join(extra)
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": HOOK_EVENT,
@@ -569,7 +665,7 @@ def main():
         }))
         return 0
 
-    notes = []
+    notes = override_notes(session_id)
     if inherit:
         notes.append(
             "%d of %d agent() calls use reviewer/builder, which are `model: inherit` — "
@@ -597,7 +693,7 @@ def main():
             "its model. Name an effort on each." % no_effort
         )
     if notes:
-        print(json.dumps({"systemMessage": "intelligent-delegate: " + " ".join(notes)}))
+        emit_notes(notes)
     return 0
 
 

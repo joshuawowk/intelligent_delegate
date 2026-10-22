@@ -14,8 +14,16 @@ speed, result quality and cost together:
 3. **At what tier?** — which model, and which reasoning effort
 
 It ships a `delegate` skill (the routing procedure), eight pre-tiered agent definitions
-(each bundles a model, an effort, a tool allowlist and a turn cap), and a `PreToolUse`
-hook that refuses a Workflow whose `agent()` calls carry no `agentType`.
+(each bundles a model, an effort, a tool allowlist and a turn cap), a `PreToolUse`
+hook that refuses a Workflow whose `agent()` calls carry no `agentType`, and an audit
+script — `scripts/delegation_audit.py`, or `/intelligent-delegate:audit` — that splits a
+session's spend into the orchestrator and each subagent.
+
+**What 0.5.0 found.** The first real sessions audited after 0.4.0 tiered every subagent
+correctly — and the Opus orchestrator was still 74-76% of the bill, from re-reading its own
+large context on every request and on every background-agent completion. The skill now
+treats the orchestrator as a cost centre, and its facts were re-checked against the
+2026-10-22 Anthropic docs (see `CHANGELOG.md`).
 
 ## The constraint this plugin exists to solve
 
@@ -109,15 +117,21 @@ agents/
   drafter.md      judge.md        # sonnet/high; opus/xhigh
   reviewer.md     builder.md      # model: inherit — the escalations
 hooks/
-  hooks.json                      # PreToolUse on Workflow
-  tier_check.py                   # denies agent() calls with no agentType
-  test_tier_check.py              # 53 cases; run it directly
+  hooks.json                      # PreToolUse on Workflow, Agent and Task
+  tier_check.py                   # denies agent() calls with no agentType; notes the rest
+  test_tier_check.py              # 64 cases; run it directly
+scripts/
+  delegation_audit.py             # orchestrator vs subagent spend for one session
+  test_delegation_audit.py        # 24 checks on a synthetic transcript
 skills/delegate/
   SKILL.md                        # the routing procedure
   references/
-    model-selection.md            # cost arithmetic, the measured grid
+    orchestrator-cost.md          # what the main loop costs, and the levers
+    model-selection.md            # prices, the measured grid, platform features
     workflow-patterns.md          # fan-out shapes and per-stage tiering
     agent-catalog.md              # every subagent_type and when to use it
+skills/audit/
+  SKILL.md                        # /intelligent-delegate:audit (user-invoked only)
 CHANGELOG.md                      # what changed in each release
 ```
 
@@ -149,6 +163,12 @@ It also notes, without blocking, when any tiered call uses `reviewer`/`builder` 
 inherit, so they escalate in capability and cost) and when a call could not be checked at
 all, so an unchecked call is never mistaken for a checked one.
 
+Since 0.5.0 it also notes an `Agent` call that names no tier and no model, and warns once
+per session when `CLAUDE_CODE_EFFORT_LEVEL` or `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` is set —
+either one overrides every tier's pin. Notes now go out as `additionalContext` as well as
+`systemMessage`: the hooks docs say `systemMessage` is shown to the user only, so before
+0.5.0 the orchestrator never read them.
+
 > **If a deny names a tier and that tier then errors as "not found", your session predates
 > the upgrade.** Hit while building 0.3.0: a Workflow passing
 > `agentType: 'intelligent-delegate:inspector'` failed with
@@ -158,7 +178,7 @@ all, so an unchecked call is never mistaken for a checked one.
 > address it. Restart, or `/reload-plugins`. This only bites in the session where you
 > installed or edited the plugin — exactly the one where you are most likely testing it.
 
-Tests: `python3 hooks/test_tier_check.py` — 53 cases. The 0.3.0 suite also denied all four
+Tests: `python3 hooks/test_tier_check.py` — 64 cases. The 0.3.0 suite also denied all four
 real workflow scripts from the 2026-10-08 incident at the correct line numbers, with no
 false positives from several hundred lines of embedded prompt text.
 
@@ -291,6 +311,14 @@ intelligent-delegate@intelligent-delegate`.
 
 The skill loads on its own when a task involves delegation, parallelism, model
 choice, speed or cost. You can also invoke it directly: `/intelligent-delegate:delegate`.
+
+To see where a session's money went, run `/intelligent-delegate:audit` (user-invoked, so it
+costs nothing in the skill listing), or directly:
+
+```
+python3 scripts/delegation_audit.py                 # newest transcript under ~/.claude/projects
+python3 scripts/delegation_audit.py <session-id> --json
+```
 
 ## License
 

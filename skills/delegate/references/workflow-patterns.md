@@ -4,10 +4,27 @@ Routing already concluded "this needs a Workflow." Two decisions remain: which
 **shape**, and what **tier** each stage runs at. The second sets speed, result quality
 and cost together.
 
+## Contents
+
+- Addressing a tier: `agentType`, not bare opts
+- What a fan-out costs the orchestrator
+- pipeline() vs parallel(): the barrier decision
+- The named shapes
+- Per-stage tiering
+- `schema` injects a tool the allowlist does not list
+- The return value is the deliverable
+- Budget-aware scaling
+- isolation: 'worktree'
+- The concurrency cap
+- Sketch: per-stage tiering in one pipeline
+- Sketch: build → review → fix, the shape that keeps getting mis-tiered
+
 ## Addressing a tier: `agentType`, not bare opts
 
 `agent()` opts can set a stage's `model` and `effort` (plus `schema`, `label`, `phase`,
-`isolation`). What they **cannot** set is everything else a tier carries: `tools`,
+`isolation`, and `stallMs`, a per-agent stall timeout in ms, e.g.
+`agent(prompt, { stallMs: 1800000 })` — Claude Code docs, workflows, read 2026-10-22).
+What they **cannot** set is everything else a tier carries: `tools`,
 `maxTurns`, `omitClaudeMd`, the operating rules and the return-value contract all live in
 the definition's frontmatter and body, reachable **only** through `agentType`.
 
@@ -125,7 +142,38 @@ Price ladder: Haiku 1x / Sonnet 20x / Opus 40x / Fable 100x, input and output al
 on price, about 10x measured, because Haiku writes about three times the output tokens.
 `effort` is set in three places: the session, an agent definition's frontmatter, and the
 call — an `agent()` opt in a Workflow script or the `Agent` tool's own `effort`. Call-site `effort` beats the
-definition's, which beats the session's.
+definition's, which beats the session's — and `CLAUDE_CODE_EFFORT_LEVEL`, when set, beats all three.
+
+## What a fan-out costs the orchestrator
+
+A Workflow script holds the loop and the intermediate results, "so Claude's context holds
+only the final answer" (Claude Code docs, workflows, read 2026-10-22). Subagents spawned from
+the main conversation are different: they start in the **background** by default, and each
+background result reaches the orchestrator "as a completion notification in a later turn"
+(Claude Code docs, sub-agents). Every such turn re-reads the whole orchestrator context.
+
+Measured 2026-10-22 in one real session (Opus 5.5 orchestrator at `xhigh`, about 395K-token
+context): each wake-up re-read about 395K tokens, roughly $0.079 at Opus 5.5's $0.20
+cache-read rate, before any output. Across the session the orchestrator was $16.47 of
+$21.77 (76%), with 44.6M cache-read tokens, while the Sonnet drafter subagents doing the
+building were $5.29. The figures are Claude Code's own `modelUsage.costUSD`; one session, so
+read them as an order of magnitude. For the orchestrator-context cost in general, see
+`orchestrator-cost.md`.
+
+What follows from it:
+
+- For 3+ similar items, a Workflow costs the orchestrator **one** result instead of N
+  notification turns. For N background `Agent` calls instead, ask for 2-line reports.
+- A foreground (`run_in_background: false`) `Agent` call returns inline as a tool result, so
+  there is no separate notification turn, but it blocks the orchestrator.
+- A nested coordinator (a subagent whose `tools` include `Agent`; depth limit
+  `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, default 3) waits for its children, so only its
+  summary returns (docs). Not measured here.
+- Cost controls the docs give: run a small slice first; `/workflows` shows per-agent tokens;
+  a `Large workflow` warning fires above 25 agents or 1.5M projected tokens;
+  `workflowSizeGuideline` takes small, medium or large. Resume re-uses completed agents, so
+  put volatile prompt text late in a prompt: an edited relaunch then re-runs only from the
+  first changed prompt.
 
 ## pipeline() vs parallel(): the barrier decision
 
@@ -213,9 +261,28 @@ cheapest mechanical stage is no agent. Three rules override the table:
   its base rate, which is still a quarter of Sonnet's. A stage that reads a whole diff or
   transcript is allowed on Haiku but keeps less of the price advantage; an adversarial
   refuter reading a large generation output also fails the third rule's gate.
-- **Caches are model-scoped.** Adjacent stages sharing a large prompt should prefer *same
-  model, different effort* (`sonnet`/medium → `sonnet`/high) over model-hopping. Drop the
-  model only when the stage's input is small and independent.
+- **Cache sharing is per stage, not per model.** A subagent never reads the orchestrator's
+  cache: "Its first request doesn't read the parent's cache, because the two prefixes
+  differ" (Claude Code docs, prompt-caching, read 2026-10-22). Only a fork inherits the
+  parent's prefix, and a fork runs the parent's model. So picking a cheaper model for a
+  stage forfeits nothing from the orchestrator's cache; each subagent writes its own prefix
+  once and reads it on its later turns. Subagent and workflow-agent requests get a 5-minute
+  TTL by default, even on a Claude subscription; `subagentPromptCacheTtl: "1h"` (setting) or
+  frontmatter `experimental: { cacheTtl: 1h }` changes it, and 1h writes bill 2x input
+  against 1.25x for 5m. Workflow siblings share a cached prefix only when they run with the
+  same model, effort level, agent type, tools, output schema and working directory (Claude
+  Code docs, workflows); Claude Code holds matching siblings up to 5 s
+  (`CLAUDE_CODE_WORKFLOW_PREFIX_STAGGER_MS`, default 5000) so they read the first one's
+  write. So keep the tier uniform *within* a stage; a per-call `effort` override on one item
+  takes that item out of the shared prefix. Cross-stage cache reuse is not promised, so
+  "same model, different effort" across adjacent stages is not a cache argument. Model-scoped
+  cache loss is real in the main loop: `/model` switches, `opusplan` and a skill's `model:`
+  frontmatter rebuild the orchestrator's cache. Changing effort does not, on Opus 5.5, Sonnet
+  5.5, Haiku 5.5 and Fable 5.1 with an API key or subscription (not on Bedrock, Google Cloud
+  Agent Platform, a Claude apps gateway, HIPAA, or with
+  `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS`); the first fast-mode turn of a conversation rebuilds it once. A
+  subagent resumed with `SendMessage` can keep reading its own earlier cache while that cache
+  is still alive (5 minutes by default).
 - **Judge a Haiku stage by whether you can tell it is wrong, not by price.** Haiku is the
   cheap model, not the fast one: at `medium` it took 1.6x as long as Sonnet. A
   failed Haiku attempt is nearly free in dollars (it stops being cheaper than one Opus run
@@ -258,6 +325,9 @@ Two things make that shape likely, and they compound:
   an advisor configured, every subagent inherits it (`model-selection.md`, "An advisor
   re-prices every row") together with instructions to make the deliverable durable *before*
   consulting. Followed literally, that produces precisely the write-then-announce shape.
+  Each consult is billed at the *advisor* model's rates, not the executor's, so price the
+  consults at the advisor's tier rather than the whole fan-out (API advisor-tool doc, read
+  2026-10-22; in the 2026-10-22 sessions the advisor was `claude-opus-5-5`).
 
 So **never silently drop a short return.** This guard destroys a completed stage:
 
@@ -318,11 +388,22 @@ keep editing, either freeze and pin a SHA in the brief or give it one after all.
 worktree is auto-removed if unchanged, so an isolated read-only agent paid the setup for
 nothing.
 
+**The worktree branches from your default branch, not the parent session's HEAD** (Claude
+Code docs, sub-agents and worktrees, read 2026-10-22), and is cleaned up automatically if
+the subagent makes no changes. So a reviewer given a worktree does **not** see your
+uncommitted or unmerged work. To review your current state, commit and pass the SHA in the
+brief (the reader can `git show <sha>:<path>`), or set the base branch (Claude Code docs,
+worktrees, "choose the base branch").
+
 ## The concurrency cap
 
-`min(16, CPUs - 2)` agents run at once per workflow; the rest queue. On an 8-core box that
-is 6, so a 40-item fan-out is ~7 waves, not one. Passing 200 items is still fine (4096 is
-the per-call limit) — it just takes 34 waves. Two consequences:
+Up to 16 agents run at once per workflow by default, fewer when Claude Code has fewer CPUs
+available, including inside a CPU-limited container; the rest queue.
+`CLAUDE_CODE_WORKFLOW_MAX_CONCURRENT_AGENTS` takes 1 to 256 (v2.1.269+) (Claude Code docs,
+workflows, read 2026-10-22). On a small box that is fewer than 16, so a 40-item fan-out is
+several waves, not one; check the real figure by watching `/workflows`. Passing 200 items is
+still fine (4,096 items per call and 1,000 agents per run are the documented limits) — it
+just takes more waves. Two consequences:
 
 - A `parallel()` barrier over a large fan-out waits for the slowest item of the *last*
   wave, so it costs wall-clock on top of tokens. Another reason `pipeline()` is the default.

@@ -31,7 +31,7 @@ def decision(payload):
     if not d:
         return "allow"
     h = d.get("hookSpecificOutput")
-    return h.get("permissionDecision") if h else "allow+note"
+    return (h.get("permissionDecision") or "allow+note") if h else "allow+note"
 
 
 def wf(script):
@@ -297,6 +297,67 @@ const r = await agent('x', {agentType: 'intelligent-delegate:mechanical', label:
 ]
 
 
+def run_env(payload, env):
+    e = dict(os.environ)
+    for k in ("CLAUDE_CODE_EFFORT_LEVEL", "CLAUDE_CODE_SUBAGENT_MODEL_FORCE",
+              "CLAUDE_CODE_SUBAGENT_MODEL"):
+        e.pop(k, None)
+    e.update(env)
+    p = subprocess.run([sys.executable, HOOK], input=json.dumps(payload),
+                       capture_output=True, text=True, timeout=30, env=e)
+    assert p.returncode == 0, p.stderr
+    out = p.stdout.strip()
+    return json.loads(out) if out else None
+
+
+def ctx(d):
+    """What reaches the model: hookSpecificOutput.additionalContext."""
+    return ((d or {}).get("hookSpecificOutput") or {}).get("additionalContext", "")
+
+
+def agent(**ti):
+    return {"tool_name": "Agent", "session_id": SID, "tool_input": dict(
+        {"description": "d", "prompt": "p"}, **ti)}
+
+
+SID = "test-%d" % os.getpid()
+
+# (name, payload, env, check(d) -> bool). Notes never deny; these assert what reaches the model.
+EXTRA_CASES = [
+    ("Agent with no tier and no model gets a note the model can read",
+     agent(), {}, lambda d: "names no tier" in ctx(d) and "permissionDecision" not in d["hookSpecificOutput"]),
+    ("Agent naming general-purpose with no model gets the same note",
+     agent(subagent_type="general-purpose"), {}, lambda d: "names no tier" in ctx(d)),
+    ("Agent naming a tier is silent",
+     agent(subagent_type="intelligent-delegate:inspector"), {}, lambda d: d is None),
+    ("Agent with no tier but an explicit model is silent",
+     agent(model="sonnet", effort="medium"), {}, lambda d: d is None),
+    ("Explore is silent: it is a tier choice, if a session-model one",
+     agent(subagent_type="Explore"), {}, lambda d: d is None),
+    ("CLAUDE_CODE_EFFORT_LEVEL is reported on a tiered Agent call",
+     dict(agent(subagent_type="intelligent-delegate:worker"), session_id=SID + "-e"),
+     {"CLAUDE_CODE_EFFORT_LEVEL": "xhigh"}, lambda d: "CLAUDE_CODE_EFFORT_LEVEL=xhigh" in ctx(d)),
+    ("...and only once per session",
+     dict(agent(subagent_type="intelligent-delegate:worker"), session_id=SID + "-e"),
+     {"CLAUDE_CODE_EFFORT_LEVEL": "xhigh"}, lambda d: d is None),
+    ("SUBAGENT_MODEL_FORCE with a model is reported on a tiered workflow",
+     dict(wf("const r = await agent('x', {agentType: 'intelligent-delegate:worker'})"), session_id=SID + "-f"),
+     {"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1", "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"},
+     lambda d: "tiers collapse" in ctx(d)),
+    ("FORCE without a model names nothing to collapse onto, so it is silent",
+     dict(wf("const r = await agent('x', {agentType: 'intelligent-delegate:worker'})"), session_id=SID + "-g"),
+     {"CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1"}, lambda d: d is None),
+    ("an untiered workflow still denies, and carries the override note in the reason",
+     dict(wf("const r = await agent('x', {label: 'a'})"), session_id=SID + "-h"),
+     {"CLAUDE_CODE_EFFORT_LEVEL": "low"},
+     lambda d: d["hookSpecificOutput"]["permissionDecision"] == "deny"
+     and "CLAUDE_CODE_EFFORT_LEVEL=low" in d["hookSpecificOutput"]["permissionDecisionReason"]),
+    ("workflow notes reach the model, not only the user",
+     wf("// untiered: no definition fits\nconst r = await agent('x', {model: 'haiku'})"), {},
+     lambda d: "set no `effort`" in ctx(d) and "set no `effort`" in d.get("systemMessage", "")),
+]
+
+
 def main():
     bad = []
     for payload, label in (("not json at all", "malformed stdin"),
@@ -316,7 +377,18 @@ def main():
             bad.append("%s: got %s, want %s" % (name, got, expect))
             print("  FAIL  %s -> %s (want %s)" % (name, got, expect))
 
-    total = len(CASES) + len(NOTE_CASES)
+    for name, payload, env, check in EXTRA_CASES:
+        try:
+            ok = bool(check(run_env(payload, env)))
+        except Exception as e:  # a shape the check did not expect is a failure
+            ok = False
+            name = "%s (%s: %s)" % (name, type(e).__name__, e)
+        passed += ok
+        print("  %s  %s" % ("ok  " if ok else "FAIL", name))
+        if not ok:
+            bad.append(name)
+
+    total = len(CASES) + len(NOTE_CASES) + len(EXTRA_CASES)
     for name, payload, expect_leak in NOTE_CASES:
         text = note(payload)
         allowed = decision(payload) != "deny"
