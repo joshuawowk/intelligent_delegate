@@ -20,7 +20,7 @@ script — `scripts/delegation_audit.py`, or `/intelligent-delegate:audit` — t
 session's spend into the orchestrator and each subagent.
 
 **What 0.5.0 found.** The first real sessions audited after 0.4.0 tiered every subagent
-correctly — and the Opus orchestrator was still 60-76% of the bill, from re-reading its own
+correctly — and the Opus orchestrator was still 74-76% of the bill, from re-reading its own
 large context on every request and on every background-agent completion. The skill now
 treats the orchestrator as a cost centre, and its facts were re-checked against the
 2026-10-22 Anthropic docs (see `CHANGELOG.md`).
@@ -122,7 +122,7 @@ hooks/
   test_tier_check.py              # 64 cases; run it directly
 scripts/
   delegation_audit.py             # orchestrator vs subagent spend for one session
-  test_delegation_audit.py        # 21 checks on a synthetic transcript
+  test_delegation_audit.py        # 24 checks on a synthetic transcript
 skills/delegate/
   SKILL.md                        # the routing procedure
   references/

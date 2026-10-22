@@ -105,6 +105,16 @@ def main():
         checks.append(("unknown model prices as None", da.cost_of("some-other-model", hu) is None))
         checks.append(("[1m] suffix is canonicalised", da.canonical("claude-opus-5-5[1m]") == "claude-opus-5-5"))
 
+        # A model missing from PRICES must be reported, not silently priced at $0.
+        with open(os.path.join(tmp, "odd.jsonl"), "w") as fh:
+            fh.write(json.dumps(asst("x1", "claude-mystery-9", usage(out=1_000_000), "2026-10-22T00:00:01")) + "\n")
+            fh.write(json.dumps({"type": "user", "timestamp": "2026-10-22T00:00:09Z"}) + "\n")
+        om, osubs = da.load(os.path.join(tmp, "odd.jsonl"))   # naive + aware timestamps: must not raise
+        oa = da.analyse(om, osubs)
+        checks.append(("unpriced model raises a finding", any(f["code"] == "unpriced-model" for f in oa["findings"])))
+        checks.append(("unpriced model renders n/a, not $0.00", "n/a" in da.render("odd.jsonl", oa).split("\n")[4]))
+        checks.append(("bare timestamp read as UTC", om.wall_s == 8.0))
+
         text = da.render(path, a)
         checks.append(("render mentions every finding", all("[%s]" % c in text for c in codes)))
 

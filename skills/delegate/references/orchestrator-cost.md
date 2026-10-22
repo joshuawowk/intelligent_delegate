@@ -22,7 +22,7 @@ for the second.
 | session | wall | orchestrator (Opus 5.5) | subagents (Sonnet 5.5) | orchestrator share | orchestrator context |
 |---|--:|--:|--:|--:|--:|
 | a 5-wave app build, `drafter` streams + reviews | ~50 min | $16.47 — 44.6M cache-read, 520K write, 195K out | $5.29 — 15.6M read, 660K write, 208K out | **76%** | ~395K per request |
-| this plugin's 0.5.0 research session, 10 `worker` doc digests | 15 min | $7.24 — 15.0M read, 307K write, 90K out | $4.92 | **60%** | mean 235K, last 355K |
+| this plugin's 0.5.0 build session: 16 subagents (doc digests, edits, eval answerers and graders, a review) | 28 min | $16.57 — 48.5M cache-read | $5.40 | **74%** | mean 341K, last 496K; 22 wake-ups |
 
 The subagent tiering was right in both, and in both it was the smaller term. Two sessions,
 one user and one session model: read the shares as an order of magnitude, not a constant.

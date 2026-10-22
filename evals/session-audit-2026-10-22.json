@@ -1,21 +1,21 @@
 {
   "session_model": "claude-opus-5-5",
   "session_effort": "xhigh",
-  "wall_s": 1474.8,
-  "estimated_total_usd": 18.3301,
+  "wall_s": 1707.0,
+  "estimated_total_usd": 22.5114,
   "orchestrator": {
-    "requests": 111,
-    "read": 33462570,
-    "write": 393354,
-    "output": 146337,
-    "cost": 12.767,
-    "share": 0.6965,
-    "mean_prompt": 305010,
-    "last_prompt": 441527,
-    "notifications": 15,
-    "cost_per_wakeup_read": 0.0883,
+    "requests": 143,
+    "read": 48353904,
+    "write": 447365,
+    "output": 165953,
+    "cost": 16.5699,
+    "share": 0.7361,
+    "mean_prompt": 341269,
+    "last_prompt": 495538,
+    "notifications": 22,
+    "cost_per_wakeup_read": 0.0991,
     "cache_rebuilds": 0,
-    "agent_calls": 15,
+    "agent_calls": 16,
     "workflow_calls": 0
   },
   "subagents": [
@@ -333,42 +333,63 @@
       "write": 65328,
       "output": 11819,
       "cost": 0.3108
+    },
+    {
+      "id": "afa24b7a0b6c169ab",
+      "agentType": "intelligent-delegate:inspector",
+      "description": "Review intelligent-delegate 0.5.0 diff",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 23,
+      "wall_s": 112.0,
+      "read": 1005319,
+      "write": 64455,
+      "output": 11664,
+      "cost": 0.3784
     }
   ],
   "by_model": {
     "claude-opus-5-5": {
-      "requests": 118,
-      "input": 236,
-      "write": 450745,
-      "read": 33562264,
-      "output": 158195,
-      "cost": 13.3111
+      "requests": 150,
+      "input": 306,
+      "write": 504756,
+      "read": 48453598,
+      "output": 177811,
+      "cost": 17.114
     },
     "claude-sonnet-5-5": {
-      "requests": 115,
-      "input": 232,
-      "write": 1111242,
-      "read": 5198872,
-      "output": 172077,
-      "cost": 5.0192
+      "requests": 138,
+      "input": 278,
+      "write": 1175697,
+      "read": 6204191,
+      "output": 183741,
+      "cost": 5.3976
     }
   },
   "findings": [
     {
       "code": "orchestrator-heavy",
-      "detail": "The orchestrator was 70% of estimated spend ($12.77 of $18.33) while 15 subagents did the delegated work. Mean orchestrator prompt 305K tokens over 111 requests. Shrink what the orchestrator re-reads (SKILL.md: 'The orchestrator is a cost centre')."
+      "detail": "The orchestrator was 74% of estimated spend ($16.57 of $22.51) while 16 subagents did the delegated work. Mean orchestrator prompt 341K tokens over 143 requests. Shrink what the orchestrator re-reads (SKILL.md: 'The orchestrator is a cost centre')."
     },
     {
       "code": "large-orchestrator-context",
-      "detail": "Mean orchestrator prompt 305K tokens: every request re-reads it. /compact with a focus, or /clear and re-brief from a state file, between phases."
+      "detail": "Mean orchestrator prompt 341K tokens: every request re-reads it. /compact with a focus, or /clear and re-brief from a state file, between phases."
     },
     {
       "code": "notification-wakeups",
-      "detail": "15 background-task notifications reached the orchestrator; each one starts a turn that re-reads the context (442K now, about $0.09 per request at claude-opus-5-5's cache-read rate before any output). A Workflow reports once at the end."
+      "detail": "22 background-task notifications reached the orchestrator; each one starts a turn that re-reads the context (496K now, about $0.10 per request at claude-opus-5-5's cache-read rate before any output). A Workflow reports once at the end."
     },
     {
       "code": "advisor-above-tier",
-      "detail": "13 subagents had an advisor (claude-opus-5-5) pricier than their own model attached. A consult bills at the advisor's rates; /advisor off for cheap fan-outs."
+      "detail": "14 subagents had an advisor (claude-opus-5-5) pricier than their own model attached. A consult bills at the advisor's rates; /advisor off for cheap fan-outs."
     }
   ]
 }

@@ -15,8 +15,9 @@ fixes what the docs contradicted. Evidence: `evals/facts-2026-10-22.md`.
 - A 50-minute Opus 5.5 / `xhigh` cloud session that tiered every agent on `drafter`:
   orchestrator $16.47 of $21.77 (76%), 44.6M cache-read tokens over a ~395K context; the
   Sonnet agents that did the building, $5.29 (Claude Code's own `modelUsage.costUSD`).
-- This release's own research session: orchestrator about 60-70% of a list-price estimate,
-  with ten `worker` digests (`evals/session-audit-2026-10-22.json`).
+- This release's own build session, 16 Sonnet subagents: orchestrator 74% ($16.57 of
+  $22.51 at list prices, 22 background wake-ups, mean context 341K) —
+  `evals/session-audit-2026-10-22.json`. The pattern reproduced while documenting it.
 - Routing regression on the rewritten skill: 19 cases (15 existing, 4 new), one Opus
   answerer and a Sonnet grader, single run — 75 of 80 expectation checks, 16 of 19 cases
   clean, every new case clean. The misses traced to three cues condensed out of the skill;
@@ -34,7 +35,7 @@ fixes what the docs contradicted. Evidence: `evals/facts-2026-10-22.md`.
 - `scripts/delegation_audit.py` and the user-invoked `/intelligent-delegate:audit`: split
   a session's spend into orchestrator and each subagent, and flag eight patterns. Prices
   from the 2026-10-22 pricing table; fast mode and Haiku's 100K multiplier applied.
-  21 tests in `scripts/test_delegation_audit.py`.
+  24 tests in `scripts/test_delegation_audit.py`.
 - `references/orchestrator-cost.md`: the measurement, wake-up and rebuild arithmetic per
   model and context size, what starts an orchestrator request, the levers with sources.
 - `SKILL.md` → "Settings that silently override the tiers": `CLAUDE_CODE_EFFORT_LEVEL`,
@@ -59,7 +60,7 @@ fixes what the docs contradicted. Evidence: `evals/facts-2026-10-22.md`.
 - "A returned Agent call is not live: re-brief a fresh one" — `SendMessage` resumes a
   finished subagent with its history (not Explore or Plan).
 - `Explore` runs on the session's model; "cheapest cold start" was true of its prefix only.
-- `disallowedTools` is applied alongside `tools:` per the current docs; the 0.2.0 claim
+- `disallowedTools` is applied alongside `tools:` per the current docs; the earlier claim
   that it is ignored came from a 2.1.29x schema string.
 - Workflow concurrency is "up to 16, fewer with fewer CPUs", tunable; `min(16, CPUs − 2)`
   is not documented.
@@ -73,7 +74,7 @@ fixes what the docs contradicted. Evidence: `evals/facts-2026-10-22.md`.
 
 **Changed**:
 
-- `SKILL.md`: 541 → 465 lines, description 1,214 → 915 characters (the limit is 1,024),
+- `SKILL.md`: 541 → 465 lines, description 1,214 → 915 characters parsed (the limit is 1,024),
   third person; the retry table moved to `model-selection.md`, the per-tier prose to the
   catalog.
 - Agent bodies — each one's system prompt — cut to identity, wrong-tier list, rules and

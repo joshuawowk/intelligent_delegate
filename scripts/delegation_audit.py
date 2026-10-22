@@ -47,7 +47,7 @@ import os
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 # $/MTok: input, 5m cache write, 1h cache write, cache read, output.
 # Source: platform.claude.com/docs/en/build-with-claude/prompt-caching (pricing table),
@@ -117,9 +117,12 @@ def ts(s: str | None) -> datetime | None:
     if not s:
         return None
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        t = datetime.fromisoformat(s.replace("Z", "+00:00"))
     except ValueError:
         return None
+    # Claude Code writes UTC with a Z; read a bare timestamp as UTC too, so a stray one
+    # cannot make the aware/naive comparison in add_time() raise.
+    return t if t.tzinfo else t.replace(tzinfo=timezone.utc)
 
 
 class Stream:
@@ -281,7 +284,9 @@ def analyse(main: Stream, subs: list) -> dict:
             b["requests"] += 1
             for k in ("input", "write", "read", "output"):
                 b[k] += r[k]
-            b["cost"] += r["cost"] or 0
+            b["cost"] += r["cost"] or 0          # rendered as n/a below when any is unpriced
+            if r["cost"] is None:
+                b["unpriced"] += 1
 
     prompts = [r["prompt"] for r in main.requests.values()]
     mean_ctx = sum(prompts) / len(prompts) if prompts else 0
@@ -305,6 +310,13 @@ def analyse(main: Stream, subs: list) -> dict:
     workflow_calls = [u for u in main.tool_uses if u["name"] == "Workflow"]
 
     findings = []
+    unpriced = {m: int(d["unpriced"]) for m, d in by_model.items() if d.get("unpriced")}
+    if unpriced:
+        findings.append((
+            "unpriced-model",
+            "%d requests ran on models with no price in PRICES (%s). Their cost is left out of every total "
+            "and share above, so read the shares as approximate."
+            % (sum(unpriced.values()), ", ".join("%s x%d" % kv for kv in sorted(unpriced.items())))))
     if subs and total and mt["cost"] / total > ORCH_SHARE_WARN:
         findings.append((
             "orchestrator-heavy",
@@ -376,7 +388,8 @@ def analyse(main: Stream, subs: list) -> dict:
             "workflow_calls": len(workflow_calls),
         },
         "subagents": sub_rows,
-        "by_model": {m: {k: (round(v, 4) if k == "cost" else int(v)) for k, v in d.items()} for m, d in by_model.items()},
+        "by_model": {m: {k: (None if k == "cost" and d.get("unpriced") else round(v, 4) if k == "cost" else int(v))
+                         for k, v in d.items()} for m, d in by_model.items()},
         "findings": [{"code": c, "detail": d} for c, d in findings],
     }
 
@@ -390,7 +403,7 @@ def render(path: str, a: dict) -> str:
         "",
         "%-22s %8s %8s %8s %8s %9s" % ("by model", "requests", "read", "write", "output", "est $"),
     ]
-    for m, d in sorted(a["by_model"].items(), key=lambda kv: -kv[1]["cost"]):
+    for m, d in sorted(a["by_model"].items(), key=lambda kv: -(kv[1]["cost"] or 0)):
         lines.append("%-22s %8d %8s %8s %8s %9s" % (m, d["requests"], fmt_tok(d["read"]), fmt_tok(d["write"]), fmt_tok(d["output"]), fmt_usd(d["cost"])))
     lines += [
         "",
