@@ -1,0 +1,374 @@
+{
+  "session_model": "claude-opus-5-5",
+  "session_effort": "xhigh",
+  "wall_s": 1474.8,
+  "estimated_total_usd": 18.3301,
+  "orchestrator": {
+    "requests": 111,
+    "read": 33462570,
+    "write": 393354,
+    "output": 146337,
+    "cost": 12.767,
+    "share": 0.6965,
+    "mean_prompt": 305010,
+    "last_prompt": 441527,
+    "notifications": 15,
+    "cost_per_wakeup_read": 0.0883,
+    "cache_rebuilds": 0,
+    "agent_calls": 15,
+    "workflow_calls": 0
+  },
+  "subagents": [
+    {
+      "id": "a0dfb4815e872bccf",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest prompt caching docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 6,
+      "wall_s": 77.7,
+      "read": 177585,
+      "write": 74273,
+      "output": 11315,
+      "cost": 0.3166
+    },
+    {
+      "id": "a1638739287b5c54f",
+      "agentType": "intelligent-delegate:drafter",
+      "description": "Edit reference files per spec",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "high"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 22,
+      "wall_s": 142.3,
+      "read": 1283801,
+      "write": 81550,
+      "output": 22710,
+      "cost": 0.5594
+    },
+    {
+      "id": "a1d09b80871b6840d",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest tool infrastructure docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 5,
+      "wall_s": 84.4,
+      "read": 162937,
+      "write": 94826,
+      "output": 12465,
+      "cost": 0.378
+    },
+    {
+      "id": "a29fa63fbeb2a2aea",
+      "agentType": "intelligent-delegate:inspector",
+      "description": "Grade 19 routing eval answers",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 3,
+      "wall_s": 22.5,
+      "read": 31704,
+      "write": 26270,
+      "output": 3231,
+      "cost": 0.1012
+    },
+    {
+      "id": "a2b3358a52df33508",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest models/cost/fast/batch/budgets",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 11,
+      "wall_s": 86.3,
+      "read": 424145,
+      "write": 80818,
+      "output": 11411,
+      "cost": 0.3586
+    },
+    {
+      "id": "a363d76ed7b59cc44",
+      "agentType": "intelligent-delegate:builder",
+      "description": "Answer 19 routing eval prompts",
+      "background": true,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "effort": [
+        "high"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 4,
+      "wall_s": 91.4,
+      "read": 61324,
+      "write": 37413,
+      "output": 9281,
+      "cost": 0.385
+    },
+    {
+      "id": "a3ed03aa207405e0f",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest context management docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 12,
+      "wall_s": 80.0,
+      "read": 393275,
+      "write": 70706,
+      "output": 10324,
+      "cost": 0.3194
+    },
+    {
+      "id": "a4d4c2ed6466193b4",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest skill authoring docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 14,
+      "wall_s": 142.7,
+      "read": 1003617,
+      "write": 142553,
+      "output": 18354,
+      "cost": 0.6403
+    },
+    {
+      "id": "a5de4654e29e5d72e",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest CC model-config docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 4,
+      "wall_s": 83.2,
+      "read": 124860,
+      "write": 88534,
+      "output": 11273,
+      "cost": 0.3466
+    },
+    {
+      "id": "a7e408c41fd7b1a97",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest thinking docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 4,
+      "wall_s": 61.2,
+      "read": 154319,
+      "write": 88446,
+      "output": 8918,
+      "cost": 0.3257
+    },
+    {
+      "id": "a9c6ea04df1ce5d28",
+      "agentType": "intelligent-delegate:builder",
+      "description": "Re-answer 3 routing eval prompts",
+      "background": true,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "effort": [
+        "high"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 3,
+      "wall_s": 27.4,
+      "read": 38370,
+      "write": 19978,
+      "output": 2577,
+      "cost": 0.1591
+    },
+    {
+      "id": "aa587c1cd0463ed3d",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest subagents/workflows docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 9,
+      "wall_s": 114.3,
+      "read": 482456,
+      "write": 132293,
+      "output": 15771,
+      "cost": 0.5367
+    },
+    {
+      "id": "acf60e297a35332ef",
+      "agentType": "intelligent-delegate:drafter",
+      "description": "Trim and update agent definitions",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "high"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 7,
+      "wall_s": 100.3,
+      "read": 166845,
+      "write": 48217,
+      "output": 17726,
+      "cost": 0.3145
+    },
+    {
+      "id": "aebaf13f04550f45b",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest prompting best practices",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 8,
+      "wall_s": 126.9,
+      "read": 500423,
+      "write": 117428,
+      "output": 16760,
+      "cost": 0.5112
+    },
+    {
+      "id": "af043c7c3618b407f",
+      "agentType": "intelligent-delegate:worker",
+      "description": "Digest effort docs",
+      "background": true,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "effort": [
+        "medium"
+      ],
+      "advisor": [
+        "claude-opus-5-5"
+      ],
+      "requests": 10,
+      "wall_s": 85.7,
+      "read": 292905,
+      "write": 65328,
+      "output": 11819,
+      "cost": 0.3108
+    }
+  ],
+  "by_model": {
+    "claude-opus-5-5": {
+      "requests": 118,
+      "input": 236,
+      "write": 450745,
+      "read": 33562264,
+      "output": 158195,
+      "cost": 13.3111
+    },
+    "claude-sonnet-5-5": {
+      "requests": 115,
+      "input": 232,
+      "write": 1111242,
+      "read": 5198872,
+      "output": 172077,
+      "cost": 5.0192
+    }
+  },
+  "findings": [
+    {
+      "code": "orchestrator-heavy",
+      "detail": "The orchestrator was 70% of estimated spend ($12.77 of $18.33) while 15 subagents did the delegated work. Mean orchestrator prompt 305K tokens over 111 requests. Shrink what the orchestrator re-reads (SKILL.md: 'The orchestrator is a cost centre')."
+    },
+    {
+      "code": "large-orchestrator-context",
+      "detail": "Mean orchestrator prompt 305K tokens: every request re-reads it. /compact with a focus, or /clear and re-brief from a state file, between phases."
+    },
+    {
+      "code": "notification-wakeups",
+      "detail": "15 background-task notifications reached the orchestrator; each one starts a turn that re-reads the context (442K now, about $0.09 per request at claude-opus-5-5's cache-read rate before any output). A Workflow reports once at the end."
+    },
+    {
+      "code": "advisor-above-tier",
+      "detail": "13 subagents had an advisor (claude-opus-5-5) pricier than their own model attached. A consult bills at the advisor's rates; /advisor off for cheap fan-outs."
+    }
+  ]
+}

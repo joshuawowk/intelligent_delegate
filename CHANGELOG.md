@@ -3,6 +3,89 @@
 What changed in each release and why. `skills/delegate/SKILL.md` is loaded into context
 every time the skill fires, so the history that used to be narrated there lives here.
 
+## 0.5.0 — 2026-10-22
+
+0.4.0 tiered subagents correctly in the first real sessions audited after it shipped, and
+the bill was still dominated by the one agent the skill never priced: the orchestrator.
+This release measures that, re-checks every fact against the 2026-10-22 Anthropic docs, and
+fixes what the docs contradicted. Evidence: `evals/facts-2026-10-22.md`.
+
+**Measured**:
+
+- A 50-minute Opus 5.5 / `xhigh` cloud session that tiered every agent on `drafter`:
+  orchestrator $16.47 of $21.77 (76%), 44.6M cache-read tokens over a ~395K context; the
+  Sonnet agents that did the building, $5.29 (Claude Code's own `modelUsage.costUSD`).
+- This release's own research session: orchestrator about 60-70% of a list-price estimate,
+  with ten `worker` digests (`evals/session-audit-2026-10-22.json`).
+- Routing regression on the rewritten skill: 19 cases (15 existing, 4 new), one Opus
+  answerer and a Sonnet grader, single run — 75 of 80 expectation checks, 16 of 19 cases
+  clean, every new case clean. The misses traced to three cues condensed out of the skill;
+  they were restored and the three cases re-run: case 5 clean, cases 4 and 13 each missing
+  only "call-site effort overrides the definition's", which the skill states twice.
+  A single run, not the 0.4.0 three-run protocol.
+
+**Added**:
+
+- `SKILL.md` → "The orchestrator is a cost centre", in the first 5K tokens (the part of
+  an invoked skill that survives compaction): why every request and every background
+  completion re-reads the context, and six levers in the order they pay — Workflow over N
+  background `Agent` calls, bytes out of the main context, compaction at phase boundaries,
+  orchestrator effort, cache lifetime, and measurement.
+- `scripts/delegation_audit.py` and the user-invoked `/intelligent-delegate:audit`: split
+  a session's spend into orchestrator and each subagent, and flag eight patterns. Prices
+  from the 2026-10-22 pricing table; fast mode and Haiku's 100K multiplier applied.
+  21 tests in `scripts/test_delegation_audit.py`.
+- `references/orchestrator-cost.md`: the measurement, wake-up and rebuild arithmetic per
+  model and context size, what starts an orchestrator request, the levers with sources.
+- `SKILL.md` → "Settings that silently override the tiers": `CLAUDE_CODE_EFFORT_LEVEL`,
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, `/model` moving the inherit tiers, inherited thinking,
+  fallback chains, and the advisor.
+- Hook: notes an `Agent` call with no tier and no model; warns once per session when either
+  override variable is set. 64 tests (was 53).
+- `references/model-selection.md` → "Platform features checked 2026-10-22": fast mode, task
+  budgets (not supported in Claude Code), batch (API only), per-message effort, compaction,
+  thinking, `max` effort, tool search — and whether each reaches Claude Code.
+- Anti-patterns 18-20: an orchestrator that reads everything; N background `Agent` calls
+  for one fan-out; a mid-orchestration `/model` switch. Behavioural cases 16-19.
+
+**Fixed — the docs contradicted 0.4.0**:
+
+- Sonnet 5.5 cache reads are $0.10/MTok (0.05x), not $0.20. Confirmed against Claude
+  Code's own cost for a real session to the cent.
+- "Dropping a tier forfeits cache reuse, because caches are model-scoped" — wrong for
+  subagents, which never read the orchestrator's cache. It holds for a main-loop `/model`
+  switch. Workflow siblings share a prefix only with identical model, effort, agent type,
+  tools, schema and cwd.
+- "A returned Agent call is not live: re-brief a fresh one" — `SendMessage` resumes a
+  finished subagent with its history (not Explore or Plan).
+- `Explore` runs on the session's model; "cheapest cold start" was true of its prefix only.
+- `disallowedTools` is applied alongside `tools:` per the current docs; the 0.2.0 claim
+  that it is ignored came from a 2.1.29x schema string.
+- Workflow concurrency is "up to 16, fewer with fewer CPUs", tunable; `min(16, CPUs − 2)`
+  is not documented.
+- A worktree branches from the default branch, not your HEAD.
+- The hook's notes went to `systemMessage`, which only the user sees; they now also go to
+  `additionalContext`, which reaches the model.
+- "'Think hard' sets nothing" sharpened: prompt text does not set effort but can nudge
+  thinking, and `ultrathink` is a recognised per-turn keyword.
+- Advisor: priced per consult at the advisor's rates, not across the whole fan-out;
+  observed as Opus 5.5 in the 2026-10-22 sessions; `advisorModel` is also a setting.
+
+**Changed**:
+
+- `SKILL.md`: 541 → 465 lines, description 1,214 → 915 characters (the limit is 1,024),
+  third person; the retry table moved to `model-selection.md`, the per-tier prose to the
+  catalog.
+- Agent bodies — each one's system prompt — cut to identity, wrong-tier list, rules and
+  return contract; rationale and measurements live in the catalog. The writing tiers got
+  the Sonnet/Haiku 5.5 guides' scope paragraph ("stop and report; don't add what wasn't
+  asked") and real-check paragraph; the two Haiku tiers the keep-working sentence.
+  Frontmatter is byte-identical, so the 0.4.0 tier probes still describe these tiers.
+
+**Not verified, and said so where it matters**: the orchestrator levers' effect on a
+measured session (only the problem is measured, not each fix); fast mode; `max` effort;
+an advisor consult's cost; nested coordinators.
+
 ## 0.4.0 — 2026-10-09
 
 The aliases moved to the 5.5 generation, and most of what 0.3.0 reasoned from stopped

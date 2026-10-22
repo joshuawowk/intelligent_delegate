@@ -6,14 +6,37 @@ alike: **Haiku 1x / Sonnet 20x / Opus 40x / Fable 100x.** Haiku is 20x cheaper t
 on price, about 10x measured (it writes about three times the output tokens), and it is the
 cheap model, not the fast one: 1.6x slower than Sonnet at `medium`.
 
+## Contents
+
+- The mechanism (read this first)
+- Shipped by this plugin
+- Frontmatter keys that cost or save tokens
+- Built-ins
+- Selection table
+- Two cost rules that override the table
+
 ## The mechanism (read this first)
 
 The Agent tool takes `prompt`, `subagent_type`, `description`, `model`, `effort`,
 `isolation`, `run_in_background`. `model` is exactly `sonnet | opus | haiku | fable`
 (`claude-sonnet-5-5`, `claude-opus-5-5`, `claude-haiku-5-5`, `claude-fable-5-1` in 2.1.295);
-`effort` takes `low|medium|high|xhigh|max`.
+`effort` takes `low|medium|high|xhigh|max`. The per-call `effort` needs Claude Code v2.1.292
+or later.
 
-Call-site `effort` beats the definition's `effort:` frontmatter, which beats the session's.
+**Model resolution order** (Claude Code docs, sub-agents and model-config, read 2026-10-22):
+(1) the call's `model` parameter; (2) the definition's `model` (`inherit` means the main
+conversation's model); (3) `CLAUDE_CODE_SUBAGENT_MODEL`; (4) the main conversation's model.
+Since v2.1.251 the env var no longer beats `model: inherit`.
+`CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` (v2.1.257+) makes the env var override every
+definition's `model`, every workflow `model` option and the call's `model`, so all tiers
+collapse onto one model. `CLAUDE_CODE_EFFORT_LEVEL` beats both frontmatter `effort` and the
+call's `effort`; `maxEffortLevel` caps effort. A family alias passed on the call
+(`model: "opus"` from an Opus session) resolves to the parent's exact model. A mid-session
+`/model` switch also moves what the `inherit` tiers run on. Subagents inherit the session's
+extended-thinking on/off (v2.1.198+); there is no per-subagent thinking setting.
+
+Call-site `effort` beats the definition's `effort:` frontmatter, which beats the session's;
+`CLAUDE_CODE_EFFORT_LEVEL`, when set, beats all three (resolution order above).
 A subagent that names no effort runs at the **session's** effort, not at a default — the
 catalog's `default_effort` describes only a session that has not chosen. Every tier here
 pins one. Probed 2026-10-09 (`evals/facts-2026-10-09.md`): frontmatter is honoured at
@@ -30,6 +53,12 @@ never a subagent (see `model-selection.md`).
 Every subagent starts with **cold context** and its final report is **not shown to the
 user**, so the caller must relay it. Plugin agents are namespaced:
 `intelligent-delegate:worker` when the bare name is ambiguous.
+
+A finished subagent is not necessarily gone. `SendMessage` to a *completed* subagent resumes
+it in the background with its full history (also after `TaskStop`); it keeps the tool set it
+first ran with and can read its own earlier cache if that cache is still alive (5 minutes by
+default) (Claude Code docs, sub-agents, read 2026-10-22). `Explore` and `Plan` cannot be
+resumed.
 
 ## Shipped by this plugin
 
@@ -58,7 +87,7 @@ ran entirely on Opus partly for want of a "sonnet, but think harder"; see
 - **Use when:** the work is fully specified, deterministic, and verifiable without judgment — renaming across files, applying a known pattern, extracting fields, running a checklist. Use it in a fan-out, where parallelism hides the latency: on a 40-record transform it measured a tenth of `worker`'s cost and 1.4x its time, every record right.
 - **Do NOT use when:** the task needs a call between defensible alternatives, or you could not tell quickly and cheaply that the result is wrong. A large input is not a disqualifier: Haiku 5.5 has a 1M window. Above 100K prompt tokens it bills 5x its base rate, which is still a quarter of Sonnet's.
 - **Pins `low` because an unset effort inherits the session's:** it ran at `xhigh`, 2.5x slower than at `low` (31.8 s against 12.9 s) for the same score.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash. `ToolSearch` is omitted deliberately: an MCP response is unbounded and shaped by a third party, and "convert this by rule" does not describe work against one. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash. `ToolSearch` is omitted deliberately: an MCP response is unbounded and shaped by a third party, and "convert this by rule" does not describe work against one. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped (one beside `tools:` would be applied, per the Claude Code docs, but redundant).
 
 ### `scout` — haiku / low, read-only
 - **Use when:** named facts must come out of a large input — counting or locating entries in a long log, extracting fields from a changelog, finding which of many files mention something — and you can check the answer, or a wrong one is cheap. For a fan-out or a very large corpus. **Not a stage default.**
@@ -78,7 +107,7 @@ partially modified tree with no report of what changed)
   two differ only by an effort step, since `builder` inherits). On a spec-driven
   implementation `opus/high` took 2.4x the time and 3.4x the cost of `sonnet/high` for the
   same result.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped (one beside `tools:` would be applied, per the Claude Code docs, but redundant).
 
 ### `drafter` — sonnet / high, with Edit + Write
 - **Use when:** a stage *produces* something substantial from source material you supply —
@@ -126,12 +155,12 @@ partially modified tree with no report of what changed)
   `worker` when the brief genuinely settles the output: on a spec-driven implementation
   `sonnet/medium` matched `sonnet/high`'s score and was 41% faster (18.5 s against 31.6 s).
 - **Do NOT use when:** the task is pure mechanical churn in a fan-out (`mechanical` is 20x cheaper on price, about 10x measured, but not faster) or a contested judgment call where being confidently wrong is expensive.
-- **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped or would be honoured.
+- **Tools:** Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Agent` included — is already unavailable; no `disallowedTools` line is shipped (one beside `tools:` would be applied, per the Claude Code docs, but redundant).
 
 ### `reviewer` — inherit / high
 - **Use when:** an *escalation* predicate fires on inspection work — a negative or universal claim to establish, a security/auth/money/migration/concurrency blast radius, an invariant the brief does not state, or the single cross-cutting pass that gates the result. `inherit` is deliberate: when review quality has to track the session model, this is the tier that does it. **Ordinary code review, spec-versus-implementation diffs and per-finding adversarial verification go to `inspector` first**, with `effort: 'high'` on the call if it needs more.
 - **Do NOT use when:** you want the defect fixed — this tier has no Edit or Write tools; route the fix to `builder` (inherits, can write) — or to `worker` if the fix is fully specified.
-- **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
+- **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped (one beside `tools:` would be applied, per the Claude Code docs, but redundant). Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
 - **`maxTurns` was the binding constraint, and was raised 20 → 50.** Measured 2026-09-30 (on `claude-opus-5`):
   under the old cap of 20, 6 of 7 reviewers and 4 of 4 inventory agents in a repo audit
   landed on **exactly 20 calls** — guillotined mid-task. Only the one that finished at 17
@@ -175,13 +204,39 @@ partially modified tree with no report of what changed)
   in a Fable session, where it downgrades below the caller: adjudicate inline there.
 - **Use when:** adjudicating a contested call — two reviewers disagree, an architectural decision is irreversible, the cost of being wrong dominates the price (Opus is 2x Sonnet's).
 - **Do NOT use when:** there is a knowable right answer, or when you have not first measured whether `reviewer` at `high` already gets it. Do not fan `judge` out across many items. `opus/xhigh` was the slowest and dearest cell measured, 6.2x the time and 6.6x the cost of `sonnet/medium` for the same score on bounded work.
-- **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped or would be honoured. Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
+- **Tools:** Read, Grep, Glob, Bash, ToolSearch. `tools:` is an allowlist, so anything unlisted — `Edit`, `Write`, `Agent` — is already unavailable; no `disallowedTools` line is shipped (one beside `tools:` would be applied, per the Claude Code docs, but redundant). Bash can still write, so read-only here is a mandate, not a sandbox. `ToolSearch` is here so this tier can load deferred MCP tools — necessary but not sufficient, see `model-selection.md` → "Reaching MCP tools from a tier".
+
+## Frontmatter keys that cost or save tokens
+
+Claude Code docs, sub-agents, read 2026-10-22.
+
+- `autoCompactWindow` (100000-1000000, v2.1.296+): compact a long-running subagent earlier.
+- `experimental.cacheTtl` (`5m`|`1h`): this subagent's cache lifetime.
+- `memory`: adds up to 25KB / 200 lines of MEMORY.md to every run's prompt and force-enables
+  Read/Write/Edit even on a read-only `tools:` list. Do not set it on the read-only or cheap
+  tiers.
+- `skills`: preloads full skill text into every spawn, a direct cost on input per agent.
+- `isolation: worktree`: branches from the default branch, not the parent session's HEAD, and
+  is cleaned up automatically if the subagent makes no changes. A reviewer in a worktree does
+  not see your uncommitted or unmerged work; see `workflow-patterns.md` → "isolation:
+  'worktree'".
+- Background subagents get a filtered built-in tool set (MCP tools kept; `Agent`,
+  `Workflow` and `AskUserQuestion` never available); a definition's `tools:` is intersected
+  with it silently.
+- `claude plugin validate .claude/agents` catches misspelled frontmatter keys, which are
+  otherwise silently ignored.
 
 ## Built-ins
 
 ### `Explore`
 Read-only fan-out search. Reads **excerpts, not whole files**, takes a breadth hint, and
-**omits CLAUDE.md**, which makes its cold start cheaper than a custom definition's.
+skips CLAUDE.md and the git-status snapshot, which gives it the smallest cold-start prefix.
+It runs on the **main conversation's model** (when the session runs Fable on a subscription
+or Console, Explore runs on the `opus` alias). It is one-shot: no agent ID, so it cannot be
+resumed with `SendMessage` (Claude Code docs, sub-agents, read 2026-10-22).
+- **Cost shape:** in an Opus session an Explore call is an Opus call at the session's
+  effort: smallest prefix, not cheapest model. For a large locate whose answer you can check,
+  `scout` (Haiku) is cheaper; for a read you will act on, `inspector`.
 - **Good for:** locating things. Where is X defined, which files touch Y, what exists here.
 - **NOT good for:** review, audit, or any verdict. Explore *locates* code; it does not
   judge it, and it never saw the whole file it quoted from. This is the routine misuse —
@@ -191,8 +246,9 @@ Read-only fan-out search. Reads **excerpts, not whole files**, takes a breadth h
   Also not for anything that writes, or work needing project conventions (no CLAUDE.md).
 
 ### `Plan`
-Architect. Returns step-by-step plans and the critical files, with **no write tools** and
-no CLAUDE.md.
+Architect. Returns step-by-step plans and the critical files, with **no write tools**, and
+skips CLAUDE.md and the git-status snapshot. It inherits the main conversation's model. Like
+`Explore` it is one-shot and cannot be resumed with `SendMessage`.
 - **Good for:** turning a vague goal into an ordered plan before any code is touched.
 - **NOT good for:** executing the plan, or verifying that existing code matches one.
 
@@ -208,7 +264,7 @@ Full tool access, multi-step, open-ended.
 
 | Task shape | `subagent_type` | Why |
 |---|---|---|
-| "Where is X handled?" | `Explore` | Locating, not judging; cheapest cold start |
+| "Where is X handled?" | `Explore` | Locating, not judging; smallest cold-start prefix, on the session model (`scout` is cheaper for a large locate you can check) |
 | "Plan the migration" | `Plan` | Architect, no write tools to misfire |
 | Rename/reformat across N files | `mechanical` | Deterministic and verifiable; 20x cheaper on price, about 10x measured — **only if the safe-downgrade gate passes**; if "the same edit" could mean adapted-per-target, use `drafter` when the brief says how each target differs and `builder` when working that out is part of the job |
 | **Pull named facts from a large log/corpus** | `scout` | Read-only Haiku; only if you can check the answer. Acting on it unchecked: `inspector` |
@@ -232,5 +288,12 @@ Full tool access, multi-step, open-ended.
 
 1. **Judge cost per completed task, not per request.** A cheaper tier that needs three
    retries and a `reviewer` pass is not cheaper.
-2. **Caches are model-scoped.** A cascade across models forfeits cache reuse between
-   them — measure "best model at lower effort" before building one.
+2. **A cheaper subagent model forfeits nothing from the orchestrator's cache.** A subagent
+   never reads the parent's cache (Claude Code docs, prompt-caching, read 2026-10-22); only
+   a fork does, and a fork runs the parent's model. Each subagent writes its own prefix once
+   and reads it on its later turns (5-minute TTL by default). What a uniform tier earns is
+   sibling sharing within a Workflow stage (same model, effort, agent type, tools, output
+   schema and working directory); a per-call `effort` override on one item takes it out of
+   the shared prefix. Model-scoped cache loss is real only in the main loop (`/model`,
+   `opusplan`, a skill's `model:` frontmatter). Still measure "best model at lower effort"
+   before building a cascade; see `model-selection.md`.

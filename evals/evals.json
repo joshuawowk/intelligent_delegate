@@ -72,7 +72,7 @@
       "prompt": "The subagent I spawned came back with a partial answer. I'll spawn another one with a better prompt.",
       "expected_output": "Use SendMessage to continue the existing agent instead of paying a fresh cold start.",
       "expectations": [
-        "It recommends SendMessage or continuing the existing agent",
+        "It recommends SendMessage to the existing agent, which resumes even after it has finished (Explore and Plan excepted)",
         "It notes that a fresh Agent call re-pays the cold-start cost (system prompt, CLAUDE.md, and re-briefing)"
       ]
     },
@@ -167,7 +167,51 @@
         "It looks at tier second: any agent() call with no agentType inherits the session's model and effort, and a pinned Sonnet tier is the fast one measured",
         "It looks at shape last: pipeline() instead of a parallel() barrier, and the size and number of items",
         "It does not propose raising effort on bounded work, and does not propose Haiku as the speed fix",
-        "It makes no claim about tokens per second or fast mode, which were not measured"
+        "It does not propose fast mode as the fix for a slow fan-out; if it mentions fast mode at all, it says fast mode is Opus-only, doubles the price, and is unmeasured here"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "That last session cost about $20 and every subagent ran on Sonnet through drafter. The orchestrator was Opus at xhigh. Where did the money go, and what should I change next time?",
+      "expected_output": "The orchestrator, not the agents: every orchestrator request re-reads its whole context at Opus's cache-read rate, and every background completion wakes it for another turn. Measured: 76% orchestrator. Use a Workflow for fan-outs, keep reports short and out of context, compact between phases, mind orchestrator effort and the cache TTL, and run the audit script.",
+      "expectations": [
+        "It attributes the bulk of the spend to the orchestrator's own context being re-read on every request, not to the Sonnet subagents",
+        "It explains that each background subagent completion triggers another orchestrator turn that re-reads the context",
+        "It recommends a Workflow for fan-outs (one result into the orchestrator's context) over many background Agent calls",
+        "It recommends keeping the orchestrator's context small: short reports, long output to files, and /compact or /clear at phase boundaries (which only the user can issue)",
+        "It mentions the delegation_audit script or /intelligent-delegate:audit as the way to measure the split",
+        "It does not recommend moving the subagents to Haiku as the main fix"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "I'm going to launch 30 background Agent calls, one per file, each with intelligent-delegate:worker, and handle each result as it comes in. Good plan?",
+      "expected_output": "The tier is fine, the shape is not: 30 background completions are 30 orchestrator wake-ups, each re-reading the context. Thirty similar items is rule 5: a Workflow with pipeline(), agentType on every call, which returns one result.",
+      "expectations": [
+        "It routes 30 similar items to a Workflow (pipeline) rather than 30 separate Agent calls",
+        "It names the orchestrator cost of 30 background completions: each one starts an orchestrator turn that re-reads the whole context",
+        "It keeps an agentType on every agent() call in the Workflow",
+        "It does not tell the user to switch the tier to the session model or to drop the tier"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "My shell profile exports CLAUDE_CODE_EFFORT_LEVEL=max. I pinned my review fan-out to intelligent-delegate:inspector, which is medium. So the reviewers run at medium, right?",
+      "expected_output": "No: CLAUDE_CODE_EFFORT_LEVEL beats both a definition's effort and the call's effort, so every tier runs at max. Unset it (or set it to the level you want) for the session that spawns the agents.",
+      "expectations": [
+        "It says the reviewers will NOT run at medium",
+        "It explains that CLAUDE_CODE_EFFORT_LEVEL overrides both the definition's frontmatter effort and the call-site effort",
+        "It recommends unsetting or changing the environment variable for the session that spawns the agents"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "I'm in an Opus session. To save money I'll send all my 'find where X is defined' searches across this huge repo to Explore, since it's the cheap built-in. Right?",
+      "expected_output": "Explore has the smallest cold-start prefix but runs on the session's model, so in an Opus session it is an Opus call. For a large locate whose answer you can check, scout (Haiku) is cheaper; for a read you will act on, inspector.",
+      "expectations": [
+        "It says Explore runs on the session's model (Opus here), so it is not the cheap option in an Opus session",
+        "It acknowledges Explore's smaller prefix (no CLAUDE.md, no git status) as its only cost advantage",
+        "It recommends scout for a large locate whose answer can be checked, or inspector for a read the user will act on"
       ]
     }
   ]
